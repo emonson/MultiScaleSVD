@@ -1,0 +1,6 @@
+# Ignore all python binary files
+*.pyc
+
+# and anything in the build directory (where makeapplication.py puts it all)
+build/*
+
