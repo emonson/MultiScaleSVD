@@ -122,7 +122,7 @@ class DataSource(object):
 		
 		# Right now Matlab data doesn't have any record of original image dimensions
 		# NOTE: Hard coding shape for now!
-		self.imR = 20	# rows
+		self.imR = 28	# rows
 		self.imC = 28	# cols
 		
 		# WC = MatInput['WavCoeffs']
