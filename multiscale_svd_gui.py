@@ -26,12 +26,12 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.renWinList = []
 		   
 		# data_file = askopenfilename()
-		# data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100521.mat'
-		self.openFilesDefaultPath = QtCore.QDir.homePath()
-		data_file = QtGui.QFileDialog.getOpenFileName(self,
-				"Load Saved Matlab File", 
-				self.openFilesDefaultPath,
-				"All Files (*);;Matlab Files (*.mat)")
+		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100521.mat'
+# 		self.openFilesDefaultPath = QtCore.QDir.homePath()
+# 		data_file = QtGui.QFileDialog.getOpenFileName(self,
+# 				"Load Saved Matlab File", 
+# 				self.openFilesDefaultPath,
+# 				"All Files (*);;Matlab Files (*.mat)")
 		
 		# DataSource loads .mat file and can generate data from it for other views
 		self.ds = DataSource(str(data_file))
@@ -77,6 +77,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.nf_class.SetFlowDirection(Direction.Vertical)
 		
 		self.renWinList.append(self.nf_class.GetRenderWindow())
+		self.renWinList.append(None)
 		
 		self.pc_class.SetHighlightAnnotationLink(self.if_al_out)
 		
