@@ -3,6 +3,7 @@ from icicle_noview_textured import IcicleNoView
 from pcoords_chart import PCoordsChart
 from image_flow import ImageFlow
 from detail_image_flow import DetailImageFlow
+from xy_chart import XYChart
 from constants import Direction
 
 # from tkFileDialog import askopenfilename
@@ -41,7 +42,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		#  the other views need to be able to initialize without any data and only pull and show
 		#  upon the first AnnotationChanged event...
 		
-		# View #1 -- Icicle View
+		# View #0 -- Icicle View
 		self.ice_class = IcicleNoView(self.ds)
 		self.ice_class.GetRenderWindow().SetPosition(50,500)
 		self.ice_class.GetRenderWindow().SetSize(630,470)
@@ -53,34 +54,32 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		#   it will always have a selection node, but the selection list may have no tuples if
 		#	it's an empty selection (and event gets fired on every empty selection
 		
-		# View #2 -- PCoords View
+		# View #1 -- PCoords View
 		self.pc_class = PCoordsChart(self.ds)
 		self.pc_class.SetInputAnnotationLink(self.ice_al_out)
-		self.pc_class.GetView().GetRenderWindow().SetPosition(50,170)
-		self.pc_class.GetView().GetRenderWindow().SetSize(630,300)
 		self.pc_al_out = self.pc_class.GetOutputAnnotationLink()
 		
 		self.renWinList.append(self.pc_class.GetView().GetRenderWindow())
 
-		# View #3 -- Image Flow View
+		# View #2 -- Image Flow View
 		self.if_class = ImageFlow(self.ds, self.pc_al_out)
-		self.if_class.GetRenderWindow().SetPosition(693,170)
-		self.if_class.GetRenderWindow().SetSize(600,300)
 		self.if_al_out = self.if_class.GetOutputAnnotationLink()
+		self.pc_class.SetHighlightAnnotationLink(self.if_al_out)
 		
 		self.renWinList.append(self.if_class.GetRenderWindow())
 		
-		# View #4 -- Detail View
+		# View #3 -- Detail View
 		self.nf_class = DetailImageFlow(self.ds, self.if_al_out)
-		self.nf_class.GetRenderWindow().SetPosition(693,500)
-		self.nf_class.GetRenderWindow().SetSize(600,470)
 		self.nf_class.SetFlowDirection(Direction.Vertical)
 		
 		self.renWinList.append(self.nf_class.GetRenderWindow())
-		self.renWinList.append(None)
+
+		# View #4 -- XY Chart View
+		self.xy_class = XYChart(self.ds)
+		self.xy_class.SetInputAnnotationLink(self.ice_al_out)
 		
-		self.pc_class.SetHighlightAnnotationLink(self.if_al_out)
-		
+		self.renWinList.append(self.xy_class.GetView().GetRenderWindow())
+				
 		# Set up callback to update 3d render window when selections are changed in 
 		#       parallel coordinates view
 		self.if_al_out.AddObserver("AnnotationChangedEvent", self.IcicleSelectionCallback)
@@ -102,6 +101,10 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# Detail Flow
 		self.style3 = vtk.vtkInteractorStyleImage()
 		self.nf_class.SetInteractorStyle(self.style3)		
+		# XYChart
+		style4 = vtk.vtkInteractorStyleRubberBand2D()
+		self.xy_class.GetView().SetInteractorStyle(style4)
+		self.xy_class.GetView().SetInteractionModeTo2D()
 
 		# Set sizes for veritcal splitters
 		self.ui.splitter_0.setSizes([360,240])		
