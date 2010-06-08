@@ -257,6 +257,8 @@ class ImageFlow(object):
 				
 			else:
 				
+				print "PC blank into Image Flow!"
+				
 				self.imStack = self.blankImageReader.GetOutputDataObject(0)
 				i_array_name = 'PNGImage'
 				

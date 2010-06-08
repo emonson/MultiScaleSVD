@@ -12,7 +12,7 @@ data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist1_5c_20100324.mat'
 ds = DataSource(data_file)
 
 # Set up a 2D scene, add an XY chart to it
-view = vtkvtg.vtkMyContextView()
+view = vtk.vtkContextView()
 view.GetRenderWindow().SetSize(400, 300)
 
 # Testing my custom chart class which has image hover tooltips
@@ -33,7 +33,7 @@ table = ds.GetNodeOneScaleCoeffTable(test_id)
 id_list = ds.PIN[test_id]
 image_stack = ds.GetProjectedImages(id_list)
 
-line1 = chart.AddPlot(1)		# POINTS
+line1 = chart.AddPlot()		# POINTS
 line1.SetInput(table, 0, 1)
 line1.SetMarkerStyle(2)
 line1.SetColor(255, 0, 0, 255)
@@ -41,17 +41,7 @@ line1.SetColor(255, 0, 0, 255)
 # Need to set the image stack for the plot which will get resliced 
 chart.GetPlot(0).SetImageStack(image_stack)
 chart.SetTooltipShowImage(True)
-
-chart.ClearPlots()
-
-line1 = chart.AddPlot(1)		# POINTS
-line1.SetInput(table, 0, 1)
-line1.SetMarkerStyle(2)
-line1.SetColor(255, 0, 0, 255)
-
-# Need to set the image stack for the plot which will get resliced 
-chart.GetPlot(0).SetImageStack(image_stack)
-chart.SetTooltipShowImage(True)
+chart.SetTooltipImageScalingFactor(2.0)
 
 # Finally render the scene and compare the image to a reference image
 # view.GetRenderWindow().SetMultiSamples(0)

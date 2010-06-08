@@ -60,6 +60,16 @@ class PCoordsChart(object):
 		# Set up callback to listen for changes in IcicleView selections
 		self.input_link.AddObserver("AnnotationChangedEvent", self.InputSelectionCallback)
 		
+	def SetAnnotationLink(self, link):
+		
+		self.link = link
+		self.link.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+		self.link.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
+		self.chart.SetAnnotationLink(self.link)
+		
+		# Set up callback for ID -> Pedigree ID conversion & copy to output link
+		self.link.AddObserver("AnnotationChangedEvent", self.PCoordsSelectionCallback)
+	
 	def SetHighlightAnnotationLink(self, link):
 		
 		self.highlight_link = link
@@ -202,6 +212,8 @@ class PCoordsChart(object):
 	def PCoordsSelectionCallback(self, caller, event):
 		# Defined for testing ID picking
 		annSel = caller.GetCurrentSelection()
+		print "PCOORDS ANNOTATION LINK"
+		print caller
 		# Note: When selection is cleared, the current selection does NOT contain any nodes
 		cs = vtk.vtkConvertSelection()
 		pedIdSelection = cs.ToPedigreeIdSelection(annSel, self.table)
@@ -216,6 +228,8 @@ class PCoordsChart(object):
 				print "PC ped ids: ", VN.vtk_to_numpy(idxVtk)
 		else:
 			print "PC empty selection"
+		
+		self.view.Render()
 		
 	def HighlightSelectionCallback(self, caller, event):
 		# Need to convert pedigree IDs that we get back from image_flow into indices
@@ -236,8 +250,15 @@ class PCoordsChart(object):
 		self.view.Render()
 		
 	def GetOutputAnnotationLink(self):
+		# This one contains pedigree_ids so that things like the image_flow can collect
+		# the correct original data based on pcoords selections
 		return self.output_link
 	
+	def GetAnnotationLink(self):
+		# This one contain indices, which internally is how the pcoords chart
+		# handles selections
+		return self.link
+
 	def GetView(self):
 		return self.view
 		

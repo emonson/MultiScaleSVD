@@ -20,7 +20,8 @@ class XYChart(object):
 			self.SetInputAnnotationLink(input_link)
 			
 		# Set up a 2D scene, add an XY chart to it
-		self.view = vtkvtg.vtkMyContextView()
+		# Relies on changes to VTK (drawimage branch) that allow DrawImage() scaling factor
+		self.view = vtk.vtkContextView()
 		self.view.GetRenderWindow().SetSize(600,300)
 		
 		self.chart = vtkvtg.vtkMyChartXY()
@@ -55,6 +56,23 @@ class XYChart(object):
 		# Set up callback to listen for changes in IcicleView selections
 		self.input_link.AddObserver("AnnotationChangedEvent", self.InputSelectionCallback)
 		
+	def SetAnnotationLink(self, link):
+		
+		self.link = link
+		self.link.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+		self.link.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
+		self.chart.SetAnnotationLink(self.link)
+		
+		# Set up callback for ID -> Pedigree ID conversion & copy to output link
+		self.link.AddObserver("AnnotationChangedEvent", self.XYSelectionCallback)
+	
+	def XYSelectionCallback(self, caller, event):
+	
+		# Right now just taking in selections, so not converting output_link to pedigree_ids
+		print "XY ANNOTATION LINK"
+		print caller
+		self.view.Render()
+	
 	def InputSelectionCallback(self, caller, event):
 		"""This is the callback that tracks changes in the icicle view and
 		sets the input table for the parallel coordinates chart accordingly.
@@ -65,36 +83,39 @@ class XYChart(object):
 		if annSel.GetNumberOfNodes() > 0:
 			idxVtk = annSel.GetNode(0).GetSelectionList()
 			idxArr = VN.vtk_to_numpy(idxVtk)
-			print "ice input to PC ", idxArr
+			print "ice input to XY ", idxArr
 			
 			# Here is where I'm limiting the selection to _one_ nodeID for now...
 			node_id = idxArr[0]
 			self.table = self.ds.GetNodeOneScaleCoeffTable(node_id)
 			id_list = self.ds.PIN[node_id]
-			image_stack = self.ds.GetProjectedImages(id_list)
+			self.image_stack = self.ds.GetProjectedImages(id_list)
 
 			self.chart.ClearPlots()
 			line1 = self.chart.AddPlot(1)		# POINTS
 			line1.SetInput(self.table, 0, 1)
 			line1.SetMarkerStyle(2)
-			line1.SetColor(255, 0, 0, 255)
+			line1.SetColor(0, 0, 0, 255)
 
 			# Need to set the image stack for the plot which will get resliced 
-			self.chart.GetPlot(0).SetImageStack(image_stack)
+			self.chart.GetPlot(0).SetImageStack(self.image_stack)
 			self.chart.SetTooltipShowImage(True)
-			
+			self.chart.SetTooltipImageScalingFactor(2.0)
+
 			# self.view.ResetCamera()
-			# self.view.Render()
+			self.view.Render()
 
 		else:
-			self.table = None
 			self.chart.ClearPlots()
+			self.table = None
 			# self.chart.Update()
 			# self.view.ResetCamera()
-			# self.view.Render()
+			self.view.Render()
 			
 			
 # 	def GetOutputAnnotationLink(self):
+# 		# The point here would be, like with the pcoords chart, to output pedigree_ids
+# 		# so that other views could collect the correct original data based on selections here
 # 		return self.output_link
 	
 	def GetView(self):

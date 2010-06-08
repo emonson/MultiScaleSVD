@@ -58,6 +58,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.pc_class = PCoordsChart(self.ds)
 		self.pc_class.SetInputAnnotationLink(self.ice_al_out)
 		self.pc_al_out = self.pc_class.GetOutputAnnotationLink()
+		self.pc_al = self.pc_class.GetAnnotationLink()
 		
 		self.renWinList.append(self.pc_class.GetView().GetRenderWindow())
 
@@ -77,6 +78,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# View #4 -- XY Chart View
 		self.xy_class = XYChart(self.ds)
 		self.xy_class.SetInputAnnotationLink(self.ice_al_out)
+		self.xy_class.SetAnnotationLink(self.pc_al)
 		
 		self.renWinList.append(self.xy_class.GetView().GetRenderWindow())
 				
