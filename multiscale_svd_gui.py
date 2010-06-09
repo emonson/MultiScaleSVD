@@ -79,6 +79,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.xy_class = XYChart(self.ds)
 		self.xy_class.SetInputAnnotationLink(self.ice_al_out)
 		self.xy_class.SetAnnotationLink(self.pc_al)
+		self.xy_class.SetHighlightAnnotationLink(self.if_al_out)
 		
 		self.renWinList.append(self.xy_class.GetView().GetRenderWindow())
 				

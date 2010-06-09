@@ -19,16 +19,27 @@ class PCoordsChart(object):
 		if input_link is not None:
 			self.SetInputAnnotationLink(input_link)
 			
-		self.highlight_link = None
-		if highlight_link is not None:
-			self.SetHighlightAnnotationLink(highlight_link)
-		
 		# Set up a 2D scene, add an XY chart to it
 		self.view = vtk.vtkContextView()
 		self.view.GetRenderer().SetBackground(1.0, 1.0, 1.0)
 		self.view.GetRenderWindow().SetSize(600,300)
 		
 		self.chart = vtgCh.vtkMyChartParallelCoordinates()
+		
+		self.highlight_link = None
+		if highlight_link is not None:
+			self.SetHighlightAnnotationLink(highlight_link)
+			# Set up callback to listen for changes in IcicleView selections
+			self.highlight_link.AddObserver("AnnotationChangedEvent", self.HighlightSelectionCallback)
+			
+			# Set up annotation link which will carry indices to parallel coordinates chart
+			# for highlighting outside selections (e.g. back from image_flow)
+			# This needs to carry indices, while image_flow link outputs pedigree ids
+			# so conversion happens in HighlightSelectionCallback
+			self.highlight_link_idxs = vtk.vtkAnnotationLink()
+			self.highlight_link_idxs.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+			self.highlight_link_idxs.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
+			self.chart.SetHighlightLink(self.highlight_link_idxs)
 		
 		# Create a annotation link to access selection in parallel coordinates view
 		self.link = vtk.vtkAnnotationLink()

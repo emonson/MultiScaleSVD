@@ -8,7 +8,7 @@ import vtkvtg
 
 class XYChart(object):
 
-	def __init__(self, data_source, input_link=None):
+	def __init__(self, data_source, input_link=None, highlight_link=None):
 		"""Parallel coordinates view constructor needs a valid DataSource plus
 		and external annotation link (from the icicle view).
 		"""
@@ -25,6 +25,21 @@ class XYChart(object):
 		self.view.GetRenderWindow().SetSize(600,300)
 		
 		self.chart = vtkvtg.vtkMyChartXY()
+		
+		self.highlight_link = None
+		if highlight_link is not None:
+			self.SetHighlightAnnotationLink(highlight_link)
+			# Set up callback to listen for changes in IcicleView selections
+			self.highlight_link.AddObserver("AnnotationChangedEvent", self.HighlightSelectionCallback)
+			
+			# Set up annotation link which will carry indices to parallel coordinates chart
+			# for highlighting outside selections (e.g. back from image_flow)
+			# This needs to carry indices, while image_flow link outputs pedigree ids
+			# so conversion happens in HighlightSelectionCallback
+			self.highlight_link_idxs = vtk.vtkAnnotationLink()
+			self.highlight_link_idxs.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+			self.highlight_link_idxs.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
+			self.chart.SetHighlightLink(self.highlight_link_idxs)
 		
 		# Create a annotation link to access selection in parallel coordinates view
 		self.link = vtk.vtkAnnotationLink()
@@ -66,6 +81,22 @@ class XYChart(object):
 		# Set up callback for ID -> Pedigree ID conversion & copy to output link
 		self.link.AddObserver("AnnotationChangedEvent", self.XYSelectionCallback)
 	
+	def SetHighlightAnnotationLink(self, link):
+		
+		self.highlight_link = link
+		
+		# Set up callback to listen for changes in IcicleView selections
+		self.highlight_link.AddObserver("AnnotationChangedEvent", self.HighlightSelectionCallback)
+		
+		# Set up annotation link which will carry indices to parallel coordinates chart
+		# for highlighting outside selections (e.g. back from image_flow)
+		# This needs to carry indices, while image_flow link outputs pedigree ids
+		# so conversion happens in HighlightSelectionCallback
+		self.highlight_link_idxs = vtk.vtkAnnotationLink()
+		self.highlight_link_idxs.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+		self.highlight_link_idxs.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
+		self.chart.SetHighlightLink(self.highlight_link_idxs)
+
 	def XYSelectionCallback(self, caller, event):
 	
 		# Right now just taking in selections, so not converting output_link to pedigree_ids
@@ -113,6 +144,24 @@ class XYChart(object):
 			self.view.Render()
 			
 			
+	def HighlightSelectionCallback(self, caller, event):
+		# Need to convert pedigree IDs that we get back from image_flow into indices
+		annSel = caller.GetCurrentSelection()
+		# Note: When selection is cleared, the current selection does NOT contain any nodes
+		if annSel.GetNumberOfNodes() > 0:
+			idxVtk = annSel.GetNode(0).GetSelectionList()
+			if idxVtk.GetNumberOfTuples() > 0:
+				cs = vtk.vtkConvertSelection()
+				idxSelection = cs.ToIndexSelection(annSel, self.table)
+				# Copy converted selection to output annotation link (fires AnnotationChangedEvent)
+				self.highlight_link_idxs.SetCurrentSelection(idxSelection)
+			else:
+				empty_arr = N.array([],dtype='int64')
+				empty_vtk = VN.numpy_to_vtkIdTypeArray(empty_arr, deep=True)
+				self.highlight_link_idxs.GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
+			
+		self.view.Render()
+		
 # 	def GetOutputAnnotationLink(self):
 # 		# The point here would be, like with the pcoords chart, to output pedigree_ids
 # 		# so that other views could collect the correct original data based on selections here
