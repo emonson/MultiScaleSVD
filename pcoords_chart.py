@@ -181,11 +181,11 @@ class PCoordsChart(object):
 						self.chart.GetAxis(ii).SetTitle(col_name[:-2])
 			
 			# Default to all lines selected so can view all images
-			num_rows = self.table.GetNumberOfRows()
-			all_id_vtk = VN.numpy_to_vtkIdTypeArray(N.arange(num_rows,dtype='int64'), deep=True)
-			self.link.GetCurrentSelection().GetNode(0).SetSelectionList(all_id_vtk)
-			empty_vtk = VN.numpy_to_vtkIdTypeArray(N.array([],dtype='int64'), deep=True)
-			self.highlight_link.GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
+# 			num_rows = self.table.GetNumberOfRows()
+# 			all_id_vtk = VN.numpy_to_vtkIdTypeArray(N.arange(num_rows,dtype='int64'), deep=True)
+# 			self.link.GetCurrentSelection().GetNode(0).SetSelectionList(all_id_vtk)
+# 			empty_vtk = VN.numpy_to_vtkIdTypeArray(N.array([],dtype='int64'), deep=True)
+# 			self.highlight_link.GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
 			
 			# And make sure the output_link knows the selection has changed
 			self.link.InvokeEvent("AnnotationChangedEvent")
@@ -223,8 +223,6 @@ class PCoordsChart(object):
 	def PCoordsSelectionCallback(self, caller, event):
 		# Defined for testing ID picking
 		annSel = caller.GetCurrentSelection()
-		print "PCOORDS ANNOTATION LINK"
-		print caller
 		# Note: When selection is cleared, the current selection does NOT contain any nodes
 		cs = vtk.vtkConvertSelection()
 		pedIdSelection = cs.ToPedigreeIdSelection(annSel, self.table)

@@ -100,8 +100,6 @@ class XYChart(object):
 	def XYSelectionCallback(self, caller, event):
 	
 		# Right now just taking in selections, so not converting output_link to pedigree_ids
-		print "XY ANNOTATION LINK"
-		print caller
 		self.view.Render()
 	
 	def InputSelectionCallback(self, caller, event):
@@ -129,7 +127,7 @@ class XYChart(object):
 			line1.SetColor(0, 0, 0, 255)
 
 			# Need to set the image stack for the plot which will get resliced 
-			self.chart.GetPlot(0).SetImageStack(self.image_stack)
+			self.chart.GetPlot(0).SetTooltipImageStack(self.image_stack)
 			self.chart.SetTooltipShowImage(True)
 			self.chart.SetTooltipImageScalingFactor(2.0)
 
