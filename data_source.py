@@ -358,7 +358,7 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
-	def GetNodeBasisImages(self, nodeID):
+	def GetNodeBasisImages(self, node_id):
 		"""Returns a vtkImageData of all basis images for a given node."""
 		
 		if self.data_loaded:
@@ -369,7 +369,22 @@ class DataSource(object):
 			#
 			# Need to create separate images (Z) for each column of matrix result
 
-			return
+			# Compute all detail images for that dimension
+			image_cols = self.V[:,:self.D]*self.SCFUNS[node_id]
+			# To make it linear, it is the correct order (one image after another) to .ravel()
+			images_linear = N.asarray(image_cols.T).ravel()
+			
+			intensity = VN.numpy_to_vtk(images_linear, deep=True)
+			intensity.SetName('DiffIntensity')
+	
+			imageData = vtk.vtkImageData()
+			imageData.SetOrigin(0,0,0)
+			imageData.SetSpacing(1,1,1)
+			imageData.SetDimensions(self.imR, self.imC, image_cols.shape[1])
+			imageData.GetPointData().AddArray(intensity)
+			imageData.GetPointData().SetActiveScalars('DiffIntensity')
+			
+			return imageData
 			
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
