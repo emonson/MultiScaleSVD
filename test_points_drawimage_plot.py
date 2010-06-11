@@ -6,7 +6,7 @@ import math
 import vtkvtg
 from data_source import DataSource
 
-data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist1_5c_20100324.mat'
+data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/olivetti_all_20100602.mat'
 
 # DataSource loads .mat file and can generate data from it for other views
 ds = DataSource(data_file)
@@ -28,7 +28,7 @@ annotationLink.GetCurrentSelection().GetNode(0).SetContentType(4)   # Indices
 # Connect the annotation link to the parallel coordinates representation
 chart.SetAnnotationLink(annotationLink)
 
-test_id = 68
+test_id = 23
 table = ds.GetNodeOneScaleCoeffTable(test_id)
 id_list = ds.PIN[test_id]
 image_stack = ds.GetProjectedImages(id_list)

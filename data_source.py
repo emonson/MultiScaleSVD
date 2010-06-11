@@ -122,8 +122,18 @@ class DataSource(object):
 		
 		# Right now Matlab data doesn't have any record of original image dimensions
 		# NOTE: Hard coding shape for now!
-		self.imR = 28	# rows
-		self.imC = 28	# cols
+		if (self.data_file.find('mnist') >= 0):
+			self.imR = 28	# rows
+			self.imC = 28	# cols
+		elif (self.data_file.find('frey') >= 0):
+			self.imR = 20	# rows
+			self.imC = 28	# cols
+		elif (self.data_file.find('olivetti') >= 0):
+			self.imR = 64	# rows
+			self.imC = 64	# cols
+		else:
+			self.imR = 20
+			self.imC = 20
 		
 		# WC = MatInput['WavCoeffs']
 		# Instead of using WC, which has already been ordered within Matlab

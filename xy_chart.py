@@ -119,6 +119,7 @@ class XYChart(object):
 			self.table = self.ds.GetNodeOneScaleCoeffTable(node_id)
 			id_list = self.ds.PIN[node_id]
 			self.image_stack = self.ds.GetProjectedImages(id_list)
+			self.axis_images = self.ds.GetNodeBasisImages(node_id)
 
 			self.chart.ClearPlots()
 			line1 = self.chart.AddPlot(1)		# POINTS
@@ -130,6 +131,8 @@ class XYChart(object):
 			self.chart.GetPlot(0).SetTooltipImageStack(self.image_stack)
 			self.chart.SetTooltipShowImage(True)
 			self.chart.SetTooltipImageScalingFactor(2.0)
+			self.chart.SetAxisImageStack(self.axis_images)
+			self.chart.Update()
 
 			# self.view.ResetCamera()
 			self.view.Render()
