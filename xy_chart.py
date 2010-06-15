@@ -133,6 +133,8 @@ class XYChart(object):
 			self.chart.SetTooltipImageTargetSize(50)
 			self.chart.SetAxisImageStack(self.axis_images)
 			self.chart.Update()
+			
+			self.PedIdToIndexSelection()
 
 			# self.view.ResetCamera()
 			self.view.Render()
@@ -145,6 +147,26 @@ class XYChart(object):
 			self.view.Render()
 			
 			
+	def PedIdToIndexSelection(self):
+		
+		# Convert pedigree id highlight_link to highlight_link_idxs selection
+		# (Don't have to do this with output_link & link right now because this chart
+		#  is sharing the internal index link with the pcoords_chart which is doing the calc.
+		#  In principle could just share the same highlight_link_idxs, too and not have to do
+		#  this...)
+		pedIdSel = self.highlight_link.GetCurrentSelection()		
+		cs = vtk.vtkConvertSelection()
+		idxSel = cs.ToIndexSelection(pedIdSel, self.table)
+		if idxSel.GetNumberOfNodes() > 0:
+			idxVtk = idxSel.GetNode(0).GetSelectionList()
+			if idxVtk.GetNumberOfTuples() > 0:
+				print "highlight_link_idxs indices: ", VN.vtk_to_numpy(idxVtk)
+			else:
+				print "highlight_link_idxs NO TUPLES"
+		else:
+			print "highlight_link_idxs NO NODES"
+		self.highlight_link_idxs.SetCurrentSelection(idxSel)
+
 	def HighlightSelectionCallback(self, caller, event):
 		# Need to convert pedigree IDs that we get back from image_flow into indices
 		annSel = caller.GetCurrentSelection()

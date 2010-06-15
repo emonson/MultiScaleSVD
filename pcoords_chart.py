@@ -110,7 +110,7 @@ class PCoordsChart(object):
 			print "ice input to PC ", idxArr
 			
 			# Manually clear out selections if changing data
-			self.chart.GetPlot(0).ResetSelectionRange()
+			# self.chart.GetPlot(0).ResetSelectionRange()
 
 			# Here is where I'm limiting the selection to _one_ nodeID for now...
 			node_id = idxArr[0]
@@ -188,11 +188,13 @@ class PCoordsChart(object):
 # 			self.highlight_link.GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
 			
 			# And make sure the output_link knows the selection has changed
-			self.link.InvokeEvent("AnnotationChangedEvent")
-			self.highlight_link.InvokeEvent("AnnotationChangedEvent")
+			# NOTE: Commented out for now so we can preserve selections across icicle_view node changes
+			# self.link.InvokeEvent("AnnotationChangedEvent")
+			# self.highlight_link.InvokeEvent("AnnotationChangedEvent")
+			self.PedIdToIndexSelection()
 
 			# self.view.ResetCamera()
-			# self.view.Render()
+			self.view.Render()
 
 		else:
 			# Need to clear out annotation link so downstream views will be cleared
@@ -203,8 +205,9 @@ class PCoordsChart(object):
  			self.highlight_link.GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk2)
 			
 			# And make sure the output_link knows the selection has changed
-			self.link.InvokeEvent("AnnotationChangedEvent")
- 			self.highlight_link.InvokeEvent("AnnotationChangedEvent")
+			# NOTE: Commented out for now so we can preserve selections across icicle_view node changes
+			# self.link.InvokeEvent("AnnotationChangedEvent")
+ 			# self.highlight_link.InvokeEvent("AnnotationChangedEvent")
 
 			# If there is no SelectionNode in IcicleView selection
 			print "Ice cleared PC called"
@@ -218,7 +221,31 @@ class PCoordsChart(object):
 			# self.view.Render()
 			
 			
-
+	def PedIdToIndexSelection(self):
+		
+		# Get pedigree ids from current output_link selection
+		pedIdSel = self.output_link.GetCurrentSelection()
+		cs = vtk.vtkConvertSelection()
+		idxSel = cs.ToIndexSelection(pedIdSel, self.table)
+		
+		# Trying to disable event invocation while chaging this selection
+		self.link.RemoveObservers("AnnotationChangedEvent")
+		self.link.SetCurrentSelection(idxSel)
+		self.link.AddObserver("AnnotationChangedEvent", self.PCoordsSelectionCallback)
+		
+		# Now do the same for the highlight_link_idxs selection
+		pedIdSel = self.highlight_link.GetCurrentSelection()		
+		cs = vtk.vtkConvertSelection()
+		idxSel = cs.ToIndexSelection(pedIdSel, self.table)
+		if idxSel.GetNumberOfNodes() > 0:
+			idxVtk = idxSel.GetNode(0).GetSelectionList()
+			if idxVtk.GetNumberOfTuples() > 0:
+				print "highlight_link_idxs indices: ", VN.vtk_to_numpy(idxVtk)
+			else:
+				print "highlight_link_idxs NO TUPLES"
+		else:
+			print "highlight_link_idxs NO NODES"
+		self.highlight_link_idxs.SetCurrentSelection(idxSel)
 
 	def PCoordsSelectionCallback(self, caller, event):
 		# Defined for testing ID picking
