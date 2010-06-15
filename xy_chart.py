@@ -130,7 +130,7 @@ class XYChart(object):
 			# Need to set the image stack for the plot which will get resliced 
 			self.chart.GetPlot(0).SetTooltipImageStack(self.image_stack)
 			self.chart.SetTooltipShowImage(True)
-			self.chart.SetTooltipImageScalingFactor(2.0)
+			self.chart.SetTooltipImageTargetSize(50)
 			self.chart.SetAxisImageStack(self.axis_images)
 			self.chart.Update()
 
