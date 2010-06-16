@@ -96,7 +96,7 @@ D = PROJ.shape[1]
 # V = SVD result (X = (X0-mean)*V[:,:D])
 V = N.mat(MatInput['V'])
 
-del MatInput
+# del MatInput
 
 # CP is the child-parent array that defines the tree: CP[i]=(i's parent node)
 # Without cast CP ends up as 'uint16' or 'uint8' depending on max value

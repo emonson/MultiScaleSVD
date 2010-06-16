@@ -71,14 +71,27 @@ class NavMenu(object):
 
 class IcicleNoView(object):
 
-	def __init__(self, data_source):
+	#---------------------------------------------------------
+	def __init__(self, data_source, group_link=None, highlight_link=None, scale_link=None):
 		"""Icicle view constructor needs a valid DataSource and will pull data
 		from it immediately."""
 		
 		self.ds = data_source
 		
-		self.SHRINK = 0.1
+		self.SHRINK = 0.15
 		self.THICK = 1.0
+		
+		self.group_link = None
+		if group_link is not None:
+			self.SetGroupAnnotationLink(group_link)
+			
+		self.highlight_link = None
+		if highlight_link is not None:
+			self.SetHighlightAnnotationLink(highlight_link)
+		
+		self.scale_link = None
+		if scale_link is not None:
+			self.SetScaleAnnotationLink(scale_link)
 		
 		# Create the RenderWindow, Renderer and both Actors
 		self.renderer = vtk.vtkRenderer()
@@ -164,6 +177,7 @@ class IcicleNoView(object):
 		self.renderer.ResetCamera()
 		# self.renWin.Render()
 
+	#---------------------------------------------------------
 	def LoadData(self):
 		
 		# Remove all old actors from renderer
@@ -332,18 +346,80 @@ class IcicleNoView(object):
 		act.SetPickable(True)
 		act.SetPosition(0,0,0)
 		act.GetProperty().SetRepresentationToWireframe()
-		act.GetProperty().SetLineWidth(3.0)
+		act.GetProperty().SetLineWidth(4.0)
 		
 		self.icicle_actor = act
 		
 		# Add actor for selection highlight outlines
 		self.renderer.AddActor(act)
 		
+		
+		# Now need to set up data for generating "selection lines" which come from 
+		# xy or pcoords chart. Basic method is to create a new scalar array out of x-coord
+		# of the texture coordinates, then do a Delaunay2D on the shrunken polys and contour
+		# that at values obtained by finding what normalized distance along data set are
+		# selected pedigree ids.
+
+		self.calc = vtk.vtkArrayCalculator()
+		self.calc.SetInputConnection(paf.GetOutputPort())
+		self.calc.SetAttributeModeToUsePointData()
+		self.calc.AddScalarVariable("tcoords_X", "Texture Coordinates", 0)
+		self.calc.SetFunction("tcoords_X")
+		self.calc.SetResultArrayName("tcx")
+		# self.calc.Update()
+		# print VN.vtk_to_numpy(self.calc.GetOutput().GetPointData().GetArray('tcx'))
+		
+		self.group_contour = vtk.vtkContourFilter()
+		self.group_contour.SetInputConnection(self.calc.GetOutputPort(0))
+		self.group_contour.SetInputArrayToProcess(0,0,0,0,'tcx')
+
+		self.highlight_contour = vtk.vtkContourFilter()
+		self.highlight_contour.SetInputConnection(self.calc.GetOutputPort(0))
+		self.highlight_contour.SetInputArrayToProcess(0,0,0,0,'tcx')
+
+		# Separate mapper and actor group selection (pcoords or xy) lines
+		map3 = vtk.vtkPolyDataMapper()
+		map3.SetInputConnection(self.group_contour.GetOutputPort(0))
+		map3.SetScalarVisibility(0)
+		act3 = vtk.vtkActor()
+		act3.SetMapper(map3)
+		act3.SetPickable(False)
+		act3.SetPosition(0,0,0.2)
+		act3.GetProperty().SetRepresentationToWireframe()
+		act3.GetProperty().SetLineWidth(2.0)
+		act3.GetProperty().SetColor(1,0,0)
+		act3.GetProperty().SetOpacity(0.4)
+		
+		self.group_actor = act3
+		# Add actor for selection highlight outlines
+		self.renderer.AddActor(act3)
+		
+		# Separate mapper and actor for individual (image_flow) selection highlight
+		map4 = vtk.vtkPolyDataMapper()
+		map4.SetInputConnection(self.highlight_contour.GetOutputPort(0))
+		map4.SetScalarVisibility(0)
+		act4 = vtk.vtkActor()
+		act4.SetMapper(map4)
+		act4.SetPickable(False)
+		act4.SetPosition(0,0,0.25)
+		act4.GetProperty().SetRepresentationToWireframe()
+		act4.GetProperty().SetLineWidth(3.0)
+		act4.GetProperty().SetColor(0,0.5,1)
+		act4.GetProperty().SetOpacity(0.4)
+		
+		self.highlight_actor = act4
+		# Add actor for selection highlight outlines
+		self.renderer.AddActor(act4)
+		
+		# Get Ordered fractional positions for pedigree ids (for setting contour values)
+		self.ped_id_fracs = self.ds.GetIdsFractionalPosition(XOrderedLeafIds)
+		
 		# Clear out selections on data change
 		self.output_link.GetCurrentSelection().RemoveAllNodes()
 		self.output_link.InvokeEvent("AnnotationChangedEvent")
 
 
+	#---------------------------------------------------------
 	# Navigation "buttons" callbacks
 	# NOTE: Directly accessing data source member variables here...
 	def OnNavUp(self, prev_ped_id):
@@ -404,6 +480,7 @@ class IcicleNoView(object):
 		else:
 			return prev_ped_id
 		
+	#---------------------------------------------------------
 	# Mouse button callbacks
 	def LeftButtonPressCallback(self, obj, event):
 		self.mouseActions["LeftButtonDown"] = 1
@@ -435,8 +512,10 @@ class IcicleNoView(object):
 		somePropPicked = propPicker.PickProp(x,y,self.renderer)
 		pickedProp = propPicker.GetViewProp()
 		
+		# Navigate with buttons
 		if somePropPicked and (pickedProp != self.icicle_actor):
-			# First, test whether there is a current selection
+			# First, test whether there is a current selection because we can only move if
+			# there was a selection to move in the first place
 			if self.output_link.GetCurrentSelection().GetNumberOfNodes() > 0:
 				# If so, get the current pedigree_id
 				prev_ped_vtk = self.output_link.GetCurrentSelection().GetNode(0).GetSelectionList()
@@ -454,6 +533,8 @@ class IcicleNoView(object):
 						self.output_link.InvokeEvent("AnnotationChangedEvent")
 						self.applycolors1.Update()
 						self.renWin.Render()					
+						# If navigated, don't pick any cells below nav menu buttons
+						return
 					
 		# Cell picker doesn't work with Actor2D, so nav menu won't report any cells
 		if someCellPicked:
@@ -486,6 +567,31 @@ class IcicleNoView(object):
 			self.applycolors1.Update()
 			self.renWin.Render()
 			
+	#---------------------------------------------------------
+	def SetGroupAnnotationLink(self, link):
+		
+		self.group_link = link
+		
+		# Set up callback to listen for changes in IcicleView selections
+		self.group_link.AddObserver("AnnotationChangedEvent", self.GroupSelectionCallback)
+				
+	#---------------------------------------------------------
+	def SetHighlightAnnotationLink(self, link):
+		
+		self.highlight_link = link
+		
+		# Set up callback to listen for changes in IcicleView selections
+		self.highlight_link.AddObserver("AnnotationChangedEvent", self.HighlightSelectionCallback)
+
+	#---------------------------------------------------------
+	def SetScaleAnnotationLink(self, link):
+		
+		self.scale_link = link
+		
+		# Set up callback to listen for changes in IcicleView selections
+		self.scale_link.AddObserver("AnnotationChangedEvent", self.ScaleSelectionCallback)
+
+	#---------------------------------------------------------
 	def IcicleSelectionCallback(self, caller, event):
 		# Defined for testing ID picking
 		annSel = caller.GetCurrentSelection()
@@ -496,6 +602,94 @@ class IcicleNoView(object):
 		else:
 			print "ice Empty selection"
 		
+	#---------------------------------------------------------
+	def GroupSelectionCallback(self, caller, event):
+		# Convert pedigree ids from group_link (selections in xy or pcoords chart)
+		# into fractions along x-component of texture coordinates for contour generation
+		
+		pedSel = caller.GetCurrentSelection()
+		
+		# Reset contour values
+		self.group_contour.SetNumberOfContours(0)
+		
+		# Note: Empty selection should still contain a node, but no tuples
+		if pedSel.GetNumberOfNodes() > 0:
+			pedArr = pedSel.GetNode(0).GetSelectionList()
+			for ii in range(pedArr.GetNumberOfTuples()):
+				self.group_contour.SetValue(ii,self.ped_id_fracs[pedArr.GetValue(ii)])
+			
+			self.group_contour.Modified()
+			
+		self.renWin.Render()
+
+	#---------------------------------------------------------
+	def HighlightSelectionCallback(self, caller, event):
+		# Convert pedigree ids from group_link (selections in xy or pcoords chart)
+		# into fractions along x-component of texture coordinates for contour generation
+		
+		pedSel = caller.GetCurrentSelection()
+		
+		# Reset contour values
+		self.highlight_contour.SetNumberOfContours(0)
+		
+		# Note: Empty selection should still contain a node, but no tuples
+		if pedSel.GetNumberOfNodes() > 0:
+			pedArr = pedSel.GetNode(0).GetSelectionList()
+			for ii in range(pedArr.GetNumberOfTuples()):
+				self.highlight_contour.SetValue(ii,self.ped_id_fracs[pedArr.GetValue(ii)])
+			
+			self.highlight_contour.Modified()
+			
+		self.renWin.Render()
+
+	#---------------------------------------------------------
+	def ScaleSelectionCallback(self, caller, event):
+		# This will contain a scale value from detail_image_flow, which should
+		# only exist if there is also a highlight_selection from image_flow.
+		# Here combine those two pieces of information to select the correct tree
+		# node corresponding to that pedigree_id highlight and scale value
+		
+		# The content type is Index for now...
+		scaleSel = caller.GetCurrentSelection()
+		
+		# Note: Empty selection should still contain a node, but no tuples
+		if (scaleSel.GetNumberOfNodes() > 0) and (scaleSel.GetNode(0).GetSelectionList().GetNumberOfTuples() > 0):
+			# This should only contain a single value or none
+			scaleVal = scaleSel.GetNode(0).GetSelectionList().GetValue(0)
+			print "Scale value from detail to icicle: ", scaleVal
+			
+			# Highlight should also contain a single pedigree id...
+			pedSel = self.highlight_link.GetCurrentSelection()
+			pedIdVal = pedSel.GetNode(0).GetSelectionList().GetValue(0)
+			print "Pedigree ID value right now in icicle highlight", pedIdVal
+			
+			# NOTE: Accessing member variable
+			nodes_at_scale = N.nonzero(self.ds.Scales==scaleVal)[0].tolist()
+			
+			for node_id in nodes_at_scale:
+				if (self.ds.PIN[node_id]==pedIdVal).any():
+					
+					# Assuming for now that this is a cell "Index", so getting pedigree ID
+					sel = vtk.vtkSelection()
+					node = vtk.vtkSelectionNode()
+					node.SetFieldType(0)		# Cell
+					node.SetContentType(4)		# Indices
+					id_array = N.array([node_id], dtype='int64')
+					id_vtk = VN.numpy_to_vtkIdTypeArray(id_array, deep=True)
+					node.SetSelectionList(id_vtk)
+					sel.AddNode(node)
+					# Note: When selection is cleared, the current selection does NOT contain any nodes
+					self.areapoly1.Update()
+					cs = vtk.vtkConvertSelection()
+					pedIdSelection = cs.ToPedigreeIdSelection(sel, self.areapoly1.GetOutput())
+					pedIdSelection.GetNode(0).SetFieldType(3)	# convert to vertext selection
+					
+					# Copy converted selection to output annotation link (fires AnnotationChangedEvent)
+					self.output_link.SetCurrentSelection(pedIdSelection)
+					self.applycolors1.Update()
+					self.renWin.Render()
+			
+	#---------------------------------------------------------
 	def GetOutputAnnotationLink(self):
 		return self.output_link
 	
@@ -515,13 +709,14 @@ class IcicleNoView(object):
 	#	self.view.GetRepresentation(0).SetAnnotationLink(self.output_link)
 	#	self.output_link.AddObserver("AnnotationChangedEvent", self.IcicleSelectionCallback)
 
+#---------------------------------------------------------
 if __name__ == "__main__":
 
 	from data_source import DataSource
 
 	# from tkFileDialog import askopenfilename
 	# data_file = askopenfilename()
-	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100521.mat'
+	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist1_5c_20100324.mat'
 	
 	# DataSource loads .mat file and can generate data from it for other views
 	ds = DataSource(data_file)
@@ -534,6 +729,19 @@ if __name__ == "__main__":
 	ice_class.GetRenderWindow().SetPosition(50,500)
 	ice_class.GetRenderWindow().SetSize(630,470)
 	ice_al_out = ice_class.GetOutputAnnotationLink()
+	
+	# Set up an annotation link as if selections were coming from another class
+	dummy_link = vtk.vtkAnnotationLink()
+	dummy_link.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+	dummy_link.GetCurrentSelection().GetNode(0).SetContentType(2)   # 2 = PedigreeIds, 4 = Indices
+	
+	ice_class.SetGroupAnnotationLink(dummy_link)
+	
+	# Fill selection link with dummy IDs
+	id_array = N.array([3,5,10,200,103,54],dtype='int64')
+	id_list = VN.numpy_to_vtkIdTypeArray(id_array)
+	dummy_link.GetCurrentSelection().GetNode(0).SetSelectionList(id_list)
+	dummy_link.InvokeEvent("AnnotationChangedEvent")
 	
 	# Only need to Start() interactor for one view
 	ice_class.GetRenderWindow().GetInteractor().Start()

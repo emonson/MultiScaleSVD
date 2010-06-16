@@ -27,9 +27,9 @@ class DetailImageFlow(object):
 		# If you don't set the FieldType explicitly it ends up as UNKNOWN (as of 21 Feb 2010)
 		# See vtkSelectionNode doc for field and content type enum values
 		self.output_link.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
-		# The chart seems to force INDEX selection, so I'm using vtkConvertSelection below to get
-		# out PedigreeIds...
-		self.output_link.GetCurrentSelection().GetNode(0).SetContentType(2)   # 2 = PedigreeIds, 4 = Indices
+		# Here I'm outputting the "scale" of the selection, so I'm not sure it matters
+		# whether output is index or other content type...
+		self.output_link.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
 		# Going to manually create output_link selection list, so not setting up callback for it...
 		
 		# Create a set of empty image stacks for use in empty selections
@@ -124,6 +124,7 @@ class DetailImageFlow(object):
 		self.highlightActor.SetMapper(self.highlightMapper)
 		self.highlightActor.GetProperty().SetColor(1,0.8,0.2)
 		self.highlightActor.GetProperty().SetLineWidth(3.0)
+		self.highlightActor.GetProperty().SetOpacity(0.6)
 # 		self.highlightActor.SetOrientation(self.assemblyList[0].GetOrientation())
 # 		tmpPos = self.assemblyList[0].GetPosition()
 # 		usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
@@ -308,7 +309,7 @@ class DetailImageFlow(object):
 				# Comment this out if we don't want the view resetting on empty selections
 				# self.needToResetCamera = True
 							
-			# Clear out pedigree ID map
+			# Clear out scale ID map
 			self.scale_dict = {}
 			self.imStackList[0].UpdateInformation()
 			(xMin, xMax, yMin, yMax, zMin, zMax) = self.imStackList[0].GetWholeExtent()
@@ -543,14 +544,14 @@ class DetailImageFlow(object):
 		self.ImageFlowSelectionChanged()
 		
 	def ImageFlowSelectionChanged(self):
-		"""Routine for adding pedigree ID to output annotation link selection list when 
+		"""Routine for adding scale value to output annotation link selection list when 
 		selection has been changed in image flow. Only allowing single selection for now."""
 		if self.highlightIndex >= 0:
-			ped_id_list = [self.scale_dict[self.highlightIndex]]
+			scale_list = [self.scale_dict[self.highlightIndex]]
 		else:
-			ped_id_list = []
+			scale_list = []
 			
-		id_array = N.array(ped_id_list, dtype='int64')
+		id_array = N.array(scale_list, dtype='int64')
 		id_vtk = VN.numpy_to_vtkIdTypeArray(id_array, deep=True)
 		self.output_link.GetCurrentSelection().GetNode(0).SetSelectionList(id_vtk)
 		self.output_link.InvokeEvent("AnnotationChangedEvent")

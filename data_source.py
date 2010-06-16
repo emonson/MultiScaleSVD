@@ -191,6 +191,9 @@ class DataSource(object):
 		# isaleaf = ones(1,nAllNets); 
 		# isaleaf(gW.cp(gW.cp>0)) = 0; 
 		# leafNodes = find(isaleaf>0); 
+		isaleaf = N.ones(self.CP.size)
+		isaleaf[self.CP[self.CP>=0]] = 0
+		self.leafNodes = N.nonzero(isaleaf)
 
 		self.data_loaded = True
 
@@ -298,6 +301,32 @@ class DataSource(object):
 			
 			return WCimageData
 		
+		else:
+			raise IOError, "Can't get image until data is loaded successfully"
+
+	def GetIdsFractionalPosition(self, XOrderedLeafIds=None ):
+		"""Returns a vtkImageData 2D image with the wavelet coefficients at all dimensions
+		and scales. If you give an ordered list of the leaf node IDs, then the matrix will
+		be sorted accordingly so the image should be correct for the icicle view."""
+		
+		if self.data_loaded:
+			
+			# If the caller wants the wavelet coeffs returned in a certain order, then
+			# they need to supply a sorted list of the LeafIds
+			if XOrderedLeafIds is not None:
+				# Create an array holding the indices of the leaf vertices in the proper order
+				SortedLeafIdxArray = N.array([],dtype='uint16')
+				for ii in range(XOrderedLeafIds.size):
+					SortedLeafIdxArray = N.concatenate((SortedLeafIdxArray,self.PIN[XOrderedLeafIds[ii]]))
+					
+			else:
+				# Assume that self.leafNodes is in the proper order
+				SortedLeafIdxArray = N.array([],dtype='uint16')
+				for ii in range(self.leafNodes.size):
+					SortedLeafIdxArray = N.concatenate((SortedLeafIdxArray,self.PIN[self.leafNodes[ii]]))
+				
+			return (SortedLeafIdxArray.argsort()+0.5)/float(SortedLeafIdxArray.size)
+			
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 

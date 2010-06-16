@@ -72,6 +72,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# View #3 -- Detail View
 		self.nf_class = DetailImageFlow(self.ds, self.if_al_out)
 		self.nf_class.SetFlowDirection(Direction.Vertical)
+		self.nf_al_out = self.nf_class.GetOutputAnnotationLink()
 		
 		self.renWinList.append(self.nf_class.GetRenderWindow())
 
@@ -80,6 +81,10 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.xy_class.SetInputAnnotationLink(self.ice_al_out)
 		self.xy_class.SetAnnotationLink(self.pc_al)
 		self.xy_class.SetHighlightAnnotationLink(self.if_al_out)
+		
+		self.ice_class.SetGroupAnnotationLink(self.pc_al_out)
+		self.ice_class.SetHighlightAnnotationLink(self.if_al_out)
+		self.ice_class.SetScaleAnnotationLink(self.nf_al_out)
 		
 		self.renWinList.append(self.xy_class.GetView().GetRenderWindow())
 				
