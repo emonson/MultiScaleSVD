@@ -57,7 +57,7 @@ class NavMenu(object):
 			act.GetProperty().SetColor(0.5, 0.45, 0.35)
 			act.GetProperty().SetLineWidth(0.0)
 			act.GetPositionCoordinate().SetCoordinateSystemToNormalizedDisplay()
-			act.GetPositionCoordinate().SetValue(0.075 ,0.1)
+			act.GetPositionCoordinate().SetValue(0.075 ,0.15)
 			act.GetPosition2Coordinate().SetCoordinateSystemToNormalizedDisplay()
 			act.GetPosition2Coordinate().SetValue(0.5, 0.5)
 			self.actor_list.append(act)
@@ -174,7 +174,6 @@ class IcicleNoView(object):
 		# Load Data
 		self.LoadData()
 
-		self.renderer.ResetCamera()
 		# self.renWin.Render()
 
 	#---------------------------------------------------------
@@ -418,6 +417,7 @@ class IcicleNoView(object):
 		self.output_link.GetCurrentSelection().RemoveAllNodes()
 		self.output_link.InvokeEvent("AnnotationChangedEvent")
 
+		self.renderer.ResetCamera(self.icicle_actor.GetBounds())
 
 	#---------------------------------------------------------
 	# Navigation "buttons" callbacks
@@ -536,6 +536,7 @@ class IcicleNoView(object):
 						# If navigated, don't pick any cells below nav menu buttons
 						return
 					
+		# Pick a cell of the icicle view
 		# Cell picker doesn't work with Actor2D, so nav menu won't report any cells
 		if someCellPicked:
 			print "Icicle picked cell index: ", pickedCellId
@@ -558,7 +559,7 @@ class IcicleNoView(object):
 			self.output_link.SetCurrentSelection(pedIdSelection)
 			self.applycolors1.Update()
 			self.renWin.Render()
-		
+					
 		if not someCellPicked and not somePropPicked:
 			# reset selection to blank
 			print "Blank selection"
@@ -566,6 +567,21 @@ class IcicleNoView(object):
 			self.output_link.InvokeEvent("AnnotationChangedEvent")
 			self.applycolors1.Update()
 			self.renWin.Render()
+
+		# Update scale selection link (shared by detail view) with scale of new selection
+		if someCellPicked:
+			scale_list = [self.ds.Scales[pickedCellId]]		# accessing member variable directly
+		else:
+			scale_list = []
+			
+		print "scale picked in icicle view: ", scale_list
+		
+		id_array = N.array(scale_list, dtype='int64')
+		id_vtk = VN.numpy_to_vtkIdTypeArray(id_array, deep=True)
+		self.scale_link.GetCurrentSelection().GetNode(0).SetSelectionList(id_vtk)
+		# For now want this event to trigger detail view, but not internal scale selection callback
+		self.scale_internal_call = True
+		self.scale_link.InvokeEvent("AnnotationChangedEvent")
 			
 	#---------------------------------------------------------
 	def SetGroupAnnotationLink(self, link):
@@ -648,6 +664,11 @@ class IcicleNoView(object):
 		# only exist if there is also a highlight_selection from image_flow.
 		# Here combine those two pieces of information to select the correct tree
 		# node corresponding to that pedigree_id highlight and scale value
+		
+		# Don't want to update if this is an internal call
+		if self.scale_internal_call:
+			self.scale_internal_call = False
+			return
 		
 		# The content type is Index for now...
 		scaleSel = caller.GetCurrentSelection()

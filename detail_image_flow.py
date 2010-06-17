@@ -23,6 +23,8 @@ class DetailImageFlow(object):
 		self.input_link.AddObserver("AnnotationChangedEvent", self.InputSelectionCallback)
 		
 		# Set up an annotation link for other views to monitor selected image
+		# This link will be created here, but used back and forth between this detail view
+		# and the icicle view. It carries the current "scale" selected in both.
 		self.output_link = vtk.vtkAnnotationLink()
 		# If you don't set the FieldType explicitly it ends up as UNKNOWN (as of 21 Feb 2010)
 		# See vtkSelectionNode doc for field and content type enum values
@@ -30,7 +32,8 @@ class DetailImageFlow(object):
 		# Here I'm outputting the "scale" of the selection, so I'm not sure it matters
 		# whether output is index or other content type...
 		self.output_link.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
-		# Going to manually create output_link selection list, so not setting up callback for it...
+		# Set up callback which will work either internally or triggered by change from icicle view.
+		self.output_link.AddObserver("AnnotationChangedEvent", self.ScaleSelectionCallback)
 		
 		# Create a set of empty image stacks for use in empty selections
 		# but use the dimensions of a "projected image" so scales match
@@ -62,10 +65,6 @@ class DetailImageFlow(object):
 		
 		self.blank_image_weights = 0.1*N.ones((self.ds.J, self.ds.ManifoldDim),dtype='float') # Note: accessing member variable
 
-# 		tmp = self.blank_image_list[0].GetBounds()
-# 		self.flowSpacing = float(tmp[1]-tmp[0])*1.1
-# 		self.nupSpacing = float(tmp[3]-tmp[2])*1.1
-
 		# Create a blue-white-red lookup table
 		self.lut = vtk.vtkLookupTable()
 		lutNum = 256
@@ -87,22 +86,6 @@ class DetailImageFlow(object):
  		self.resliceList = []
  		self.assemblyList = []
  		self.numImages = self.ds.J	# Note: accessing member variable
-# 
-# 		# Map between indices of images and their Pedigree ID
-# 		self.scale_dict = {}
-# 		
-# 		# Map the image through the lookup table
-# 		color = vtk.vtkImageMapToColors()
-# 		color.SetLookupTable(self.lut)
-# 		color.SetInput(self.blankImageReader.GetOutput())
-# 		self.colorList.append(color)
-# 		
-# 		blankImageActor = vtk.vtkImageActor()
-# 		blankImageActor.SetInput(self.colorList[0].GetOutput())
-# 		blankImageActor.SetPickable(False)
-# 		blankImageActor.SetOpacity(0.1)
-# 		
-# 		self.assemblyList.append(blankImageActor)
 
 		self.expSpread = 0.5
 		
@@ -110,14 +93,11 @@ class DetailImageFlow(object):
 		self.cam = self.renderer.GetActiveCamera()
 
 		# renderer.SetBackground(0.15, 0.12, 0.1)
-		# cc = [68,57,53]	# dark brown
 		cc = [40,40,40]
 		cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in cc]
 		self.renderer.SetBackground(cc0,cc1,cc2)
-# 		self.renderer.AddActor(self.assemblyList[0])
 				
 		self.highlightRect = vtk.vtkOutlineSource()
-# 		self.highlightRect.SetBounds(self.assemblyList[0].GetBounds())
 		self.highlightMapper = vtk.vtkPolyDataMapper()
 		self.highlightMapper.SetInputConnection(self.highlightRect.GetOutputPort(0))
 		self.highlightActor = vtk.vtkActor()
@@ -125,10 +105,6 @@ class DetailImageFlow(object):
 		self.highlightActor.GetProperty().SetColor(1,0.8,0.2)
 		self.highlightActor.GetProperty().SetLineWidth(3.0)
 		self.highlightActor.GetProperty().SetOpacity(0.6)
-# 		self.highlightActor.SetOrientation(self.assemblyList[0].GetOrientation())
-# 		tmpPos = self.assemblyList[0].GetPosition()
-# 		usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
-# 		self.highlightActor.SetPosition(usePos)
 		# Setting as if nothing picked even though initialized position & orientation to actor0
 		self.highlightIndex = -1
 		self.highlightActor.SetPickable(False)
@@ -142,7 +118,7 @@ class DetailImageFlow(object):
 		self.sliderRep.SetValue(0)
 		
 		# For remembering the previous slider setting when switching data sets
-		self.prevSliderValue = int(0)
+		self.prevSliderValue = int(self.numImages/2.0)
 		
 		# And need to keep track of whether to reset view
 		self.needToResetCamera = True
@@ -190,12 +166,9 @@ class DetailImageFlow(object):
 		self.InputSelectionCallback(self.input_link,None)
 		
 		self.cam.ParallelProjectionOn()
-		self.renderer.ResetCamera(self.assemblyList[0].GetBounds())
-		self.cam.Elevation(10)
-		self.renderer.ResetCameraClippingRange()
-		# self.window.Render()
 
 
+	# --------------------------------------------------------
 	def LeftButtonPressCallback(self, obj, event):
 		self.mouseActions["LeftButtonDown"] = 1
 		self.mouseActions["Picking"] = 1
@@ -231,6 +204,7 @@ class DetailImageFlow(object):
 		else:
 			self.interactorStyle.OnMouseMove()
 			
+	# --------------------------------------------------------
 	def SetFlowDirection(self, dir):
 	
 		direction = int(dir)
@@ -256,9 +230,9 @@ class DetailImageFlow(object):
 
 		else:
 			self.sliderRep.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
-			self.sliderRep.GetPoint1Coordinate().SetValue(0.93, 0.9)
+			self.sliderRep.GetPoint1Coordinate().SetValue(0.93, 0.6)
 			self.sliderRep.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
-			self.sliderRep.GetPoint2Coordinate().SetValue(0.93, 0.1)
+			self.sliderRep.GetPoint2Coordinate().SetValue(0.93, 0.4)
 			self.maxAngle = 0.0
 		
 		if direction != prev_dir:
@@ -271,8 +245,8 @@ class DetailImageFlow(object):
 		
 		# Update the widget
 		self.sliderRep.Modified()
-		# self.window.Render()
 		
+	# --------------------------------------------------------
 	def InputSelectionCallback(self, caller, event):
 		"""This is the callback that tracks changes in the parallel coordinates chart selection
 		(pedigree ids) and sets the input images for the image flow view accordingly.
@@ -409,52 +383,75 @@ class DetailImageFlow(object):
 			for ii in range(self.numImages):
 				self.renderer.AddActor(self.assemblyList[ii])
 				
+			# Seems to work best if I set a temporary bounds here and don't do it again
 			self.highlightRect.SetBounds(self.assemblyList[0].GetBounds())
-			self.highlightActor.SetOrientation(self.assemblyList[0].GetOrientation())
-			tmpPos = self.assemblyList[0].GetPosition()
-			usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
-			self.highlightActor.SetPosition(usePos)
-			# Setting as if nothing picked even though initialized position & orientation to actor0
-			self.highlightIndex = -1
-			self.highlightActor.SetPickable(False)
-			self.highlightActor.SetVisibility(False)
-			# self.renderer.AddActor(self.highlightActor)		
-					
+
+
+			# Get the current scale, if there is one, from the output_link selection list
+# 			scaleSel = self.output_link.GetCurrentSelection()
+			
+			# Note: Empty selection should still contain a node, but no tuples
+# 			if (scaleSel.GetNumberOfNodes() > 0) and (scaleSel.GetNode(0).GetSelectionList().GetNumberOfTuples() > 0):
+# 				# This should only contain a single value or none
+# 				scaleVal = scaleSel.GetNode(0).GetSelectionList().GetValue(0)
+# 			else:
+# 				scaleVal = -1
+# 			
+# 			if (scaleVal > 0) and (scaleVal < len(self.assemblyList)):
+# 				self.highlightRect.SetBounds(self.assemblyList[scaleVal].GetBounds())
+# 				self.highlightActor.SetOrientation(self.assemblyList[scaleVal].GetOrientation())
+# 				tmpPos = self.assemblyList[scaleVal].GetPosition()
+# 				usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
+# 				self.highlightActor.SetPosition(usePos)
+# 				self.highlightIndex = scaleVal
+# 				self.highlightActor.SetPickable(False)
+# 				self.highlightActor.SetVisibility(True)
+# 			else:
+# 				self.highlightRect.SetBounds(self.assemblyList[0].GetBounds())
+# 				self.highlightActor.SetOrientation(self.assemblyList[0].GetOrientation())
+# 				tmpPos = self.assemblyList[0].GetPosition()
+# 				usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
+# 				self.highlightActor.SetPosition(usePos)
+# 				self.highlightIndex = -1
+# 				self.highlightActor.SetPickable(False)
+# 				self.highlightActor.SetVisibility(False)
+
 			# Create the slider which will control the image positions
 			self.sliderRep.SetMinimumValue(0)
 			self.sliderRep.SetMaximumValue(self.numImages-1)
 			# self.sliderRep.SetValue(0)
-			self.sliderRep.SetValue(self.prevSliderValue)
+			# self.sliderRep.SetValue(self.prevSliderValue)
 			# In case prev value was greater than max
-			self.prevSliderValue = int(self.sliderRep.GetValue())
+			# self.prevSliderValue = int(self.sliderRep.GetValue())
 					
 			# Now assign initial positions to the actors
 			self.setImagesPosition(self.prevSliderValue)
 			
 			if self.needToResetCamera:
-				self.renderer.ResetCamera(self.assemblyList[self.prevSliderValue].GetBounds())
+				(Xmin0,Xmax0,Ymin0,Ymax0,Zmin0,Zmax0) = self.assemblyList[0].GetBounds()
+				(Xmin1,Xmax1,Ymin1,Ymax1,Zmin1,Zmax1) = self.assemblyList[-1].GetBounds()
+				self.renderer.ResetCamera(Xmin0,Xmax0,Ymin1,Ymax0,Zmin0,Zmax0)
+				# self.renderer.ResetCamera(self.assemblyList[self.prevSliderValue].GetBounds())
 				# self.cam.Elevation(10)
 				self.renderer.ResetCameraClippingRange()
 				# NOTE: Fragile test for blank image
-				if i_array_name == 'PNGImage':
-					self.needToResetCamera = True
-				else:
-					self.needToResetCamera = False
+				# if i_array_name == 'PNGImage':
+				# 	self.needToResetCamera = False
+				# else:
+				# 	self.needToResetCamera = False
 				
 			if event is not None:
 				self.window.Render()
 
-			# Selection gets changed on image reload, so update output annotation link
-			self.ImageFlowSelectionChanged()
+			# Use output_link callback to update highlight properly
+			self.ScaleSelectionCallback()
 
 		else:
 			# If there is no SelectionNode in PC selection -- shouldn't reach here...
 			print "PC no selection node to image flow called"
 
 
-	def PrintCameraPosition(self,obj,event):
-		print self.renderer.GetActiveCamera()
-				
+	# --------------------------------------------------------
 	def setImagesPosition(self,slider_value):
 		xx = N.arange(self.numImages)-slider_value
 		yy = 1.0/(1.0+N.exp(-xx/self.expSpread))
@@ -493,6 +490,7 @@ class DetailImageFlow(object):
 			usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
 			self.highlightActor.SetPosition(usePos)
 			
+	# --------------------------------------------------------
 	def sliderCallback(self,caller,event):
 	
 		slider_value = caller.GetRepresentation().GetValue()
@@ -510,7 +508,12 @@ class DetailImageFlow(object):
 		self.prevSliderValue = int(slider_value)
 		self.setImagesPosition(slider_value)
 
+	# --------------------------------------------------------
 	def selectImage(self):
+		"""Here just detect whether something was picked and pass the index (or empty list)
+		to the output_link, then rely on the output_link callback to update the highlight
+		actor and scroll the view to the correct index"""
+		
 		(x0,y0) = self.interactor.GetLastEventPosition()
 		(x,y) = self.interactor.GetEventPosition()
 		# DEBUG
@@ -519,12 +522,74 @@ class DetailImageFlow(object):
 		somethingPicked = picker.PickProp(x,y,self.renderer)
 		if somethingPicked:
 			pickedProp = picker.GetViewProp()
-			self.highlightIndex = self.assemblyList.index(pickedProp)
-			# print 'picked prop index: ', self.highlightIndex
-			self.highlightActor.SetOrientation(pickedProp.GetOrientation())
-			tmpPos = pickedProp.GetPosition()
-			usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
-			self.highlightActor.SetPosition(usePos)
+			index = self.assemblyList.index(pickedProp)
+		else:
+			index = -1
+		
+		if index >= 0:
+			scale_list = [self.scale_dict[index]]
+		else:
+			scale_list = []
+			
+		print "scale picked in detail view: ", scale_list
+		
+		id_array = N.array(scale_list, dtype='int64')
+		id_vtk = VN.numpy_to_vtkIdTypeArray(id_array, deep=True)
+		self.output_link.GetCurrentSelection().GetNode(0).SetSelectionList(id_vtk)
+		# This event should update selection highlight based on picked scale
+		self.output_link.InvokeEvent("AnnotationChangedEvent")
+		
+	# --------------------------------------------------------
+	def ScaleSelectionCallback(self,caller=None,event=None):
+		"""Routine for adding scale value to output annotation link selection list when 
+		selection has been changed in image flow. Only allowing single selection.
+		Scale output_link will always contain a node, but may contain 0 tuples."""
+		
+		# Get current scale
+		# The content type is Index for now...
+		scaleSel = self.output_link.GetCurrentSelection()
+		
+		# Note: Empty selection should still contain a node, but no tuples
+# 		if (scaleSel.GetNumberOfNodes() > 0) and (scaleSel.GetNode(0).GetSelectionList().GetNumberOfTuples() > 0):
+# 			# This should only contain a single value or none
+# 			scaleVal = scaleSel.GetNode(0).GetSelectionList().GetValue(0)
+# 			print "Scale value from detected at detail_view: ", scaleVal
+# 			
+# 			self.highlightIndex = scaleVal
+# 			# print 'picked prop index: ', self.highlightIndex
+# 			self.highlightActor.SetOrientation(self.assemblyList[scaleVal].GetOrientation())
+# 			tmpPos = self.assemblyList[scaleVal].GetPosition()
+# 			usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
+# 			self.highlightActor.SetPosition(usePos)
+# 			self.highlightActor.SetVisibility(True)
+# 			
+# 			slider_value = self.sliderWidget.GetRepresentation().GetValue()
+# 			if self.highlightIndex != slider_value:
+# 				# Animate 10 steps to new position if non-current image selected
+# 				for vv in N.linspace(slider_value, self.highlightIndex, 10):
+# 					time.sleep(0.02)
+# 					self.sliderWidget.GetRepresentation().SetValue(vv)
+# 					self.sliderWidget.InvokeEvent("InteractionEvent")
+# 					self.window.Render()
+# 		else:
+# 			self.highlightActor.SetVisibility(False)
+# 			self.highlightIndex = -1
+		
+		if (scaleSel.GetNumberOfNodes() > 0) and (scaleSel.GetNode(0).GetSelectionList().GetNumberOfTuples() > 0):
+			# This should only contain a single value or none
+			scaleVal = scaleSel.GetNode(0).GetSelectionList().GetValue(0)
+		else:
+			scaleVal = -1
+		
+		print "Updating detail view with selected scale: ", scaleVal
+		
+		if (scaleVal >= 0) and (scaleVal < len(self.assemblyList)):
+#  			self.highlightRect.SetBounds(self.assemblyList[scaleVal].GetBounds())
+# 			self.highlightActor.SetOrientation(self.assemblyList[scaleVal].GetOrientation())
+# 			tmpPos = self.assemblyList[scaleVal].GetPosition()
+# 			usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
+# 			self.highlightActor.SetPosition(usePos)
+			self.highlightIndex = scaleVal
 			self.highlightActor.SetVisibility(True)
 			
 			slider_value = self.sliderWidget.GetRepresentation().GetValue()
@@ -535,28 +600,28 @@ class DetailImageFlow(object):
 					self.sliderWidget.GetRepresentation().SetValue(vv)
 					self.sliderWidget.InvokeEvent("InteractionEvent")
 					self.window.Render()
-			self.window.Render()
 		else:
-			self.highlightActor.SetVisibility(False)
+			# Seting a placeholder bounds, pos, etc even if no selection
+			# NOTE: May not need this...
+# 			self.highlightRect.SetBounds(self.assemblyList[0].GetBounds())
+# 			self.highlightActor.SetOrientation(self.assemblyList[0].GetOrientation())
+# 			tmpPos = self.assemblyList[0].GetPosition()
+# 			usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
+# 			self.highlightActor.SetPosition(usePos)
 			self.highlightIndex = -1
-			self.window.Render()
-		
-		self.ImageFlowSelectionChanged()
-		
-	def ImageFlowSelectionChanged(self):
-		"""Routine for adding scale value to output annotation link selection list when 
-		selection has been changed in image flow. Only allowing single selection for now."""
-		if self.highlightIndex >= 0:
-			scale_list = [self.scale_dict[self.highlightIndex]]
-		else:
-			scale_list = []
+			self.highlightActor.SetVisibility(False)
 			
-		id_array = N.array(scale_list, dtype='int64')
-		id_vtk = VN.numpy_to_vtkIdTypeArray(id_array, deep=True)
-		self.output_link.GetCurrentSelection().GetNode(0).SetSelectionList(id_vtk)
-		self.output_link.InvokeEvent("AnnotationChangedEvent")
+			self.sliderRep.SetValue(self.prevSliderValue)
+			# In case prev value was greater than max
+	
+		self.prevSliderValue = int(self.sliderRep.GetValue())
 		
-		
+		# Don't want to call Render if this is the first setup call (internal) or will
+		# have problems with extra render window popping up...
+		if caller is not None:
+			self.window.Render()
+				
+	# --------------------------------------------------------
 	def SetInteractorStyle(self, style):
 		self.interactor = self.window.GetInteractor()
 		self.interactorStyle = style
@@ -574,6 +639,7 @@ class DetailImageFlow(object):
 		self.sliderWidget.AddObserver("EndInteractionEvent", self.endSliderCallback)
 		
 
+	# --------------------------------------------------------
 	def GetOutputAnnotationLink(self):
 		return self.output_link
 	
@@ -585,6 +651,8 @@ class DetailImageFlow(object):
 	# 	self.view.GetRepresentation(0).SetAnnotationLink(self.link)
 	# 	self.link.AddObserver("AnnotationChangedEvent", self.IcicleSelectionCallback)
 
+
+# --------------------------------------------------------
 if __name__ == "__main__":
 
 	# from tkFileDialog import askopenfilename
