@@ -257,7 +257,7 @@ class DetailImageFlow(object):
 			self.renderer.RemoveViewProp(prop)
 		
 		annSel = caller.GetCurrentSelection()
-		# Note: When selection is cleared, the current selection does NOT contain any nodes
+		# Note: When image_flost selection is cleared the current selection does NOT contain any tuples
 		if annSel.GetNumberOfNodes() > 0:
 			idxVtk = annSel.GetNode(0).GetSelectionList()
 			if idxVtk.GetNumberOfTuples() > 0:
@@ -272,14 +272,14 @@ class DetailImageFlow(object):
 				i_array_name = 'DiffIntensity'
 				
 				self.imWeightArr = self.ds.GetDetailWeights(idxArr.tolist()[0])
-																
+
 			else:
 								
 				self.imStackList = self.blank_image_list
 				i_array_name = 'PNGImage'
 				
 				self.imWeightArr = self.blank_image_weights
-				
+
 				# Comment this out if we don't want the view resetting on empty selections
 				# self.needToResetCamera = True
 							
@@ -428,9 +428,11 @@ class DetailImageFlow(object):
 			self.setImagesPosition(self.prevSliderValue)
 			
 			if self.needToResetCamera:
+				# Camera reset based on height, not width...
 				(Xmin0,Xmax0,Ymin0,Ymax0,Zmin0,Zmax0) = self.assemblyList[0].GetBounds()
 				(Xmin1,Xmax1,Ymin1,Ymax1,Zmin1,Zmax1) = self.assemblyList[-1].GetBounds()
-				self.renderer.ResetCamera(Xmin0,Xmax0,Ymin1,Ymax0,Zmin0,Zmax0)
+				eps = (Ymax0-Ymin1)*0.1
+				self.renderer.ResetCamera(Xmin0,Xmax0,Ymin1-eps,Ymax0+eps,Zmin0,Zmax0)
 				# self.renderer.ResetCamera(self.assemblyList[self.prevSliderValue].GetBounds())
 				# self.cam.Elevation(10)
 				self.renderer.ResetCameraClippingRange()
@@ -545,36 +547,18 @@ class DetailImageFlow(object):
 		selection has been changed in image flow. Only allowing single selection.
 		Scale output_link will always contain a node, but may contain 0 tuples."""
 		
+		# Trying only doing highlight & positioning when have real data
+		annSel = self.input_link.GetCurrentSelection()
+		# Note: When selection is cleared, the current selection does NOT contain any nodes
+		if annSel.GetNumberOfNodes() > 0:
+			if annSel.GetNode(0).GetSelectionList().GetNumberOfTuples() == 0:
+				return
+
 		# Get current scale
 		# The content type is Index for now...
 		scaleSel = self.output_link.GetCurrentSelection()
 		
 		# Note: Empty selection should still contain a node, but no tuples
-# 		if (scaleSel.GetNumberOfNodes() > 0) and (scaleSel.GetNode(0).GetSelectionList().GetNumberOfTuples() > 0):
-# 			# This should only contain a single value or none
-# 			scaleVal = scaleSel.GetNode(0).GetSelectionList().GetValue(0)
-# 			print "Scale value from detected at detail_view: ", scaleVal
-# 			
-# 			self.highlightIndex = scaleVal
-# 			# print 'picked prop index: ', self.highlightIndex
-# 			self.highlightActor.SetOrientation(self.assemblyList[scaleVal].GetOrientation())
-# 			tmpPos = self.assemblyList[scaleVal].GetPosition()
-# 			usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
-# 			self.highlightActor.SetPosition(usePos)
-# 			self.highlightActor.SetVisibility(True)
-# 			
-# 			slider_value = self.sliderWidget.GetRepresentation().GetValue()
-# 			if self.highlightIndex != slider_value:
-# 				# Animate 10 steps to new position if non-current image selected
-# 				for vv in N.linspace(slider_value, self.highlightIndex, 10):
-# 					time.sleep(0.02)
-# 					self.sliderWidget.GetRepresentation().SetValue(vv)
-# 					self.sliderWidget.InvokeEvent("InteractionEvent")
-# 					self.window.Render()
-# 		else:
-# 			self.highlightActor.SetVisibility(False)
-# 			self.highlightIndex = -1
-		
 		if (scaleSel.GetNumberOfNodes() > 0) and (scaleSel.GetNode(0).GetSelectionList().GetNumberOfTuples() > 0):
 			# This should only contain a single value or none
 			scaleVal = scaleSel.GetNode(0).GetSelectionList().GetValue(0)
@@ -584,11 +568,6 @@ class DetailImageFlow(object):
 		print "Updating detail view with selected scale: ", scaleVal
 		
 		if (scaleVal >= 0) and (scaleVal < len(self.assemblyList)):
-#  			self.highlightRect.SetBounds(self.assemblyList[scaleVal].GetBounds())
-# 			self.highlightActor.SetOrientation(self.assemblyList[scaleVal].GetOrientation())
-# 			tmpPos = self.assemblyList[scaleVal].GetPosition()
-# 			usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
-# 			self.highlightActor.SetPosition(usePos)
 			self.highlightIndex = scaleVal
 			self.highlightActor.SetVisibility(True)
 			
@@ -601,19 +580,12 @@ class DetailImageFlow(object):
 					self.sliderWidget.InvokeEvent("InteractionEvent")
 					self.window.Render()
 		else:
-			# Seting a placeholder bounds, pos, etc even if no selection
-			# NOTE: May not need this...
-# 			self.highlightRect.SetBounds(self.assemblyList[0].GetBounds())
-# 			self.highlightActor.SetOrientation(self.assemblyList[0].GetOrientation())
-# 			tmpPos = self.assemblyList[0].GetPosition()
-# 			usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
-# 			self.highlightActor.SetPosition(usePos)
 			self.highlightIndex = -1
 			self.highlightActor.SetVisibility(False)
 			
 			self.sliderRep.SetValue(self.prevSliderValue)
-			# In case prev value was greater than max
 	
+		# In case prev value was greater than max
 		self.prevSliderValue = int(self.sliderRep.GetValue())
 		
 		# Don't want to call Render if this is the first setup call (internal) or will

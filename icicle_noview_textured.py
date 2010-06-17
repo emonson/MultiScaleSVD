@@ -567,6 +567,7 @@ class IcicleNoView(object):
 		if not someCellPicked and not somePropPicked:
 			# reset selection to blank
 			print "Blank selection"
+			return
 			self.output_link.GetCurrentSelection().RemoveAllNodes()
 			self.output_link.InvokeEvent("AnnotationChangedEvent")
 			self.applycolors1.Update()
