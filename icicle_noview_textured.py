@@ -511,6 +511,7 @@ class IcicleNoView(object):
 		propPicker = vtk.vtkPropPicker()
 		somePropPicked = propPicker.PickProp(x,y,self.renderer)
 		pickedProp = propPicker.GetViewProp()
+		navigated = False
 		
 		# Navigate with buttons
 		if somePropPicked and (pickedProp != self.icicle_actor):
@@ -532,13 +533,14 @@ class IcicleNoView(object):
 						self.output_link.GetCurrentSelection().GetNode(0).SetSelectionList(new_ped_vtk)
 						self.output_link.InvokeEvent("AnnotationChangedEvent")
 						self.applycolors1.Update()
-						self.renWin.Render()					
-						# If navigated, don't pick any cells below nav menu buttons
-						return
+						self.renWin.Render()			
+						# Set list for scale_link
+						scale_list = [self.ds.Scales[new_ped_id]]
+						navigated = True
 					
 		# Pick a cell of the icicle view
 		# Cell picker doesn't work with Actor2D, so nav menu won't report any cells
-		if someCellPicked:
+		if someCellPicked and not navigated:
 			print "Icicle picked cell index: ", pickedCellId
 			# Assuming for now that this is a cell "Index", so getting pedigree ID
 			sel = vtk.vtkSelection()
@@ -559,7 +561,9 @@ class IcicleNoView(object):
 			self.output_link.SetCurrentSelection(pedIdSelection)
 			self.applycolors1.Update()
 			self.renWin.Render()
-					
+			# Set list for scale_link
+			scale_list = [self.ds.Scales[pickedCellId]]
+			
 		if not someCellPicked and not somePropPicked:
 			# reset selection to blank
 			print "Blank selection"
@@ -567,13 +571,9 @@ class IcicleNoView(object):
 			self.output_link.InvokeEvent("AnnotationChangedEvent")
 			self.applycolors1.Update()
 			self.renWin.Render()
-
-		# Update scale selection link (shared by detail view) with scale of new selection
-		if someCellPicked:
-			scale_list = [self.ds.Scales[pickedCellId]]		# accessing member variable directly
-		else:
+			# Set list for scale_link
 			scale_list = []
-			
+
 		print "scale picked in icicle view: ", scale_list
 		
 		id_array = N.array(scale_list, dtype='int64')

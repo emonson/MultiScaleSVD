@@ -435,10 +435,10 @@ class DetailImageFlow(object):
 				# self.cam.Elevation(10)
 				self.renderer.ResetCameraClippingRange()
 				# NOTE: Fragile test for blank image
-				# if i_array_name == 'PNGImage':
-				# 	self.needToResetCamera = False
-				# else:
-				# 	self.needToResetCamera = False
+				if i_array_name == 'PNGImage':
+					self.needToResetCamera = False
+				else:
+					self.needToResetCamera = False
 				
 			if event is not None:
 				self.window.Render()
