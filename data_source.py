@@ -172,10 +172,12 @@ class DataSource(object):
 		self.PIN = []	# Points In Net
 		self.NIN = []	# Number In Net
 		self.SCFUNS = []	# Scaling functions
+		self.Centers = []	# Center of each node
 		for ii in range(self.gW['PointsInNet'][0,0].shape[1]):
 			self.PIN.append(self.gW['PointsInNet'][0,0][0,ii][0]-1)	# 0-based indices
 			self.NIN.append(self.gW['PointsInNet'][0,0][0,ii][0].size)
 			self.SCFUNS.append(N.mat(self.gW['ScalFuns'][0,0][0,ii]))	# matrix
+			self.Centers.append(N.mat(self.gW['Centers'][0,0][0,ii][0])) # matrix
 		
 		# Scale of each node
 		self.Scales = self.gW['Scales'][0,0][0] - 1	# zero-based
@@ -422,6 +424,33 @@ class DataSource(object):
 			imageData.SetDimensions(self.imR, self.imC, image_cols.shape[1])
 			imageData.GetPointData().AddArray(intensity)
 			imageData.GetPointData().SetActiveScalars('DiffIntensity')
+			
+			return imageData
+			
+		else:
+			raise IOError, "Can't get image until data is loaded successfully"
+
+	def GetNodeCenterImage(self, node_id):
+		"""Returns a vtkImageData of the center image for a given node."""
+		
+		if self.data_loaded:
+			
+			# imagesc(reshape(gW.Centers{1}*V(:,1:D)'+cm,28,[]))
+			
+			# Compute all detail images for that dimension
+			image_col = self.Centers[node_id]*self.V[:,:self.D].T + self.cm
+			# To make it linear, it is the correct order (one image after another) to .ravel()
+			image_linear = N.asarray(image_col.T).ravel()
+			
+			intensity = VN.numpy_to_vtk(image_linear, deep=True)
+			intensity.SetName('Intensity')
+	
+			imageData = vtk.vtkImageData()
+			imageData.SetOrigin(0,0,0)
+			imageData.SetSpacing(1,1,1)
+			imageData.SetDimensions(self.imR, self.imC, 1)
+			imageData.GetPointData().AddArray(intensity)
+			imageData.GetPointData().SetActiveScalars('Intensity')
 			
 			return imageData
 			

@@ -120,6 +120,7 @@ class XYChart(object):
 			id_list = self.ds.PIN[node_id]
 			self.image_stack = self.ds.GetProjectedImages(id_list)
 			self.axis_images = self.ds.GetNodeBasisImages(node_id)
+			self.center_image = self.ds.GetNodeCenterImage(node_id)
 
 			self.chart.ClearPlots()
 			line1 = self.chart.AddPlot(1)		# POINTS
@@ -132,6 +133,7 @@ class XYChart(object):
 			self.chart.SetTooltipShowImage(True)
 			self.chart.SetTooltipImageTargetSize(50)
 			self.chart.SetAxisImageStack(self.axis_images)
+			self.chart.SetCenterImage(self.center_image)
 			self.chart.Update()
 			
 			self.PedIdToIndexSelection()
