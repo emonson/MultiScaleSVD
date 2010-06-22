@@ -117,8 +117,8 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# Set sizes for veritcal splitters
 		self.ui.splitter_0.setSizes([320,280])		
 		self.ui.splitter_1.setSizes([360,240])
-		self.ui.splitter_2.setSizes([444,380])
-		self.ui.splitter_3.setSizes([844,180])
+		self.ui.splitter_2.setSizes([340,420])
+		self.ui.splitter_3.setSizes([760,264])
 		
 		# Connect signals and slots
 		QtCore.QObject.connect(self.ui.actionExit, QtCore.SIGNAL("triggered()"), self.fileExit)

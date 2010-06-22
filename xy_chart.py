@@ -132,6 +132,8 @@ class XYChart(object):
 			self.chart.GetPlot(0).SetTooltipImageStack(self.image_stack)
 			self.chart.SetTooltipShowImage(True)
 			self.chart.SetTooltipImageTargetSize(50)
+			# self.chart.SetAxisImagesVertical()
+			self.chart.SetAxisImagesHorizontal()
 			self.chart.SetAxisImageStack(self.axis_images)
 			self.chart.SetCenterImage(self.center_image)
 			self.chart.Update()

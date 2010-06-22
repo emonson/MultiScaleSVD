@@ -429,11 +429,16 @@ class DetailImageFlow(object):
 			
 			if self.needToResetCamera:
 				# Camera reset based on height, not width...
-				(Xmin0,Xmax0,Ymin0,Ymax0,Zmin0,Zmax0) = self.assemblyList[0].GetBounds()
+				# (Xmin0,Xmax0,Ymin0,Ymax0,Zmin0,Zmax0) = self.assemblyList[0].GetBounds()
+				(Xmin0,Xmax0,Ymin0,Ymax0,Zmin0,Zmax0) = self.assemblyList[self.prevSliderValue].GetBounds()
 				(Xmin1,Xmax1,Ymin1,Ymax1,Zmin1,Zmax1) = self.assemblyList[-1].GetBounds()
-				eps = (Ymax0-Ymin1)*0.1
-				self.renderer.ResetCamera(Xmin0,Xmax0,Ymin1-eps,Ymax0+eps,Zmin0,Zmax0)
+				# eps = (Ymax0-Ymin1)*0.1
+				eps = (Ymax0-Ymin0)*2.0
+				# Scale for height of whole thing
+				# self.renderer.ResetCamera(Xmin0,Xmax0,Ymin1-eps,Ymax0+eps,Zmin0,Zmax0)
+				# Scale for width of one element
 				# self.renderer.ResetCamera(self.assemblyList[self.prevSliderValue].GetBounds())
+				self.renderer.ResetCamera(Xmin0,Xmax0,Ymin0-eps,Ymax0+eps,Zmin0,Zmax0)
 				# self.cam.Elevation(10)
 				self.renderer.ResetCameraClippingRange()
 				# NOTE: Fragile test for blank image
