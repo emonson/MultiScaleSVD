@@ -79,9 +79,11 @@ class ImageFlow(object):
 		self.cam = self.renderer.GetActiveCamera()
 
 		# renderer.SetBackground(0.15, 0.12, 0.1)
-		cc = [68,57,53]
-		cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in cc]
+		# cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [68,57,53]]
+		# self.renderer.SetBackground(cc0,cc1,cc2)
+		cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [60,60,60]]
 		self.renderer.SetBackground(cc0,cc1,cc2)
+
 		self.renderer.AddActor(self.actorList[0])
 				
 		self.highlightRect = vtk.vtkOutlineSource()

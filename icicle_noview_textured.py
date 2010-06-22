@@ -122,9 +122,12 @@ class IcicleNoView(object):
 		self.theme.SetBackgroundColor(0.1, 0.1, 0.06)
 		self.theme.SetBackgroundColor2(0.25, 0.25, 0.2)
 		
-		self.renderer.SetBackground(self.theme.GetBackgroundColor())
-		self.renderer.SetBackground2(self.theme.GetBackgroundColor2())
-		self.renderer.SetGradientBackground(True)
+		# self.renderer.SetBackground(self.theme.GetBackgroundColor())
+		# self.renderer.SetBackground2(self.theme.GetBackgroundColor2())
+		# self.renderer.SetGradientBackground(True)
+		cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [40,40,40]]
+		self.renderer.SetBackground(cc0,cc1,cc2)
+		self.renderer.SetGradientBackground(False)
 		
 		# Grab annotation link to monitor selection changes
 		# self.output_link = rep.GetAnnotationLink()
@@ -291,8 +294,30 @@ class IcicleNoView(object):
 		self.lut.Build()
 		ctf = vtk.vtkColorTransferFunction()
 		ctf.SetColorSpaceToDiverging()
-		ctf.AddRGBPoint(0.0, 0, 0, 1.0)
-		ctf.AddRGBPoint(1.0, 1.0, 0, 0)
+# 		ccLo = [float(cc)/255.0 for cc in [59,76,192]]	# Blue-red
+# 		ccHi = [float(cc)/255.0 for cc in [180,4,38]]
+# 		ccLo = [float(cc)/255.0 for cc in [1, 102, 94]]	# Colorbrewer BrBG 7
+# 		ccHi = [float(cc)/255.0 for cc in [140, 81, 10]]
+# 		ccLo = [float(cc)/255.0 for cc in [27, 120, 55]]	# Colorbrewer PRGn 7
+# 		ccHi = [float(cc)/255.0 for cc in [118, 42, 131]]
+# 		ccLo = [float(cc)/255.0 for cc in [84, 39, 136]]	# Colorbrewer PuOr 7
+# 		ccHi = [float(cc)/255.0 for cc in [230, 97, 1]]
+# 		ctf.AddRGBPoint(0.0, ccLo[0], ccLo[1], ccLo[2])
+# 		ctf.AddRGBPoint(1.0, ccHi[0], ccHi[1], ccHi[2])
+
+		cl = []
+		cl.append([float(cc)/255.0 for cc in [140, 81, 10]])	# Colorbrewer BrBG 7
+		cl.append([float(cc)/255.0 for cc in [216, 179, 101]])
+		cl.append([float(cc)/255.0 for cc in [246, 232, 195]])
+		cl.append([float(cc)/255.0 for cc in [245, 245, 245]])
+		cl.append([float(cc)/255.0 for cc in [199, 234, 229]])
+		cl.append([float(cc)/255.0 for cc in [90, 180, 172]])
+		cl.append([float(cc)/255.0 for cc in [1, 102, 94]])
+		vv = [float(xx)/float(len(cl)-1) for xx in range(len(cl))]
+		vv.reverse()
+		for pt,color in zip(vv,cl):
+			ctf.AddRGBPoint(pt, color[0], color[1], color[2])
+
 		for ii,ss in enumerate([float(xx)/float(lutNum) for xx in range(lutNum)]):
 			cc = ctf.GetColor(ss)
 			self.lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
@@ -387,7 +412,7 @@ class IcicleNoView(object):
 		act3.GetProperty().SetRepresentationToWireframe()
 		act3.GetProperty().SetLineWidth(2.0)
 		act3.GetProperty().SetColor(1,0,0)
-		act3.GetProperty().SetOpacity(0.4)
+		act3.GetProperty().SetOpacity(0.6)
 		
 		self.group_actor = act3
 		# Add actor for selection highlight outlines
@@ -404,7 +429,7 @@ class IcicleNoView(object):
 		act4.GetProperty().SetRepresentationToWireframe()
 		act4.GetProperty().SetLineWidth(3.0)
 		act4.GetProperty().SetColor(0,0.5,1)
-		act4.GetProperty().SetOpacity(0.4)
+		act4.GetProperty().SetOpacity(0.6)
 		
 		self.highlight_actor = act4
 		# Add actor for selection highlight outlines
