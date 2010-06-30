@@ -27,7 +27,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.renWinList = []
 		   
 		# data_file = askopenfilename()
-		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100521.mat'
+		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100624.mat'
 # 		self.openFilesDefaultPath = QtCore.QDir.homePath()
 # 		data_file = QtGui.QFileDialog.getOpenFileName(self,
 # 				"Load Saved Matlab File", 
@@ -101,8 +101,8 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.ice_class.SetInteractorStyle(self.style0)
 		# PCoords
 		style1 = vtk.vtkInteractorStyleRubberBand2D()
-		self.pc_class.GetView().SetInteractorStyle(style1)
-		self.pc_class.GetView().SetInteractionModeTo2D()
+		self.pc_class.GetView().GetInteractor().SetInteractorStyle(style1)
+		self.pc_class.GetView().GetScene().SetInteractorStyle(style1)
 		# Image Flow
 		self.style2 = vtk.vtkInteractorStyleImage()
 		self.if_class.SetInteractorStyle(self.style2)		
@@ -111,8 +111,8 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.nf_class.SetInteractorStyle(self.style3)		
 		# XYChart
 		style4 = vtk.vtkInteractorStyleRubberBand2D()
-		self.xy_class.GetView().SetInteractorStyle(style4)
-		self.xy_class.GetView().SetInteractionModeTo2D()
+		self.xy_class.GetView().GetInteractor().SetInteractorStyle(style4)
+		self.xy_class.GetView().GetScene().SetInteractorStyle(style4)
 
 		# Set sizes for veritcal splitters
 		self.ui.splitter_0.setSizes([320,280])		

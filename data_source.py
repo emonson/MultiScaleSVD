@@ -120,20 +120,32 @@ class DataSource(object):
 		self.X0 = N.mat(MatInput['X0'])
 		self.cm = self.X0.mean(0)
 		
-		# Right now Matlab data doesn't have any record of original image dimensions
-		# NOTE: Hard coding shape for now!
-		if (self.data_file.find('mnist') >= 0):
-			self.imR = 28	# rows
-			self.imC = 28	# cols
-		elif (self.data_file.find('frey') >= 0):
-			self.imR = 20	# rows
-			self.imC = 28	# cols
-		elif (self.data_file.find('olivetti') >= 0):
-			self.imR = 64	# rows
-			self.imC = 64	# cols
+		# NOTE: gW and Data are class numpy.ndarray
+		# 	gW.dtype returns a numpy.dtype
+		#		gW.dtype.names returns a list of names of stored fields
+		#		MatInput is just a dict, so can directly look for variables there
+		
+		if MatInput.has_key('imR') and MatInput.has_key('imC'):
+			print 'Grabbing image dimensions from matlab file'
+			self.imR = MatInput['imR']
+			self.imC = MatInput['imC']
 		else:
-			self.imR = 20
-			self.imC = 20
+			# Right now Matlab data doesn't have any record of original image dimensions
+			# NOTE: Hard coding shape for now!
+			print 'Hacking image dimensions from file name'
+			if (self.data_file.find('mnist') >= 0):
+				self.imR = 28	# rows
+				self.imC = 28	# cols
+			elif (self.data_file.find('frey') >= 0):
+				self.imR = 20	# rows
+				self.imC = 28	# cols
+			elif (self.data_file.find('olivetti') >= 0):
+				self.imR = 64	# rows
+				self.imC = 64	# cols
+			else:
+				self.imR = 20
+				self.imC = 20
+				print 'Could not find matching file name -- probably wrong image dimensions!!!!'
 		
 		# WC = MatInput['WavCoeffs']
 		# Instead of using WC, which has already been ordered within Matlab
