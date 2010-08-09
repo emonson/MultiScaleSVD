@@ -10,7 +10,7 @@ Example application using PyQt4 (with Qt Designer) and VTK
 
 import sys
 from PyQt4.QtGui import QApplication
-from multiscale_svd_gui import MultiScaleSVDViews
+from multiscale_svd_gui_min import MultiScaleSVDViews
 
 if __name__ == "__main__":
 

@@ -23,9 +23,8 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 	
 		QtGui.QMainWindow.__init__(self, parent)
 		self.ui = Ui_MainWindow()
-		
-		self.renWinList = []
-		   
+		self.ui.setupUi(self)
+						   
 		# data_file = askopenfilename()
 		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100624.mat'
 # 		self.openFilesDefaultPath = QtCore.QDir.homePath()
@@ -44,11 +43,8 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		
 		# View #0 -- Icicle View
 		self.ice_class = IcicleNoView(self.ds)
-		self.ice_class.GetRenderWindow().SetPosition(50,500)
-		self.ice_class.GetRenderWindow().SetSize(630,470)
 		self.ice_al_out = self.ice_class.GetOutputAnnotationLink()
-		
-		self.renWinList.append(self.ice_class.GetRenderWindow())
+		self.ice_rw = self.ice_class.GetRenderWindow()
 		
 		# Note: With the way I've implemented the output annotation link in PCoords chart, 
 		#   it will always have a selection node, but the selection list may have no tuples if
@@ -59,60 +55,48 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.pc_class.SetInputAnnotationLink(self.ice_al_out)
 		self.pc_al_out = self.pc_class.GetOutputAnnotationLink()
 		self.pc_al = self.pc_class.GetAnnotationLink()
-		
-		self.renWinList.append(self.pc_class.GetView().GetRenderWindow())
+		self.pc_view = self.pc_class.GetView()
 
 		# View #2 -- Image Flow View
 		self.if_class = ImageFlow(self.ds, self.pc_al_out)
 		self.if_al_out = self.if_class.GetOutputAnnotationLink()
 		self.pc_class.SetHighlightAnnotationLink(self.if_al_out)
-		
-		self.renWinList.append(self.if_class.GetRenderWindow())
+		self.if_rw = self.if_class.GetRenderWindow()
 		
 		# View #3 -- Detail View
 		self.nf_class = DetailImageFlow(self.ds, self.if_al_out)
 		self.nf_class.SetFlowDirection(Direction.Vertical)
 		self.nf_al_out = self.nf_class.GetOutputAnnotationLink()
-		
-		self.renWinList.append(self.nf_class.GetRenderWindow())
+		self.nf_rw = self.nf_class.GetRenderWindow()
 
 		# View #4 -- XY Chart View
 		self.xy_class = XYChart(self.ds)
 		self.xy_class.SetInputAnnotationLink(self.ice_al_out)
 		self.xy_class.SetAnnotationLink(self.pc_al)
 		self.xy_class.SetHighlightAnnotationLink(self.if_al_out)
+		self.xy_view = self.xy_class.GetView()
 		
 		self.ice_class.SetGroupAnnotationLink(self.pc_al_out)
 		self.ice_class.SetHighlightAnnotationLink(self.if_al_out)
-		self.ice_class.SetScaleAnnotationLink(self.nf_al_out)
-		
-		self.renWinList.append(self.xy_class.GetView().GetRenderWindow())
+		self.ice_class.SetScaleAnnotationLink(self.nf_al_out)	
 				
 		# Set up callback to update 3d render window when selections are changed in 
 		#       parallel coordinates view
 		self.if_al_out.AddObserver("AnnotationChangedEvent", self.IcicleSelectionCallback)
 		
-		# Set up all the render windows in the GUI
-		self.ui.setupUi(self, self.renWinList)
-		
-		# Now need to get all the interactors working properly
+		# Now need to get all of the qvtkwidgets working properly
 		# Icicle
-		self.style0 = vtk.vtkInteractorStyleImage()
-		self.ice_class.SetInteractorStyle(self.style0)
+		self.ui.qvtkWidget_0.SetRenderWindow(self.ice_rw)
 		# PCoords
-		style1 = vtk.vtkInteractorStyleRubberBand2D()
-		self.pc_class.GetView().GetInteractor().SetInteractorStyle(style1)
-		self.pc_class.GetView().GetScene().SetInteractorStyle(style1)
+		self.pc_view.SetInteractor(self.ui.qvtkWidget_1.GetInteractor())
+		self.ui.qvtkWidget_1.SetRenderWindow(self.pc_view.GetRenderWindow())
 		# Image Flow
-		self.style2 = vtk.vtkInteractorStyleImage()
-		self.if_class.SetInteractorStyle(self.style2)		
+		self.ui.qvtkWidget_2.SetRenderWindow(self.if_rw)
 		# Detail Flow
-		self.style3 = vtk.vtkInteractorStyleImage()
-		self.nf_class.SetInteractorStyle(self.style3)		
+		self.ui.qvtkWidget_3.SetRenderWindow(self.nf_rw)
 		# XYChart
-		style4 = vtk.vtkInteractorStyleRubberBand2D()
-		self.xy_class.GetView().GetInteractor().SetInteractorStyle(style4)
-		self.xy_class.GetView().GetScene().SetInteractorStyle(style4)
+		self.xy_view.SetInteractor(self.ui.qvtkWidget_4.GetInteractor())
+		self.ui.qvtkWidget_4.SetRenderWindow(self.xy_view.GetRenderWindow())
 
 		# Set sizes for veritcal splitters
 		self.ui.splitter_0.setSizes([320,280])		
@@ -125,7 +109,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		QtCore.QObject.connect(self.ui.actionOpen, QtCore.SIGNAL("triggered()"), self.fileOpen)
 
 		# Only need to Start() interactor for one view
-		self.pc_class.GetView().GetInteractor().Start()
+		# self.pc_class.GetView().GetInteractor().Start()
 
 	def IcicleSelectionCallback(self, caller, event):
 	

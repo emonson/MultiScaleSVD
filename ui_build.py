@@ -13,12 +13,12 @@ f = open('temp_multiscale_svd.py', 'r')
 s = f.read()
 f.close()
 
-s = s.replace('QVTKWidget','QVTKRenderWindowInteractor')
-s = s.replace('from QVTK', 'from vtk.qt4.QVTK')
+# s = s.replace('QVTKWidget','QVTKRenderWindowInteractor')
+s = s.replace('from QVTKWidget', 'from vtk')
 
 # For vtkRenderView subclasses need to pass the render window to constructor on setup
-s = re.sub(r'def setupUi\((.+?)\):', 'def setupUi(\g<1>, renWinList):', s)
-s = re.sub(r'qvtkWidget_(\d) = QVTKRenderWindowInteractor\((.+?)\)', 'qvtkWidget_\g<1> = QVTKRenderWindowInteractor(\g<2>, rw=renWinList[\g<1>])', s)
+# s = re.sub(r'def setupUi\((.+?)\):', 'def setupUi(\g<1>, renWinList):', s)
+# s = re.sub(r'qvtkWidget_(\d) = QVTKRenderWindowInteractor\((.+?)\)', 'qvtkWidget_\g<1> = QVTKRenderWindowInteractor(\g<2>, rw=renWinList[\g<1>])', s)
 
 w = open('ui_multiscale_svd.py', 'w')
 w.write(s)
