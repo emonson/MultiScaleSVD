@@ -27,7 +27,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.renWinList = []
 		   
 		# data_file = askopenfilename()
-		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100624.mat'
+		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist1_5c_20100324.mat'
 # 		self.openFilesDefaultPath = QtCore.QDir.homePath()
 # 		data_file = QtGui.QFileDialog.getOpenFileName(self,
 # 				"Load Saved Matlab File", 
@@ -125,7 +125,10 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		QtCore.QObject.connect(self.ui.actionOpen, QtCore.SIGNAL("triggered()"), self.fileOpen)
 
 		# Only need to Start() interactor for one view
-		self.pc_class.GetView().GetInteractor().Start()
+		# self.pc_class.GetView().GetInteractor().Start()
+		# Shouldn't have to do this render...
+		for rw in self.renWinList:
+			rw.Render()
 
 	def IcicleSelectionCallback(self, caller, event):
 	
