@@ -75,17 +75,16 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		QtCore.QObject.connect(self.ui.actionExit, QtCore.SIGNAL("triggered()"), self.fileExit)
 
 		
-		
 		# CORE setting up chart and axis images
 		test_id = 68
 		self.table = self.ds.GetNodeOneScaleCoeffTable(test_id)
 		
 		line1 = vtkvtg.vtkMyPlotPoints()
+		# line1.DebugOn()
 		self.chart.AddPlot(line1)		# POINTS
 		line1.SetInput(self.table, 0, 1)
 		line1.SetMarkerStyle(2)
 		line1.SetColor(0, 0, 0, 255)
-		
 		
 		# Tooltip image stack will now be owned by the tooltip, so need to do that differently... 
 		id_list = self.ds.PIN[test_id]
@@ -99,6 +98,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		center_image = self.ds.GetNodeCenterImage(test_id)
 		self.ai.SetAxisImagesHorizontal()
 		self.ai.SetChartXY(self.chart)
+		self.ai.SetChartXYView(self.chartView)
 		self.ai.SetAxisImageStack(axis_images)
 		self.ai.SetCenterImage(center_image)
 		
@@ -106,16 +106,14 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# for highlighting outside selections (e.g. back from image_flow)
 		# This needs to carry indices, while image_flow link outputs pedigree ids
 		# so conversion happens in HighlightSelectionCallback
-		data_col_idxs = vtk.vtkAnnotationLink()
-		data_col_idxs.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
-		data_col_idxs.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
-		self.chart.SetDataColumnsLink(data_col_idxs)
-		self.ai.SetDataColumnsLink(data_col_idxs)
+# 		data_col_idxs = vtk.vtkAnnotationLink()
+# 		data_col_idxs.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+# 		data_col_idxs.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
+# 		self.chart.SetDataColumnsLink(data_col_idxs)
+# 		self.ai.SetDataColumnsLink(data_col_idxs)
 
-		# Create a annotation link to access selection in parallel coordinates view
+		# Create a annotation link to access selection in XY chart
 		annotationLink = vtk.vtkAnnotationLink()
-		# If you don't set the FieldType explicitly it ends up as UNKNOWN (as of 21 Feb 2010)
-		# See vtkSelectionNode doc for field and content type enum values
 		annotationLink.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
 		annotationLink.GetCurrentSelection().GetNode(0).SetContentType(4)   # Indices
 		# Connect the annotation link to the parallel coordinates representation
@@ -133,21 +131,22 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		
 		# Fill selection link with dummy IDs
 		id_array = N.array([0],dtype='int64')
-		id_list = VN.numpy_to_vtkIdTypeArray(id_array)
+		id_list = VN.numpy_to_vtkIdTypeArray(id_array, deep=True)
 		highlight_link_idxs.GetCurrentSelection().GetNode(0).SetSelectionList(id_list)
 		highlight_link_idxs.InvokeEvent("AnnotationChangedEvent")
 
-		self.updater = vtk.vtkViewUpdater()
-		self.updater.AddAnnotationLink(data_col_idxs)
-		self.updater.AddView(self.axisView)
-		self.updater.AddView(self.chartView)
+# 		self.updater = vtk.vtkViewUpdater()
+# 		self.updater.AddAnnotationLink(data_col_idxs)
+# 		self.updater.AddView(self.axisView)
+# 		self.updater.AddView(self.chartView)
 		
-		col_array = N.array([0,1],dtype='int64')
-		col_vtk = VN.numpy_to_vtkIdTypeArray(col_array, deep=True)
-		data_col_idxs.GetCurrentSelection().GetNode(0).SetSelectionList(col_vtk)
-		data_col_idxs.InvokeEvent("AnnotationChangedEvent")
+# 		col_array = N.array([0,1],dtype='int64')
+# 		col_vtk = VN.numpy_to_vtkIdTypeArray(col_array, deep=True)
+# 		data_col_idxs.GetCurrentSelection().GetNode(0).SetSelectionList(col_vtk)
+# 		data_col_idxs.InvokeEvent("AnnotationChangedEvent")
 		
-		
+		self.chart.RecalculateBounds()
+
 		# Only need to Start() interactor for one view
 		# self.pc_class.GetView().GetInteractor().Start()
 		# Shouldn't have to do this render...
