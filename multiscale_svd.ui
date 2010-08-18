@@ -16,15 +16,28 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QSplitter" name="splitter_3">
+     <widget class="QSplitter" name="splitter_4">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
       <widget class="QSplitter" name="splitter_2">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Vertical</enum>
        </property>
        <widget class="QVTKWidget" name="qvtkWidget_4"/>
+       <widget class="QVTKWidget" name="qvtkWidget_5"/>
+      </widget>
+      <widget class="QSplitter" name="splitter_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <widget class="QSplitter" name="splitter_1">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <widget class="QVTKWidget" name="qvtkWidget_3"/>
+        <widget class="QVTKWidget" name="qvtkWidget_2"/>
+       </widget>
        <widget class="QSplitter" name="splitter_0">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -39,13 +52,6 @@
          </property>
         </widget>
        </widget>
-      </widget>
-      <widget class="QSplitter" name="splitter_1">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <widget class="QVTKWidget" name="qvtkWidget_3"/>
-       <widget class="QVTKWidget" name="qvtkWidget_2"/>
       </widget>
      </widget>
     </item>

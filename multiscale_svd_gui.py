@@ -86,7 +86,10 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.ice_class.SetHighlightAnnotationLink(self.if_al_out)
 		self.ice_class.SetScaleAnnotationLink(self.nf_al_out)
 		
-		self.renWinList.append(self.xy_class.GetView().GetRenderWindow())
+		self.renWinList.append(self.xy_class.GetChartView().GetRenderWindow())
+		
+		# View #5 -- Axis Images (xy control) View
+		self.renWinList.append(self.xy_class.GetAxisView().GetRenderWindow())
 				
 		# Set up callback to update 3d render window when selections are changed in 
 		#       parallel coordinates view
@@ -111,14 +114,19 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.nf_class.SetInteractorStyle(self.style3)		
 		# XYChart
 		style4 = vtk.vtkInteractorStyleRubberBand2D()
-		self.xy_class.GetView().GetInteractor().SetInteractorStyle(style4)
-		self.xy_class.GetView().GetScene().SetInteractorStyle(style4)
+		self.xy_class.GetChartView().GetInteractor().SetInteractorStyle(style4)
+		self.xy_class.GetChartView().GetScene().SetInteractorStyle(style4)
+		# AxisImages
+		style5 = vtk.vtkInteractorStyleRubberBand2D()
+		self.xy_class.GetAxisView().GetInteractor().SetInteractorStyle(style5)
+		self.xy_class.GetAxisView().GetScene().SetInteractorStyle(style5)		
 
 		# Set sizes for veritcal splitters
 		self.ui.splitter_0.setSizes([320,280])		
 		self.ui.splitter_1.setSizes([360,240])
-		self.ui.splitter_2.setSizes([340,420])
-		self.ui.splitter_3.setSizes([760,264])
+		self.ui.splitter_2.setSizes([240,360])
+		self.ui.splitter_3.setSizes([340,420])
+		self.ui.splitter_4.setSizes([760,264])
 		
 		# Connect signals and slots
 		QtCore.QObject.connect(self.ui.actionExit, QtCore.SIGNAL("triggered()"), self.fileExit)

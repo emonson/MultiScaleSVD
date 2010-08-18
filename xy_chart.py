@@ -21,11 +21,20 @@ class XYChart(object):
 			
 		# Set up a 2D scene, add an XY chart to it
 		# Relies on changes to VTK (drawimage branch) that allow DrawImage() scaling factor
-		self.view = vtk.vtkContextView()
-		self.view.GetRenderWindow().SetSize(600,300)
+		self.chartView = vtk.vtkContextView()
+		self.chartView.GetRenderer().SetBackground(1.0, 1.0, 1.0)
 		
 		self.chart = vtkvtg.vtkMyChartXY()
+		self.chartView.GetScene().AddItem(self.chart)
 		
+		self.axisView = vtk.vtkContextView()
+		self.axisView.GetRenderer().SetBackground(1.0, 1.0, 1.0)
+
+		self.ai = vtkvtg.vtkAxisImageItem()
+		self.axisView.GetScene().AddItem(self.ai)
+		# self.ai.SetChartXY(self.chart)
+		self.ai.SetChartXYView(self.chartView)
+
 		self.highlight_link = None
 		if highlight_link is not None:
 			self.SetHighlightAnnotationLink(highlight_link)
@@ -59,9 +68,8 @@ class XYChart(object):
 		# Type and field will be set during conversion to pedigree ids in PCoordsSelectionCallback
 		# self.output_link = vtk.vtkAnnotationLink()
 		
-		self.view.GetScene().AddItem(self.chart)
-		# self.view.ResetCamera()
-		# self.view.Render()
+		# self.chartView.ResetCamera()
+		# self.chartView.Render()
 
 
 	def SetInputAnnotationLink(self, link):
@@ -100,7 +108,7 @@ class XYChart(object):
 	def XYSelectionCallback(self, caller, event):
 	
 		# Right now just taking in selections, so not converting output_link to pedigree_ids
-		self.view.Render()
+		self.chartView.Render()
 	
 	def InputSelectionCallback(self, caller, event):
 		"""This is the callback that tracks changes in the icicle view and
@@ -123,32 +131,42 @@ class XYChart(object):
 			self.center_image = self.ds.GetNodeCenterImage(node_id)
 
 			self.chart.ClearPlots()
-			line1 = self.chart.AddPlot(1)		# POINTS
+			self.ai.ClearAxisImages()
+			
+			line1 = vtkvtg.vtkMyPlotPoints()
+			self.chart.AddPlot(line1)		# POINTS
 			line1.SetInput(self.table, 0, 1)
 			line1.SetMarkerStyle(2)
 			line1.SetColor(0, 0, 0, 255)
 
 			# Need to set the image stack for the plot which will get resliced 
-			self.chart.GetPlot(0).SetTooltipImageStack(self.image_stack)
+			self.chart.SetTooltipImageStack(self.image_stack)
 			self.chart.SetTooltipShowImage(True)
+			# self.chart.SetTooltipImageScalingFactor(2.0)
 			self.chart.SetTooltipImageTargetSize(50)
-			# self.chart.SetAxisImagesVertical()
-			self.chart.SetAxisImagesHorizontal()
-			self.chart.SetAxisImageStack(self.axis_images)
-			self.chart.SetCenterImage(self.center_image)
 			self.chart.Update()
 			
+			self.ai.SetChartXY(self.chart)
+			self.ai.SetAxisImagesHorizontal()
+			self.ai.SetAxisImageStack(self.axis_images)
+			self.ai.SetCenterImage(self.center_image)
+			self.ai.Update()
+
 			self.PedIdToIndexSelection()
 
-			# self.view.ResetCamera()
-			self.view.Render()
+			# self.chartView.ResetCamera()
+			self.chartView.Render()
+			self.axisView.Render()
 
 		else:
 			self.chart.ClearPlots()
 			self.table = None
 			# self.chart.Update()
-			# self.view.ResetCamera()
-			self.view.Render()
+			# self.chartView.ResetCamera()
+			self.chartView.Render()
+			
+			self.ai.ClearAxisImages()
+			self.axisView.Render()
 			
 			
 	def PedIdToIndexSelection(self):
@@ -187,19 +205,22 @@ class XYChart(object):
 				empty_vtk = VN.numpy_to_vtkIdTypeArray(empty_arr, deep=True)
 				self.highlight_link_idxs.GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
 			
-		self.view.Render()
+		self.chartView.Render()
 		
 # 	def GetOutputAnnotationLink(self):
 # 		# The point here would be, like with the pcoords chart, to output pedigree_ids
 # 		# so that other views could collect the correct original data based on selections here
 # 		return self.output_link
 	
-	def GetView(self):
-		return self.view
+	def GetChartView(self):
+		return self.chartView
+		
+	def GetAxisView(self):
+		return self.axisView
 		
 	# def SetAnnotationLink(self, externalLink):
 	# 	self.link = externalLink
-	# 	self.view.GetRepresentation(0).SetAnnotationLink(self.link)
+	# 	self.chartView.GetRepresentation(0).SetAnnotationLink(self.link)
 	# 	self.link.AddObserver("AnnotationChangedEvent", self.IcicleSelectionCallback)
 
 
