@@ -120,10 +120,32 @@ class DataSource(object):
 		self.X0 = N.mat(MatInput['X0'])
 		self.cm = self.X0.mean(0)
 		
-		# Right now Matlab data doesn't have any record of original image dimensions
-		# NOTE: Hard coding shape for now!
-		self.imR = 28	# rows
-		self.imC = 28	# cols
+		# NOTE: gW and Data are class numpy.ndarray
+		# 	gW.dtype returns a numpy.dtype
+		#		gW.dtype.names returns a list of names of stored fields
+		#		MatInput is just a dict, so can directly look for variables there
+		
+		if MatInput.has_key('imR') and MatInput.has_key('imC'):
+			print 'Grabbing image dimensions from matlab file'
+			self.imR = MatInput['imR']
+			self.imC = MatInput['imC']
+		else:
+			# Right now Matlab data doesn't have any record of original image dimensions
+			# NOTE: Hard coding shape for now!
+			print 'Hacking image dimensions from file name'
+			if (self.data_file.find('mnist') >= 0):
+				self.imR = 28	# rows
+				self.imC = 28	# cols
+			elif (self.data_file.find('frey') >= 0):
+				self.imR = 20	# rows
+				self.imC = 28	# cols
+			elif (self.data_file.find('olivetti') >= 0):
+				self.imR = 64	# rows
+				self.imC = 64	# cols
+			else:
+				self.imR = 20
+				self.imC = 20
+				print 'Could not find matching file name -- probably wrong image dimensions!!!!'
 		
 		# WC = MatInput['WavCoeffs']
 		# Instead of using WC, which has already been ordered within Matlab
@@ -162,10 +184,12 @@ class DataSource(object):
 		self.PIN = []	# Points In Net
 		self.NIN = []	# Number In Net
 		self.SCFUNS = []	# Scaling functions
+		self.Centers = []	# Center of each node
 		for ii in range(self.gW['PointsInNet'][0,0].shape[1]):
 			self.PIN.append(self.gW['PointsInNet'][0,0][0,ii][0]-1)	# 0-based indices
 			self.NIN.append(self.gW['PointsInNet'][0,0][0,ii][0].size)
 			self.SCFUNS.append(N.mat(self.gW['ScalFuns'][0,0][0,ii]))	# matrix
+			self.Centers.append(N.mat(self.gW['Centers'][0,0][0,ii][0])) # matrix
 		
 		# Scale of each node
 		self.Scales = self.gW['Scales'][0,0][0] - 1	# zero-based
@@ -181,6 +205,9 @@ class DataSource(object):
 		# isaleaf = ones(1,nAllNets); 
 		# isaleaf(gW.cp(gW.cp>0)) = 0; 
 		# leafNodes = find(isaleaf>0); 
+		isaleaf = N.ones(self.CP.size)
+		isaleaf[self.CP[self.CP>=0]] = 0
+		self.leafNodes = N.nonzero(isaleaf)
 
 		self.data_loaded = True
 
@@ -291,6 +318,32 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
+	def GetIdsFractionalPosition(self, XOrderedLeafIds=None ):
+		"""Returns a vtkImageData 2D image with the wavelet coefficients at all dimensions
+		and scales. If you give an ordered list of the leaf node IDs, then the matrix will
+		be sorted accordingly so the image should be correct for the icicle view."""
+		
+		if self.data_loaded:
+			
+			# If the caller wants the wavelet coeffs returned in a certain order, then
+			# they need to supply a sorted list of the LeafIds
+			if XOrderedLeafIds is not None:
+				# Create an array holding the indices of the leaf vertices in the proper order
+				SortedLeafIdxArray = N.array([],dtype='uint16')
+				for ii in range(XOrderedLeafIds.size):
+					SortedLeafIdxArray = N.concatenate((SortedLeafIdxArray,self.PIN[XOrderedLeafIds[ii]]))
+					
+			else:
+				# Assume that self.leafNodes is in the proper order
+				SortedLeafIdxArray = N.array([],dtype='uint16')
+				for ii in range(self.leafNodes.size):
+					SortedLeafIdxArray = N.concatenate((SortedLeafIdxArray,self.PIN[self.leafNodes[ii]]))
+				
+			return (SortedLeafIdxArray.argsort()+0.5)/float(SortedLeafIdxArray.size)
+			
+		else:
+			raise IOError, "Can't get image until data is loaded successfully"
+
 	def GetNodeAllScaleCoeffTable(self, nodeID):
 		"""Returns a table of all the wavelet coefficients for a single tree
 		icicle view) node at all scales for plotting on a parallel coodinates plot."""
@@ -383,6 +436,33 @@ class DataSource(object):
 			imageData.SetDimensions(self.imR, self.imC, image_cols.shape[1])
 			imageData.GetPointData().AddArray(intensity)
 			imageData.GetPointData().SetActiveScalars('DiffIntensity')
+			
+			return imageData
+			
+		else:
+			raise IOError, "Can't get image until data is loaded successfully"
+
+	def GetNodeCenterImage(self, node_id):
+		"""Returns a vtkImageData of the center image for a given node."""
+		
+		if self.data_loaded:
+			
+			# imagesc(reshape(gW.Centers{1}*V(:,1:D)'+cm,28,[]))
+			
+			# Compute all detail images for that dimension
+			image_col = self.Centers[node_id]*self.V[:,:self.D].T + self.cm
+			# To make it linear, it is the correct order (one image after another) to .ravel()
+			image_linear = N.asarray(image_col.T).ravel()
+			
+			intensity = VN.numpy_to_vtk(image_linear, deep=True)
+			intensity.SetName('Intensity')
+	
+			imageData = vtk.vtkImageData()
+			imageData.SetOrigin(0,0,0)
+			imageData.SetSpacing(1,1,1)
+			imageData.SetDimensions(self.imR, self.imC, 1)
+			imageData.GetPointData().AddArray(intensity)
+			imageData.GetPointData().SetActiveScalars('Intensity')
 			
 			return imageData
 			
