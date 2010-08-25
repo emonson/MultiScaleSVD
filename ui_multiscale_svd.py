@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'multiscale_svd.ui'
 #
-# Created: Wed Aug 18 15:20:55 2010
+# Created: Fri Aug 20 09:51:22 2010
 #      by: PyQt4 UI code generator 4.7
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PyQt4 import QtCore, QtGui
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow, renWinList):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1024, 600)
+        MainWindow.resize(1100, 500)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtGui.QGridLayout(self.centralwidget)
@@ -23,36 +23,36 @@ class Ui_MainWindow(object):
         self.splitter_2 = QtGui.QSplitter(self.splitter_4)
         self.splitter_2.setOrientation(QtCore.Qt.Vertical)
         self.splitter_2.setObjectName("splitter_2")
-        self.qvtkWidget_4 = QVTKRenderWindowInteractor(self.splitter_2, rw=renWinList[4])
-        self.qvtkWidget_4.setObjectName("qvtkWidget_4")
         self.qvtkWidget_5 = QVTKRenderWindowInteractor(self.splitter_2, rw=renWinList[5])
         self.qvtkWidget_5.setObjectName("qvtkWidget_5")
+        self.qvtkWidget_4 = QVTKRenderWindowInteractor(self.splitter_2, rw=renWinList[4])
+        self.qvtkWidget_4.setObjectName("qvtkWidget_4")
         self.splitter_3 = QtGui.QSplitter(self.splitter_4)
         self.splitter_3.setOrientation(QtCore.Qt.Horizontal)
         self.splitter_3.setObjectName("splitter_3")
         self.splitter_1 = QtGui.QSplitter(self.splitter_3)
         self.splitter_1.setOrientation(QtCore.Qt.Vertical)
         self.splitter_1.setObjectName("splitter_1")
-        self.qvtkWidget_3 = QVTKRenderWindowInteractor(self.splitter_1, rw=renWinList[3])
-        self.qvtkWidget_3.setObjectName("qvtkWidget_3")
-        self.qvtkWidget_2 = QVTKRenderWindowInteractor(self.splitter_1, rw=renWinList[2])
-        self.qvtkWidget_2.setObjectName("qvtkWidget_2")
+        self.qvtkWidget_0 = QVTKRenderWindowInteractor(self.splitter_1, rw=renWinList[0])
+        self.qvtkWidget_0.setObjectName("qvtkWidget_0")
+        self.qvtkWidget_1 = QVTKRenderWindowInteractor(self.splitter_1, rw=renWinList[1])
+        self.qvtkWidget_1.setObjectName("qvtkWidget_1")
         self.splitter_0 = QtGui.QSplitter(self.splitter_3)
         self.splitter_0.setOrientation(QtCore.Qt.Vertical)
         self.splitter_0.setObjectName("splitter_0")
-        self.qvtkWidget_0 = QVTKRenderWindowInteractor(self.splitter_0, rw=renWinList[0])
-        self.qvtkWidget_0.setObjectName("qvtkWidget_0")
-        self.qvtkWidget_1 = QVTKRenderWindowInteractor(self.splitter_0, rw=renWinList[1])
+        self.qvtkWidget_3 = QVTKRenderWindowInteractor(self.splitter_0, rw=renWinList[3])
+        self.qvtkWidget_3.setObjectName("qvtkWidget_3")
+        self.qvtkWidget_2 = QVTKRenderWindowInteractor(self.splitter_0, rw=renWinList[2])
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.qvtkWidget_1.sizePolicy().hasHeightForWidth())
-        self.qvtkWidget_1.setSizePolicy(sizePolicy)
-        self.qvtkWidget_1.setObjectName("qvtkWidget_1")
+        sizePolicy.setHeightForWidth(self.qvtkWidget_2.sizePolicy().hasHeightForWidth())
+        self.qvtkWidget_2.setSizePolicy(sizePolicy)
+        self.qvtkWidget_2.setObjectName("qvtkWidget_2")
         self.gridLayout.addWidget(self.splitter_4, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1024, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1100, 22))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")

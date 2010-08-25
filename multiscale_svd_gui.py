@@ -27,12 +27,12 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.renWinList = []
 		   
 		# data_file = askopenfilename()
-		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist1_5c_20100324.mat'
-# 		self.openFilesDefaultPath = QtCore.QDir.homePath()
-# 		data_file = QtGui.QFileDialog.getOpenFileName(self,
-# 				"Load Saved Matlab File", 
-# 				self.openFilesDefaultPath,
-# 				"All Files (*);;Matlab Files (*.mat)")
+# 		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist1_5c_20100324.mat'
+		self.openFilesDefaultPath = QtCore.QDir.homePath()
+		data_file = QtGui.QFileDialog.getOpenFileName(self,
+				"Load Saved Matlab File", 
+				self.openFilesDefaultPath,
+				"All Files (*);;Matlab Files (*.mat)")
 		
 		# DataSource loads .mat file and can generate data from it for other views
 		self.ds = DataSource(str(data_file))
@@ -121,12 +121,12 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.xy_class.GetAxisView().GetInteractor().SetInteractorStyle(style5)
 		self.xy_class.GetAxisView().GetScene().SetInteractorStyle(style5)		
 
-		# Set sizes for veritcal splitters
-		self.ui.splitter_0.setSizes([320,280])		
-		self.ui.splitter_1.setSizes([360,240])
-		self.ui.splitter_2.setSizes([240,360])
-		self.ui.splitter_3.setSizes([340,420])
-		self.ui.splitter_4.setSizes([760,264])
+		# Set sizes for veritcal splitters (left,right or top,bottom)
+		self.ui.splitter_0.setSizes([280,220])		
+		self.ui.splitter_1.setSizes([260,240])
+		self.ui.splitter_2.setSizes([130,370])
+		self.ui.splitter_3.setSizes([490,280])
+		self.ui.splitter_4.setSizes([330,770])
 		
 		# Connect signals and slots
 		QtCore.QObject.connect(self.ui.actionExit, QtCore.SIGNAL("triggered()"), self.fileExit)

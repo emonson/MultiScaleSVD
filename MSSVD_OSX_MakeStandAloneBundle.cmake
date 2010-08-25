@@ -22,12 +22,12 @@ endif(COMMAND CMAKE_POLICY)
 # fixup_bundle purposes since they will not be pulled in automatically
 # by dependency analysis)
 #
-file(GLOB VTK_Python_Libs "/Users/emonson/Programming/VTK_git/VTK/noqt/bin/*Python.so")
-file(GLOB VTKVTG_Python_Libs "/Users/emonson/Programming/VTK_git/vtkVTG/noqt/bin/*Python.so")
+file(GLOB VTK_Python_Libs "/Users/emonson/Programming/VTK_git/VTK/build/bin/*Python.so")
+file(GLOB VTKVTG_Python_Libs "/Users/emonson/Programming/VTK_git/vtkVTG/build/bin/*Python.so")
 file(GLOB PyQt_Python_Libs "/Library/Python/2.6/site-packages/PyQt4/Qt*.so")
 
-# file(GLOB VTK_Libs "/Users/emonson/Programming/VTK_git/VTK/noqt/bin/*.dylib")
-# file(GLOB VTKVTG_Libs "/Users/emonson/Programming/VTK_git/vtkVTG/noqt/bin/*.dylib")
+# file(GLOB VTK_Libs "/Users/emonson/Programming/VTK_git/VTK/build/bin/*.dylib")
+# file(GLOB VTKVTG_Libs "/Users/emonson/Programming/VTK_git/vtkVTG/build/bin/*.dylib")
 
 set (PluginList)
 foreach (pluginname ${packaged_plugin_names})
@@ -129,8 +129,8 @@ include(BundleUtilities)
 # Additional libs may be found in:
 #   (not sure if I can get rid of above GLOB for these directories, then...
 #
-set(libs_path "/Users/emonson/Programming/VTK_git/VTK/noqt/bin")
-list(APPEND libs_path "/Users/emonson/Programming/VTK_git/vtkVTG/noqt/bin")
+set(libs_path "/Users/emonson/Programming/VTK_git/VTK/build/bin")
+list(APPEND libs_path "/Users/emonson/Programming/VTK_git/vtkVTG/build/bin")
 list(APPEND libs_path "/Library/Python/2.6/site-packages/PyQt4")
 
 list(REMOVE_DUPLICATES libs_path)

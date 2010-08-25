@@ -19,7 +19,7 @@ resource_list.append(os.path.join(package_root,'BlankImage.png'))
 # for libfile in glob.glob( os.path.join(libpath, 'libvtk*.dylib') ):
 #     liblist.append(libfile)
 # 
-# libpath = '/Users/emonson/Programming/VTK_git/vtkVTG/noqt/bin'
+# libpath = '/Users/emonson/Programming/VTK_git/vtkVTG/build/bin'
 # for libfile in glob.glob( os.path.join(libpath, 'libvtk*.dylib') ):
 #     liblist.append(libfile)
 
