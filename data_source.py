@@ -96,7 +96,31 @@ class DataSource(object):
 		#       .WavSingVals: cell array of corresponding singular values associated
 		#                             with the wavelet bases. At the root, it coincides
 		#                             with .Sigmas
-		self.gW = MatInput['gW']
+		
+		# NEW gW version in pruning code (8/25/2010)
+		# 		               X: [2000x120 double]
+		#              X_clean: [2000x120 double]
+		#                   X0: [2000x784 double]
+		#                 opts: [1x1 struct]
+		#                   cp: [1x103 double]
+		#               Scales: [1x103 double]
+		#              isaleaf: [1x103 double]
+		#            LeafNodes: [1x52 double]
+		#            IniLabels: [1x2000 double]
+		#          PointsInNet: {1x103 cell}
+		#                Radii: [1x103 double]
+		#                Sizes: [1x103 double]
+		#              Centers: {1x103 cell}
+		#             ScalFuns: {1x103 cell}
+		#               Sigmas: {1x103 cell}
+		#             WavBases: {1x103 cell}
+		#            WavConsts: {1x103 cell}
+		#          WavSingVals: {1x103 cell}
+		#     epsEncodingCosts: [1x103 double]
+		#              cp_orig: [1x103 double]
+		#            DictCosts: 420240
+		
+		# self.gW = MatInput['gW']
 		
 		#   Data: a structure of the following fields:
 		#       .ScalCoeffs: N by k*J matrix of coefficients relative to the
@@ -111,24 +135,125 @@ class DataSource(object):
 		#                  at consecutive scales
 		#        (In the above, J is the number of scales, and k is the manifold
 		#         dimension)
-		self.Data = MatInput['Data']
 		
+		# NEW Data version in pruning code (8/25/2010)
+		# 
+		#              CelScalCoeffs: {52x8 cell}
+		#                Projections: [2000x120x8 double]
+		#               CelWavCoeffs: {52x8 cell}
+		#                   Wavelets: [2000x120x8 double]
+		#      TangentialCorrections: [2000x120x8 double]
+		#     ProjectedInitialErrors: [2000x120x8 double]
+		#               MatWavCoeffs: [2000x187 double]
+		#                 maxWavDims: [6 6 7 8 7 42 64 47]
+		#                 MatWavDims: [2000x8 double]
+		#                CoeffsCosts: 60208
+		#                      Xmean: [1x784 double]
+		#                          V: [784x784 double]
+
+		# self.Data = MatInput['Data']
+		
+		# 		GWTopts = 
+		# 
+		#             AmbientDimension: 120
+		#                          knn: 50
+		#                  knnAutotune: 30
+		#             smallestMetisNet: 20
+		#            ManifoldDimension: 0
+		#                    errorType: 'relative'
+		#                   threshold0: 0.5000
+		#                    precision: 0.0100
+		#                   threshold1: 0.1000
+		#                   threshold2: 0.0100
+		#                      pruning: 1
+		#     addTangentialCorrections: 1
+		#                  sparsifying: 0
+		#                    splitting: 0
+		
+		# NEW: Poofed out variables
+		#
+		#     % "poofing" out variables for easier loading in Python code 
+		#     % and for file size since don't need nearly all of this stuff...
+		#     % I know it makes it less flexible later...
+		# 
+		#     AmbientDimension = GWTopts.AmbientDimension;
+		#     X = gW.X;
+		#     % cm
+		#     % imR
+		#     % imC
+		#     
+		#     % Redundant for now...
+		#     CelWavCoeffs = Data.CelWavCoeffs;
+		#     
+		#     num_nodes = length(gW.cp);
+		#     LeafNodesImap(gW.LeafNodes) = 1:length(gW.LeafNodes);
+		#     NodeWavCoeffs = cell(1,num_nodes);
+		# 
+		#     for node_idx = 1:num_nodes,
+		#         offspring = [node_idx get_offspring(gW.cp, node_idx)];
+		#         relevantLeafNodes = offspring(logical(gW.isaleaf(offspring)));
+		#         NodeWavCoeffs{node_idx} = cat(1, Data.CelWavCoeffs{LeafNodesImap(relevantLeafNodes), gW.Scales(node_idx)});
+		#     end
+		#     
+		#     CelScalCoeffs = Data.CelScalCoeffs;
+		#     NodeScalCoeffs = cell(1,num_nodes);
+		# 
+		#     for node_idx = 1:num_nodes,
+		#         offspring = [node_idx get_offspring(gW.cp, node_idx)];
+		#         relevantLeafNodes = offspring(logical(gW.isaleaf(offspring)));
+		#         NodeScalCoeffs{node_idx} = cat(1, Data.CelWavCoeffs{LeafNodesImap(relevantLeafNodes), gW.Scales(node_idx)});
+		#     end
+		#     
+		#     % Should calculate Projections rather than storing -- it's big...
+		#     
+		#     % node_idx = leafNodes(leaf_node_idx);
+		#     % data_idxs = find(gW.IniLabels == node_idx); % same as PointsInNet{net}
+		#     % nPts = length(data_idxs);
+		#     % j_max = gW.Scales(node_idx);
+		#     % gWCentersnet = repmat(gW.Centers{node_idx},nPts,1);
+		#     % Data.Projections(data_idxs,:,j_max) = Data.CelScalCoeffs{i,j_max}*gW.ScalFuns{node_idx}' + gWCentersnet;
+		#     % X_approx = Data.Projections(:,:,scale);
+		#     % X_img = X_approx*V(:,1:GWTopts.AmbientDimension)'+repmat(cm, size(X_approx,1),1);
+		# 
+		#     % Projections = Data.Projections;
+		#     
+		#     % May be able to get away with only saving
+		#     % V(:,1:GWTopts.AmbientDimension)
+		#     V = Data.V(:,1:GWTopts.AmbientDimension);
+		#     
+		#     cp = gW.cp;
+		#     IniLabels = gW.IniLabels;
+		#     PointsInNet = gW.PointsInNet;
+		#     NumberInNet = gW.Sizes;
+		#     ScalFuns = gW.ScalFuns;
+		#     WavBases = gW.WavBases;
+		#     Centers = gW.Centers;
+		#     Scales = gW.Scales;
+		#     IsALeaf = gW.isaleaf;
+		#     LeafNodes = gW.LeafNodes;
+		
+		self.GWTopts = MatInput['GWTopts']
+
 		# X has already been projected to D dim by PCA
 		self.X = N.mat(MatInput['X'])
+		self.cm = N.mat(MatInput['cm'])	# not sure if should be matrix or array...
 		
-		# X0 is original data
-		self.X0 = N.mat(MatInput['X0'])
-		self.cm = self.X0.mean(0)
-		
+		# Various plain matrices
+		self.V = N.mat(MatInput['V'])
+		self.cp = (MatInput['cp'][0].astype('int16') - 1)	# change here to zero-based indexing
+		self.IniLabels = (MatInput['IniLabels'][0] - 1)		# change here to zero-based indexing
+		self.NumberInNet = MatInput['NumberInNet'][0]
+		self.Scales = (MatInput['Scales'][0] - 1)					# zero-based
+		self.IsALeaf = MatInput['IsALeaf'][0].astype('bool')
+		self.LeafNodes = (MatInput['LeafNodes'][0] - 1)		# zero-based
+
 		# NOTE: gW and Data are class numpy.ndarray
-		# 	gW.dtype returns a numpy.dtype
-		#		gW.dtype.names returns a list of names of stored fields
 		#		MatInput is just a dict, so can directly look for variables there
 		
 		if MatInput.has_key('imR') and MatInput.has_key('imC'):
 			print 'Grabbing image dimensions from matlab file'
-			self.imR = MatInput['imR']
-			self.imC = MatInput['imC']
+			self.imR = MatInput['imR'][0,0]
+			self.imC = MatInput['imC'][0,0]
 		else:
 			# Right now Matlab data doesn't have any record of original image dimensions
 			# NOTE: Hard coding shape for now!
@@ -147,70 +272,36 @@ class DataSource(object):
 				self.imC = 20
 				print 'Could not find matching file name -- probably wrong image dimensions!!!!'
 		
-		# WC = MatInput['WavCoeffs']
-		# Instead of using WC, which has already been ordered within Matlab
-		self.WavCoeffsOrig = self.Data['MatWavCoeffs'][0,0].T
-		
-		# Structures are accessed like this:
-		
-		# PROJ.shape = (1000,120,8) for 1000 pts, 120 PCs, 8 scales -- only plot first few PCs
-		self.PROJ = self.Data['Projections'][0,0]
-		
 		# NumPts = Number of data points (here number of individual images)
-		self.NumPts = self.PROJ.shape[0]
-		
-		# D = dimensionality of original space before transformation
-		#   (The original dimensionality of the data before SVD is higher than this)
-		self.D = self.PROJ.shape[1]
-		
-		# Manifold dimensionality
-		self.ManifoldDim = self.gW['ManifoldDimension'][0,0][0,0]
+		self.NumPts = self.IniLabels.shape[0]
+		self.AmbientDimension = MatInput['AmbientDimension'][0,0]	# used to call this D
+				
+		# Manifold dimensionality variable now, not fixed...
+		# self.ManifoldDim = self.gW['ManifoldDimension'][0,0][0,0]
 		
 		# V = SVD result (X = (X0-mean)*V[:,:D])
+		# This V already is only V(:,1:D) so we can use it whole
 		self.V = N.mat(MatInput['V'])
-		
-		# Hopefully saving memory by deleting this, but probably doesn't matter since it's
-		# a local variable to the constructor...
-		# del MatInput
-		
-		# CP is the child-parent array that defines the tree: CP[i]=(i's parent node)
-		# Without cast CP ends up as 'uint16' or 'uint8' depending on max value
-		self.CP = (self.gW['cp'][0,0][0].astype('int16') - 1)		# change here to zero-based indexing
-		
-		# IniLabels holds the node ID for each data point (change to zero-based)
-		self.IniLabels = self.gW['IniLabels'][0,0][0] - 1
-		
-		# Making a list of numpy arrays because cell array structure is a pain...
-		self.PIN = []	# Points In Net
-		self.NIN = []	# Number In Net
-		self.SCFUNS = []	# Scaling functions
-		self.WAVBASES = []	# Wavelet bases
-		self.Centers = []	# Center of each node
-		for ii in range(self.gW['PointsInNet'][0,0].shape[1]):
-			self.PIN.append(self.gW['PointsInNet'][0,0][0,ii][0]-1)	# 0-based indices
-			self.NIN.append(self.gW['PointsInNet'][0,0][0,ii][0].size)
-			self.SCFUNS.append(N.mat(self.gW['ScalFuns'][0,0][0,ii]))	# matrix
-			self.WAVBASES.append(N.mat(self.gW['WavBases'][0,0][0,ii]))	# matrix
-			self.Centers.append(N.mat(self.gW['Centers'][0,0][0,ii][0])) # matrix
-		
-		# Scale of each node
-		self.Scales = self.gW['Scales'][0,0][0] - 1	# zero-based
-		
-		# J = Total number of scales
-		self.J = self.Scales.max() + 1				# compensate for zero-based
-		
-		# nAllNets = Number of nodes in the METIS tree
-		# nAllNets = length(gW.cp); 
-		
-		# Note that not all leaf nodes have scale J due to the possible 
-		#   incompleteness of the metis tree
-		# isaleaf = ones(1,nAllNets); 
-		# isaleaf(gW.cp(gW.cp>0)) = 0; 
-		# leafNodes = find(isaleaf>0); 
-		isaleaf = N.ones(self.CP.size)
-		isaleaf[self.CP[self.CP>=0]] = 0
-		self.leafNodes = N.nonzero(isaleaf)
+				
+		#     PointsInNet = gW.PointsInNet;
+		#     ScalFuns = gW.ScalFuns;
+		#     WavBases = gW.WavBases;
+		#     Centers = gW.Centers;
 
+		# Converting cell arrays to lists of numpy arrays
+		self.PointsInNet = []	# Points In Net
+		self.ScalFuns = []	# Scaling functions
+		self.WavBases = []	# Wavelet bases
+		self.Centers = []	# Center of each node
+		for ii in range(MatInput['PointsInNet'].shape[1]):
+			self.PointsInNet.append(MatInput['PointsInNet'][0,ii][0]-1)	# 0-based indices
+			self.ScalFuns.append(N.mat(MatInput['ScalFuns'][0,ii]))			# matrix
+			self.WavBases.append(N.mat(MatInput['WavBases'][0,ii]))			# matrix
+			self.Centers.append(N.mat(MatInput['Centers'][0,ii][0])) 		# matrix
+				
+		# J = Total number of scales
+		# self.J = self.Scales.max()
+		
 		self.data_loaded = True
 
 	def GetTree(self):
@@ -220,42 +311,31 @@ class DataSource(object):
 			
 			vertex_id = vtk.vtkIdTypeArray()
 			vertex_id.SetName('vertex_ids')
-			for ii in range(self.gW['PointsInNet'][0,0].shape[1]):
+			for ii in range(len(self.cp)):
 				vertex_id.InsertNextValue(ii)
 	
-			# NINarray = N.array(NIN)
-			# NINvtk = VN.numpy_to_vtk(NINarray)
-			# SCALESvtk = VN.numpy_to_vtk(gW['Scales'][0,0][0])
-			
-			# Trying to avoid numpy_to_vtk for now... had a few troubles once...
-			NINvtk = vtk.vtkIntArray()
-			NINvtk.SetNumberOfComponents(1)
-			NINvtk.SetNumberOfTuples(len(self.NIN))
+			NINvtk = VN.numpy_to_vtk(self.NumberInNet, deep=True)
 			NINvtk.SetName('num_in_vertex')
-			SCALESvtk = vtk.vtkIntArray()
-			SCALESvtk.SetNumberOfComponents(1)
-			SCALESvtk.SetNumberOfTuples(len(self.NIN))
+			SCALESvtk = VN.numpy_to_vtk(self.Scales, deep=True)
 			SCALESvtk.SetName('scale')
+			
+			# This array will default to empty strings
 			BLANKvtk = vtk.vtkStringArray()
 			BLANKvtk.SetNumberOfComponents(1)
-			BLANKvtk.SetNumberOfTuples(len(self.NIN))
+			BLANKvtk.SetNumberOfTuples(self.NumberInNet.shape[0])
 			BLANKvtk.SetName('blank')
-			for ii in range(len(self.NIN)):
-				NINvtk.SetTuple1(ii,self.NIN[ii])
-				SCALESvtk.SetTuple1(ii,self.gW['Scales'][0,0][0][ii])
-				BLANKvtk.SetValue(ii,"")
-			
+						
 			# Build tree out of CP list of "is a child of"
 			#	remembering that Matlab indices are 1-based and numpy/VTK 0-based
 			print 'Building graph'
 			dg = vtk.vtkMutableDirectedGraph()
 			edge_id = vtk.vtkIdTypeArray()
 			edge_id.SetName('edge_ids')
-			for ii in range(self.CP.size):
+			for ii in range(self.cp.size):
 				dg.AddVertex()
-			for ii in range(self.CP.size):
-				if self.CP[ii] > 0:		# CP already zero-based
-					dg.AddGraphEdge(self.CP[ii],ii)		# Method for use with wrappers -- AddEdge() in C++
+			for ii in range(self.cp.size):
+				if self.cp[ii] > 0:		# CP already zero-based
+					dg.AddGraphEdge(self.cp[ii],ii)		# Method for use with wrappers -- AddEdge() in C++
 					edge_id.InsertNextValue(ii)
 			
 			dg.GetVertexData().AddArray(NINvtk)
@@ -661,6 +741,6 @@ class DataSource(object):
 		
 		while n >= 0:
 			chain.append(n)
-			n = self.CP[n]
+			n = self.cp[n]
 			
 		return chain
