@@ -184,11 +184,13 @@ class DataSource(object):
 		self.PIN = []	# Points In Net
 		self.NIN = []	# Number In Net
 		self.SCFUNS = []	# Scaling functions
+		self.WAVBASES = []	# Wavelet bases
 		self.Centers = []	# Center of each node
 		for ii in range(self.gW['PointsInNet'][0,0].shape[1]):
 			self.PIN.append(self.gW['PointsInNet'][0,0][0,ii][0]-1)	# 0-based indices
 			self.NIN.append(self.gW['PointsInNet'][0,0][0,ii][0].size)
 			self.SCFUNS.append(N.mat(self.gW['ScalFuns'][0,0][0,ii]))	# matrix
+			self.WAVBASES.append(N.mat(self.gW['WavBases'][0,0][0,ii]))	# matrix
 			self.Centers.append(N.mat(self.gW['Centers'][0,0][0,ii][0])) # matrix
 		
 		# Scale of each node
@@ -423,7 +425,7 @@ class DataSource(object):
 			# Need to create separate images (Z) for each column of matrix result
 
 			# Compute all detail images for that dimension
-			image_cols = self.V[:,:self.D]*self.SCFUNS[node_id]
+			image_cols = self.V[:,:self.D]*self.WAVBASES[node_id]
 			# To make it linear, it is the correct order (one image after another) to .ravel()
 			images_linear = N.asarray(image_cols.T).ravel()
 			
@@ -602,7 +604,7 @@ class DataSource(object):
 			# Need to separate out images for each dimension
 			for dd in range(self.ManifoldDim):
 				# Concatenate scaling functions for all nodes in chain
-				ScFuncts = N.concatenate([self.SCFUNS[node_id][:,dd] for node_id in chain],1)
+				ScFuncts = N.concatenate([self.WAVBASES[node_id][:,dd] for node_id in chain],1)
 				# Compute all detail images for that dimension
 				image_cols = self.V[:,:self.D]*ScFuncts
 				# To make it linear, it is the correct order (one image after another) to .ravel()
