@@ -199,6 +199,9 @@ X = N.mat(MatInput['X'])
 cm = N.mat(MatInput['cm'])	# not sure if should be matrix or array...
 
 # Various plain matrices
+# NOTE: Have to be careful of anything that can have a 0 value in Matlab
+# because it might be naturally imported as an unsigned int, and then
+# when you subtract 1 from it you don't get a negative number as you'd expect
 V = N.mat(MatInput['V'])
 cp = (MatInput['cp'][0].astype('int16') - 1)	# change here to zero-based indexing
 IniLabels = (MatInput['IniLabels'][0] - 1)		# change here to zero-based indexing
@@ -206,6 +209,9 @@ NumberInNet = MatInput['NumberInNet'][0]
 Scales = (MatInput['Scales'][0] - 1)					# zero-based
 IsALeaf = MatInput['IsALeaf'][0].astype('bool')
 LeafNodes = (MatInput['LeafNodes'][0] - 1)		# zero-based
+LeafNodesImap = (MatInput['LeafNodesImap'][0].astype('int16') - 1)		# zero-based
+CelWavCoeffs = MatInput['CelWavCoeffs']
+CelScalCoeffs = MatInput['CelScalCoeffs']
 
 # NOTE: gW and Data are class numpy.ndarray
 #		MatInput is just a dict, so can directly look for variables there
@@ -253,11 +259,83 @@ PointsInNet = []	# Points In Net
 ScalFuns = []	# Scaling functions
 WavBases = []	# Wavelet bases
 Centers = []	# Center of each node
+NodeWavCoeffs = []
+NodeScalCoeffs = []
 for ii in range(MatInput['PointsInNet'].shape[1]):
 	PointsInNet.append(MatInput['PointsInNet'][0,ii][0]-1)	# 0-based indices
 	ScalFuns.append(N.mat(MatInput['ScalFuns'][0,ii]))			# matrix
 	WavBases.append(N.mat(MatInput['WavBases'][0,ii]))			# matrix
 	Centers.append(N.mat(MatInput['Centers'][0,ii][0])) 		# matrix
+	NodeWavCoeffs.append(N.mat(MatInput['NodeWavCoeffs'][0,ii])) 		# matrix
+	NodeScalCoeffs.append(N.mat(MatInput['NodeScalCoeffs'][0,ii])) 		# matrix
 
 # J = Total number of scales
 J = Scales.max()
+
+def get_offspring(cp, node_id):
+	"""Internal method finds all the offspring of (but not including) 
+	the given node in the tree cp."""
+	
+	# function offspring = get_offspring(cp, node)
+	# offspring = [];
+	# currentNodes = node;
+	# 
+	# while ~isempty(currentNodes)  
+	#     newNodes = []; % collects all the children of currentNodes
+	#     for i = 1:length(currentNodes)
+	#         children = find(cp == currentNodes(i));
+	#         newNodes = [newNodes children];
+	#     offspring = [offspring newNodes];
+	#     currentNodes = newNodes;
+	
+	offspring = N.array([],dtype='int32')
+	current_nodes = N.array([node_id],dtype='int32')
+	
+	while (current_nodes.size > 0):
+		new_nodes = N.array([],dtype='int32')		# collects children of current_nodes
+		for node in current_nodes:
+			children = N.nonzero(cp == node)[0]
+			new_nodes = N.concatenate((new_nodes,children))
+		offspring = N.concatenate((offspring,new_nodes))
+		current_nodes = new_nodes
+	
+	return offspring
+			
+def get_offspring2(cp, node_id):
+	"""Returns a nested list of all offspring. Can be "flattened" by xflatten(result)"""
+	children = N.nonzero(cp == node_id)[0]
+	
+	if children.size > 0:
+		return [children.tolist(),[get_offspring2(cp,child) for child in children]]
+	else:
+		return []
+		
+def has_children(cp, node_id):
+	if N.nonzero(cp == node_id)[0].size > 0:
+		return True
+	else:
+		return False
+
+def get_leaf_children(cp, node_id):
+	"""This reaturns all leaf nodes that are descendants of a given node"""
+	children = N.nonzero(cp == node_id)[0]
+	
+	if len(children)==0:
+		yield node_id
+	else:
+		for x in children:
+			for y in get_leaf_children(cp, x):
+				yield y
+		
+def xflatten(seq):
+	"""a generator to flatten a nested list
+	from vegaseat on http://www.daniweb.com/forums/thread66694.html
+	usage: flat_list = list(xflatten(nested_list))
+	"""
+	for x in seq:
+		if type(x) is list:
+			for y in xflatten(x):
+				yield y
+		else:
+				yield x
+				

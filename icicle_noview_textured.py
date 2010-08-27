@@ -278,10 +278,10 @@ class IcicleNoView(object):
 		
 		LeafIds = vertex_ids[isleaf>0]
 		LeafXmins = poly_bounds[isleaf>0,0]
-		XOrderedLeafIds = LeafIds[LeafXmins.argsort()]
+		# XOrderedLeafIds = LeafIds[LeafXmins.argsort()]
 					
-		# And then grab the Wavelet Coefficients matrix sorted according to this
-		self.WCimageData = self.ds.GetWaveletCoeffImage(XOrderedLeafIds)
+		# And then grab the Wavelet Coefficients images sorted according to this
+		self.WCimageData = self.ds.GetWaveletCoeffImage(LeafIds,LeafXmins)
 		
 		WCrange = N.array(self.WCimageData.GetPointData().GetScalars().GetRange())
 		WCext = abs(WCrange.min()) if (abs(WCrange.min()) > abs(WCrange.max())) else abs(WCrange.max())
