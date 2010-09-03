@@ -34,7 +34,7 @@ class DetailImageFlow(object):
 		self.output_link.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
 		# Set up callback which will work either internally or triggered by change from icicle view.
 		self.output_link.AddObserver("AnnotationChangedEvent", self.ScaleSelectionCallback)
-		
+				
 		# Create a set of empty image stacks for use in empty selections
 		# but use the dimensions of a "projected image" so scales match
 		example_image = self.ds.GetProjectedImages([0])
@@ -44,27 +44,30 @@ class DetailImageFlow(object):
 		(x0, y0, z0) = example_image.GetOrigin()
 		blankR = xMax - xMin + 1
 		blankC = yMax - yMin + 1
-		blankZ = self.ds.J	# Note: accessing member variable directly
+		numScales = len(self.ds.ScaleMaxDim)		# Note: accessing member variable directly
 		self.blank_image_list = []
-		for dd in range(self.ds.ManifoldDim):
-			images_linear = N.zeros( blankR*blankC*blankZ, dtype='float')	
+		self.blank_image_weights = []
+		self.numImagesList = []
+		nDim = 3		# 3-dim for now...
+		for dd in range(numScales):
+			images_linear = N.zeros( blankR*blankC*nDim, dtype='float')	
 			intensity = VN.numpy_to_vtk(images_linear, deep=True)
 			intensity.SetName('PNGImage')
 	
 			imageData = vtk.vtkImageData()
 			imageData.SetOrigin(x0, y0, z0)
 			imageData.SetSpacing(xSpacing, ySpacing, zSpacing)
-			imageData.SetExtent(xMin,xMax,yMin,yMax,0,blankZ-1)
+			imageData.SetExtent(xMin,xMax,yMin,yMax,0,nDim-1)
 			imageData.GetPointData().AddArray(intensity)
 			imageData.GetPointData().SetActiveScalars('PNGImage')
 			
 			self.blank_image_list.append(imageData)
+			self.blank_image_weights.append(0.1*N.ones(nDim, dtype='float'))
+			self.numImagesList.append(nDim)
 		
 		for dd in range(len(self.blank_image_list)):
 			self.blank_image_list[dd].UpdateInformation()
-		
-		self.blank_image_weights = 0.1*N.ones((self.ds.J, self.ds.ManifoldDim),dtype='float') # Note: accessing member variable
-
+				
 		# Create a blue-white-red lookup table
 		self.lut = vtk.vtkLookupTable()
 		lutNum = 256
@@ -103,7 +106,7 @@ class DetailImageFlow(object):
  		self.colorList = []
  		self.resliceList = []
  		self.assemblyList = []
- 		self.numImages = self.ds.J	# Note: accessing member variable
+ 		self.numScales = len(self.ds.ScaleMaxDim)		# Note: accessing member variable
 
 		self.expSpread = 0.5
 		
@@ -131,11 +134,11 @@ class DetailImageFlow(object):
 		# Create the slider which will control the image positions
 		self.sliderRep = vtk.vtkSliderRepresentation2D()
 		self.sliderRep.SetMinimumValue(0)
-		self.sliderRep.SetMaximumValue(self.numImages-1)
+		self.sliderRep.SetMaximumValue(self.numScales-1)
 		self.sliderRep.SetValue(0)
 		
 		# For remembering the previous slider setting when switching data sets
-		self.prevSliderValue = int(self.numImages/2.0)
+		self.prevSliderValue = int(self.numScales/2.0)
 		
 		# And need to keep track of whether to reset view
 		self.needToResetCamera = True
@@ -267,14 +270,16 @@ class DetailImageFlow(object):
 	def InputSelectionCallback(self, caller, event):
 		"""This is the callback that tracks changes in the parallel coordinates chart selection
 		(pedigree ids) and sets the input images for the image flow view accordingly.
-		Note: The PC selection should always contain a selection node, but it will
-		have no tuples in the selection list if the PC selection has been cleared."""
+		Note: The image_flow selection should always contain a selection node, but it will
+		have no tuples in the selection list if the PC selection has been cleared.
+		This new version for variable dimensionality inverts the image stacks so there is
+		as list of stacks with one stack per scale."""
 		
 		for prop in self.assemblyList:
 			self.renderer.RemoveViewProp(prop)
 		
 		annSel = caller.GetCurrentSelection()
-		# Note: When image_flost selection is cleared the current selection does NOT contain any tuples
+		# Note: When image_flow selection is cleared the current selection does NOT contain any tuples
 		if annSel.GetNumberOfNodes() > 0:
 			idxVtk = annSel.GetNode(0).GetSelectionList()
 			if idxVtk.GetNumberOfTuples() > 0:
@@ -288,29 +293,34 @@ class DetailImageFlow(object):
 				self.imStackList = self.ds.GetDetailImages(idxArr.tolist()[0])
 				i_array_name = 'DiffIntensity'
 				
-				self.imWeightArr = self.ds.GetDetailWeights(idxArr.tolist()[0])
+				self.imWeightArrList = self.ds.GetDetailWeights(idxArr.tolist()[0])
 
 			else:
 								
 				self.imStackList = self.blank_image_list
 				i_array_name = 'PNGImage'
 				
-				self.imWeightArr = self.blank_image_weights
+				self.imWeightArrList = self.blank_image_weights
 
 				# Comment this out if we don't want the view resetting on empty selections
 				# self.needToResetCamera = True
 							
-			# Clear out scale ID map
+			print self.imWeightArrList
+			
+			# Clear out scale ID map (I think this is just in case we need to reverse order...?)
 			self.scale_dict = {}
-			self.imStackList[0].UpdateInformation()
-			(xMin, xMax, yMin, yMax, zMin, zMax) = self.imStackList[0].GetWholeExtent()
-			for index in range(zMax-zMin+1):
+			self.numScales = len(self.imStackList)		# Directly accessing member variable
+			for index in range(self.numScales):
 				self.scale_dict[index] = index
 									
 			self.colorList = []
 			self.resliceList = []
 			self.assemblyList = []
+			self.numImagesList = []
 			
+			# Here is where we have to do things in a new order since there is one
+			# stack per scale, so can form assemblies directly instead of adding
+			# to each assembly in order as we go through the stacks.
 			for nn, imStack in enumerate(self.imStackList):
 				imStack.UpdateInformation()
 				(xMin, xMax, yMin, yMax, zMin, zMax) = imStack.GetWholeExtent()
@@ -337,9 +347,12 @@ class DetailImageFlow(object):
 				color.Update()
 				self.colorList.append(color)
 				
-				self.numImages = zMax-zMin+1
-								
-				for ii in range(self.numImages):
+				assembly = vtk.vtkAssembly()
+				self.assemblyList.append(assembly)
+
+				numImages = zMax-zMin+1
+				self.numImagesList.append(numImages)
+				for ii in range(numImages):
 						
 					zpos = z0 + zSpacing*(zMin+ii)
 					axial = vtk.vtkMatrix4x4()
@@ -367,18 +380,13 @@ class DetailImageFlow(object):
 							self.nupSpacing = float(tmp[1]-tmp[0])*1.1
 						sliceSpacing = reslice.GetOutput().GetSpacing()[2]
 						
-					if nn == 0:
-						# One assembly for each N-up
-						assembly = vtk.vtkAssembly()
-						self.assemblyList.append(assembly)
-					
 					# Not going to access these later, just keeping around so they
 					# won't be garbage collected
 					self.resliceList.append(reslice)
 					
 					# Create a list of actors with each image already assigned
 					actor = vtk.vtkImageActor()
-					actor.SetInput(self.resliceList[self.numImages*nn + ii].GetOutput())
+					actor.SetInput(self.resliceList[sum(self.numImagesList[:nn]) + ii].GetOutput())
 					
 					# NOTE: Fragile test for blank image
 					if i_array_name == 'PNGImage':
@@ -387,17 +395,17 @@ class DetailImageFlow(object):
 						actor.SetPickable(True)
 					
 					# Set opacity according to relative magnitude of abs(wavelet coeff)
-					actor.SetOpacity(self.imWeightArr[ii,nn])
+					actor.SetOpacity(self.imWeightArrList[nn][ii])
 					
 					if self.FlowDirection == Direction.Horizontal:
-						actor.SetPosition(0, nn*self.nupSpacing, 0)
+						actor.SetPosition(0, ii*self.nupSpacing, 0)
 					else:
-						actor.SetPosition(nn*self.nupSpacing, 0, 0)
+						actor.SetPosition(ii*self.nupSpacing, 0, 0)
 					
-					self.assemblyList[ii].AddPart(actor)
+					self.assemblyList[nn].AddPart(actor)
 			
 			# Adding assemblies to renderer after all completed
-			for ii in range(self.numImages):
+			for ii in range(self.numScales):
 				self.renderer.AddActor(self.assemblyList[ii])
 				
 			# Seems to work best if I set a temporary bounds here and don't do it again
@@ -435,7 +443,7 @@ class DetailImageFlow(object):
 
 			# Create the slider which will control the image positions
 			self.sliderRep.SetMinimumValue(0)
-			self.sliderRep.SetMaximumValue(self.numImages-1)
+			self.sliderRep.SetMaximumValue(self.numScales-1)
 			# self.sliderRep.SetValue(0)
 			# self.sliderRep.SetValue(self.prevSliderValue)
 			# In case prev value was greater than max
@@ -477,13 +485,13 @@ class DetailImageFlow(object):
 
 	# --------------------------------------------------------
 	def setImagesPosition(self,slider_value):
-		xx = N.arange(self.numImages)-slider_value
+		xx = N.arange(self.numScales)-slider_value
 		yy = 1.0/(1.0+N.exp(-xx/self.expSpread))
 		zz = (-self.maxAngle/0.5)*(yy-0.5)
 		p_inc = self.flowSpacing*N.cos(2*N.pi*(zz/360.0))/1.0
 		pp = N.zeros(xx.shape)
 		
-		for ii in range(self.numImages):
+		for ii in range(self.numScales):
 			
 			# Placement seems to be wrt center of image, so position needs to be incremented
 			# by half of this one plus half of last one...
@@ -495,7 +503,7 @@ class DetailImageFlow(object):
 		# Find the xx=0 point for position offset
 		pp0 = N.interp(0.0, xx, pp)
 		
-		for ii in range(self.numImages):
+		for ii in range(self.numScales):
 		
 			if self.FlowDirection == Direction.Horizontal:
 				# Set the position and rotation
@@ -593,6 +601,15 @@ class DetailImageFlow(object):
 			self.highlightIndex = scaleVal
 			self.highlightActor.SetVisibility(True)
 			
+			# Need to recenter Y-axis bounds for vertical flow
+			(bx0,bx1,by0,by1,bz0,bz1) = self.assemblyList[self.highlightIndex].GetBounds()
+			if self.FlowDirection == Direction.Horizontal:
+				bxavg = (bx0+bx1)/2.0
+				self.highlightRect.SetBounds((bx0-bxavg,bx1-bxavg,by0,by1,bz0,bz1))
+			else:
+				byavg = (by0+by1)/2.0
+				self.highlightRect.SetBounds((bx0,bx1,by0-byavg,by1-byavg,bz0,bz1))
+			
 			slider_value = self.sliderWidget.GetRepresentation().GetValue()
 			if self.highlightIndex != slider_value:
 				# Animate 10 steps to new position if non-current image selected
@@ -653,7 +670,7 @@ if __name__ == "__main__":
 	from data_source import DataSource
 	
 	# data_file = askopenfilename()
-	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist1_5c_20100324.mat'
+	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100825.mat'
 
 	# DataSource loads .mat file and can generate data from it for other views
 	ds = DataSource(data_file)
@@ -670,7 +687,7 @@ if __name__ == "__main__":
 	if_class.SetFlowDirection(Direction.Vertical)
 		
 	# Fill selection link with dummy IDs
-	id_array = N.array([38],dtype='int64')
+	id_array = N.array([1422],dtype='int64')
 	id_list = VN.numpy_to_vtkIdTypeArray(id_array)
 	dummy_link.GetCurrentSelection().GetNode(0).SetSelectionList(id_list)
 	dummy_link.InvokeEvent("AnnotationChangedEvent")

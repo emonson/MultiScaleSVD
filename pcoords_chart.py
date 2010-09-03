@@ -103,8 +103,15 @@ class PCoordsChart(object):
 
 			# Here is where I'm limiting the selection to _one_ nodeID for now...
 			node_id = idxArr[0]
-			self.table = self.ds.GetNodeAllScaleCoeffTable(node_id)
-			numPerSet = self.ds.ManifoldDim			# Directly accessing member variable...
+			
+			# NOTE: Hard coding for testing!!!
+			# numPerSet = self.ds.ManifoldDim			# Directly accessing member variable...	
+			numPerSet = 3
+			
+			# NOTE: Using only first few dimensions for testing!!!
+			# self.table = self.ds.GetNodeAllScaleCoeffTable(node_id)
+			self.table = self.ds.GetNodeAllScaleDDimCoeffTable(node_id,numPerSet)
+
 			currentScale = self.ds.Scales[node_id]	# Directly accessing member variable...
 			
 			self.chart.GetPlot(0).SetInput(self.table)

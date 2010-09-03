@@ -253,6 +253,13 @@ class DataSource(object):
 		self.EigenVecs = MatInput['EigenVecs'][0]
 		self.CelWavCoeffs = MatInput['CelWavCoeffs']
 		self.CelScalCoeffs = MatInput['CelScalCoeffs']
+		
+		# Need the max number of dims at each scale to fill in zeros for pcoords plot
+		self.ScaleMaxDim = N.zeros(self.CelWavCoeffs.shape[1],dtype='int')
+		for row in range(self.CelWavCoeffs.shape[0]):
+			for col in range(self.CelWavCoeffs.shape[1]):
+				if self.ScaleMaxDim[col] < self.CelWavCoeffs[row,col].shape[1]:
+					self.ScaleMaxDim[col] = self.CelWavCoeffs[row,col].shape[1]
 
 		# NOTE: gW and Data are class numpy.ndarray
 		#		MatInput is just a dict, so can directly look for variables there
@@ -478,25 +485,104 @@ class DataSource(object):
 
 	def GetNodeAllScaleCoeffTable(self, node_id):
 		"""Returns a table of all the wavelet coefficients for a single tree
-		icicle view) node at all scales for plotting on a parallel coodinates plot."""
+		icicle view) node at all scales for plotting on a parallel coodinates plot.
+		For right now, padding with zeros for unused dimensions in some nodes..."""
 				
-		# * * * OLD FIXED-DIM VERSION * * *
+		# TODO: This will be a bit of a mess with zeros padding, so should probably
+		# figure out another way. Maybe ordered max values for just a few dims...?
+		
+		# NOTE: Right now filling with zeros to max scale even if chosen IDs don't
+		# include leaf nodes which run to the max scale...
 		
 		if self.data_loaded:
 			
 			# For a given node_id, get PIN and then extract all coeffs at every scale
 			# Columns of table will be rows of the WavCoeffsOrig matrix
 			
-			IDarray = self.PIN[node_id]
-			rows = N.arange(self.WavCoeffsOrig.shape[0])
-			scales = (rows/self.ManifoldDim)
-			rems = N.mod(rows, self.ManifoldDim)
+			IDarray = self.PointsInNet[node_id]
 			
+			wav_coeffs = N.zeros((len(IDarray),sum(self.ScaleMaxDim)))
+			# Append all zero-padded rows gathered from CelWavCoeffs
+			for ii,data_id in enumerate(IDarray):
+				leaf_node = self.IniLabels[data_id]
+				row = N.nonzero(self.PointsInNet[leaf_node]==data_id)[0][0]	# final zero turns array->scalar
+				mapped_node_idx = self.LeafNodesImap[leaf_node]
+				
+				# Skip any empty arrays
+				wav_row_tuple = tuple(arr[row,:] for arr in self.CelWavCoeffs[mapped_node_idx,:] if arr.size != 0)
+				# Create zero-padded arrays
+				zero_row_tuple = tuple(N.zeros(sc) for sc in self.ScaleMaxDim)
+				# And transfer over values
+				for zz in range(len(wav_row_tuple)):
+					zero_row_tuple[zz][:len(wav_row_tuple[zz])] = wav_row_tuple[zz][:]
+				
+				wav_coeffs[ii,:] = N.concatenate(zero_row_tuple, axis=1)
+
 			table = vtk.vtkTable()
-			for ii in rows:
-				column = VN.numpy_to_vtk(self.WavCoeffsOrig[ii,IDarray].T, deep=True)
-				column.SetName(str(scales[ii]) + '.' + str(rems[ii])) 
-				table.AddColumn(column)
+			col_idx = 0
+			for scale,maxdim in enumerate(self.ScaleMaxDim):
+				for ii in range(maxdim):
+					column = VN.numpy_to_vtk(wav_coeffs[:,col_idx].copy(), deep=True)
+					column.SetName(str(scale) + '.' + str(ii)) 
+					table.AddColumn(column)
+					col_idx += 1
+			
+			# Trying to set PedigreeIds to that parallel coords selections have correct IDs
+			IDvtk = VN.numpy_to_vtk(IDarray, deep=True)
+			IDvtk.SetName('pedigree_ids')
+			table.AddColumn(IDvtk)
+			table.GetRowData().SetActivePedigreeIds('pedigree_ids')
+			
+			return table
+			
+		else:
+			raise IOError, "Can't get image until data is loaded successfully"
+
+	def GetNodeAllScaleDDimCoeffTable(self, node_id, D):
+		"""Returns a table of all the wavelet coefficients for a single tree
+		icicle view) node at all scales for plotting on a parallel coodinates plot.
+		* * This version used for testing PCoords with each scale abbreviated to first
+		D dimensions... * *"""
+				
+		# NOTE: Right now filling with zeros to max scale even if chosen IDs don't
+		# include leaf nodes which run to the max scale...
+		
+		if self.data_loaded:
+			
+			# For a given node_id, get PIN and then extract all coeffs at every scale
+			# Columns of table will be rows of the WavCoeffsOrig matrix
+			
+			IDarray = self.PointsInNet[node_id]
+			
+			wav_coeffs = N.zeros((len(IDarray),D*len(self.ScaleMaxDim)))
+			# Append all zero-padded rows gathered from CelWavCoeffs
+			for ii,data_id in enumerate(IDarray):
+				leaf_node = self.IniLabels[data_id]
+				row = N.nonzero(self.PointsInNet[leaf_node]==data_id)[0][0]	# final zero turns array->scalar
+				mapped_node_idx = self.LeafNodesImap[leaf_node]
+				
+				# Skip any empty arrays
+				wav_row_tuple = tuple(arr[row,:] for arr in self.CelWavCoeffs[mapped_node_idx,:] if arr.size != 0)
+				# Create zero-padded arrays
+				zero_row_tuple = tuple(N.zeros(D) for sc in self.ScaleMaxDim)
+				# And transfer over values
+				for zz in range(len(wav_row_tuple)):
+					if len(wav_row_tuple[zz]) >= D:
+						zero_row_tuple[zz][:] = wav_row_tuple[zz][:D]
+					else:
+						d = len(wav_row_tuple[zz])
+						zero_row_tuple[zz][:d] = wav_row_tuple[zz][:]
+				
+				wav_coeffs[ii,:] = N.concatenate(zero_row_tuple, axis=1)
+
+			table = vtk.vtkTable()
+			col_idx = 0
+			for scale,maxdim in enumerate(self.ScaleMaxDim):
+				for ii in range(D):
+					column = VN.numpy_to_vtk(wav_coeffs[:,col_idx].copy(), deep=True)
+					column.SetName(str(scale) + '.' + str(ii)) 
+					table.AddColumn(column)
+					col_idx += 1
 			
 			# Trying to set PedigreeIds to that parallel coords selections have correct IDs
 			IDvtk = VN.numpy_to_vtk(IDarray, deep=True)

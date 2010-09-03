@@ -213,6 +213,13 @@ LeafNodesImap = (MatInput['LeafNodesImap'][0].astype('int16') - 1)		# zero-based
 CelWavCoeffs = MatInput['CelWavCoeffs']
 CelScalCoeffs = MatInput['CelScalCoeffs']
 
+# Need the max number of dims at each scale to fill in zeros for pcoords plot
+ScaleMaxDim = N.zeros(CelWavCoeffs.shape[1],dtype='int')
+for row in range(CelWavCoeffs.shape[0]):
+	for col in range(CelWavCoeffs.shape[1]):
+		if ScaleMaxDim[col] < CelWavCoeffs[row,col].shape[1]:
+			ScaleMaxDim[col] = CelWavCoeffs[row,col].shape[1]
+
 # NOTE: gW and Data are class numpy.ndarray
 #		MatInput is just a dict, so can directly look for variables there
 
