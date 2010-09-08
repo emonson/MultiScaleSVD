@@ -304,9 +304,7 @@ class DetailImageFlow(object):
 
 				# Comment this out if we don't want the view resetting on empty selections
 				# self.needToResetCamera = True
-							
-			print self.imWeightArrList
-			
+										
 			# Clear out scale ID map (I think this is just in case we need to reverse order...?)
 			self.scale_dict = {}
 			self.numScales = len(self.imStackList)		# Directly accessing member variable

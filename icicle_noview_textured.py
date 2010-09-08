@@ -278,16 +278,25 @@ class IcicleNoView(object):
 		
 		LeafIds = vertex_ids[isleaf>0]
 		LeafXmins = poly_bounds[isleaf>0,0]
-		# XOrderedLeafIds = LeafIds[LeafXmins.argsort()]
+		XOrderedLeafIds = LeafIds[LeafXmins.argsort()]
 					
 		# And then grab the Wavelet Coefficients images sorted according to this
-		self.WCimageData = self.ds.GetWaveletCoeffImage(LeafIds,LeafXmins)
+		self.WCimageDataList = self.ds.GetWaveletCoeffImages(LeafIds,LeafXmins)
+				
+		# Calculate extreme abs value for all images
+# 		WCext = 0.0
+# 		for ii in range(len(self.WCimageDataList)):
+# 			WCrange = N.array(self.WCimageDataList[ii].GetPointData().GetScalars().GetRange())
+# 			WCnew = abs(WCrange.min()) if (abs(WCrange.min()) > abs(WCrange.max())) else abs(WCrange.max())
+# 			if (WCnew > WCext):
+# 				WCext = WCnew
+		WCrange = self.ds.GetWaveletCoeffRange()
+		WCext = abs(WCrange[0]) if (abs(WCrange[0]) > abs(WCrange[1])) else abs(WCrange[1])
 		
-		WCrange = N.array(self.WCimageData.GetPointData().GetScalars().GetRange())
-		WCext = abs(WCrange.min()) if (abs(WCrange.min()) > abs(WCrange.max())) else abs(WCrange.max())
 		# print WCext
 		
 		# Create blue to white to red lookup table
+		# NOTE: For now I'll use a single LUT and feed that into all textures
 		self.lut = vtk.vtkLookupTable()
 		lutNum = 256
 		self.lut.SetNumberOfTableValues(lutNum)
@@ -323,25 +332,60 @@ class IcicleNoView(object):
 			self.lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
 		self.lut.SetRange(-WCext,WCext)
 		
-		# Set up texture with lookup table for matrix polys
-		tex = vtk.vtkTexture()
-		tex.SetInput(self.WCimageData)
-		tex.SetLookupTable(self.lut)
+		# # # TODO * *
+		# For each node and corresponding image data in self.WCimageDataList, need to create a texture,
+		# then pull out the correct rectangle from areapoly0 (using vtkExtractSelectedPolyDataIds
+		# and create a mapper and actor and apply the texture. 
+		# Put all of these things in lists?
 		
+		self.texture_list = []
+		self.tex_mapper_list = []
+		self.tex_actor_list = []
 		
-		# Separate mapper and actor for textured polys
-		map2 = vtk.vtkPolyDataMapper()
-		map2.SetInputConnection(paf.GetOutputPort(0))
-		map2.ScalarVisibilityOff()
-		act2 = vtk.vtkActor()
-		act2.SetMapper(map2)
-		act2.SetTexture(tex)
-		act2.GetProperty().SetColor(1,1,1)
-		act2.SetPickable(0)
-		act2.SetPosition(0,0,0.1)
-		
-		# Add textured polys to the view
-		self.renderer.AddActor(act2)
+		for ii in range(len(self.WCimageDataList)):
+			
+			# Set up texture with lookup table for matrix polys
+			tex = vtk.vtkTexture()
+			tex.SetInput(self.WCimageDataList[ii])
+			tex.SetLookupTable(self.lut)
+			self.texture_list.append(tex)
+			
+			# Grab correct poly out of areapoly0
+			sel = vtk.vtkSelection()
+			node = vtk.vtkSelectionNode()
+			node.SetContentType(4)	# 4 = indices
+			node.SetFieldType(0)		# 0 = cell
+			id_array = N.array([ii],dtype='int64')
+			id_list = VN.numpy_to_vtkIdTypeArray(id_array)
+			node.SetSelectionList(id_list)
+			sel.AddNode(node)
+
+			ext_id_poly = vtk.vtkExtractSelectedPolyDataIds()
+			ext_id_poly.SetInput(1, sel)
+			ext_id_poly.SetInputConnection(0, areapoly0.GetOutputPort(0))
+			# ext_id_poly.Update()
+			# print ext_id_poly.GetOutput()
+			poly_tm = vtk.vtkTextureMapToPlane()
+			poly_tm.SetInputConnection(ext_id_poly.GetOutputPort(0))
+			poly_tm.AutomaticPlaneGenerationOn()
+			poly_tm.Update()
+
+			# Separate mapper and actor for textured polys
+			map2 = vtk.vtkPolyDataMapper()
+			map2.SetInputConnection(poly_tm.GetOutputPort(0))
+			map2.ScalarVisibilityOff()
+			self.tex_mapper_list.append(map2)
+			
+			act2 = vtk.vtkActor()
+			act2.SetMapper(self.tex_mapper_list[ii])
+			act2.SetTexture(self.texture_list[ii])
+			act2.GetProperty().SetColor(1,1,1)
+			act2.SetPickable(0)
+			act2.SetPosition(0,0,0.1)	# ???
+			self.tex_actor_list.append(act2)
+			
+			# Add textured polys to the view
+			self.renderer.AddActor(self.tex_actor_list[ii])
 
 				
 		# Layout with shrinkage for generating outline geometry for showing selections
@@ -714,7 +758,7 @@ class IcicleNoView(object):
 			nodes_at_scale = N.nonzero(self.ds.Scales==scaleVal)[0].tolist()
 			
 			for node_id in nodes_at_scale:
-				if (self.ds.PIN[node_id]==pedIdVal).any():
+				if (self.ds.PointsInNet[node_id]==pedIdVal).any():
 					
 					# Assuming for now that this is a cell "Index", so getting pedigree ID
 					sel = vtk.vtkSelection()
@@ -763,7 +807,7 @@ if __name__ == "__main__":
 
 	# from tkFileDialog import askopenfilename
 	# data_file = askopenfilename()
-	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist1_5c_20100324.mat'
+	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100825.mat'
 	
 	# DataSource loads .mat file and can generate data from it for other views
 	ds = DataSource(data_file)
@@ -783,6 +827,13 @@ if __name__ == "__main__":
 	dummy_link.GetCurrentSelection().GetNode(0).SetContentType(2)   # 2 = PedigreeIds, 4 = Indices
 	
 	ice_class.SetGroupAnnotationLink(dummy_link)
+	
+	# Set up an annotation link as if selections were coming from another class
+	dummy_link2 = vtk.vtkAnnotationLink()
+	dummy_link2.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+	dummy_link2.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
+	
+	ice_class.SetScaleAnnotationLink(dummy_link2)
 	
 	# Fill selection link with dummy IDs
 	id_array = N.array([3,5,10,200,103,54],dtype='int64')

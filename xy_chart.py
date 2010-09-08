@@ -125,9 +125,9 @@ class XYChart(object):
 			# Here is where I'm limiting the selection to _one_ nodeID for now...
 			node_id = idxArr[0]
 			self.table = self.ds.GetNodeOneScaleCoeffTable(node_id)
-			id_list = self.ds.PIN[node_id]
+			id_list = self.ds.PointsInNet[node_id]	# Directly accessing member variable
 			self.image_stack = self.ds.GetProjectedImages(id_list)
-			self.axis_images = self.ds.GetNodeBasisImages(node_id)
+			self.axis_images = self.ds.GetNodeWaveletImages(node_id)
 			self.center_image = self.ds.GetNodeCenterImage(node_id)
 
 			self.chart.ClearPlots()

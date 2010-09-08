@@ -220,6 +220,24 @@ for row in range(CelWavCoeffs.shape[0]):
 		if ScaleMaxDim[col] < CelWavCoeffs[row,col].shape[1]:
 			ScaleMaxDim[col] = CelWavCoeffs[row,col].shape[1]
 
+# Gather helpful statistics to be used by other classes
+print 'Calulating extrema of coefficients'
+WavCoeffMax = -1e200
+WavCoeffMin = 1e200
+ScalCoeffMax = -1e200
+ScalCoeffMin = 1e200
+for ii in range(CelWavCoeffs.shape[0]):
+	for jj in range(CelWavCoeffs.shape[1]):
+		if (CelWavCoeffs[ii,jj].size > 0):
+			wmax = N.amax(CelWavCoeffs[ii,jj])
+			wmin = N.amin(CelWavCoeffs[ii,jj])
+			smax = N.amax(CelScalCoeffs[ii,jj])
+			smin = N.amin(CelScalCoeffs[ii,jj])
+			if (wmax > WavCoeffMax): WavCoeffMax = wmax
+			if (wmin < WavCoeffMin): WavCoeffMin = wmin
+			if (smax > ScalCoeffMax): ScalCoeffMax = smax
+			if (smin < ScalCoeffMin): ScalCoeffMin = smin 
+		
 # NOTE: gW and Data are class numpy.ndarray
 #		MatInput is just a dict, so can directly look for variables there
 

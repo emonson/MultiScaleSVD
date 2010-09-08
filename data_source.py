@@ -261,6 +261,24 @@ class DataSource(object):
 				if self.ScaleMaxDim[col] < self.CelWavCoeffs[row,col].shape[1]:
 					self.ScaleMaxDim[col] = self.CelWavCoeffs[row,col].shape[1]
 
+		# Gather helpful statistics to be used by other classes
+		print 'Calulating extrema of coefficients'
+		self.WavCoeffMax = -1e200
+		self.WavCoeffMin = 1e200
+		self.ScalCoeffMax = -1e200
+		self.ScalCoeffMin = 1e200
+		for ii in range(self.CelWavCoeffs.shape[0]):
+			for jj in range(self.CelWavCoeffs.shape[1]):
+				if (self.CelWavCoeffs[ii,jj].size > 0):
+					wmax = N.amax(self.CelWavCoeffs[ii,jj])
+					wmin = N.amin(self.CelWavCoeffs[ii,jj])
+					smax = N.amax(self.CelScalCoeffs[ii,jj])
+					smin = N.amin(self.CelScalCoeffs[ii,jj])
+					if (wmax > self.WavCoeffMax): self.WavCoeffMax = wmax
+					if (wmin < self.WavCoeffMin): self.WavCoeffMin = wmin
+					if (smax > self.ScalCoeffMax): self.ScalCoeffMax = smax
+					if (smin < self.ScalCoeffMin): self.ScalCoeffMin = smin 
+		
 		# NOTE: gW and Data are class numpy.ndarray
 		#		MatInput is just a dict, so can directly look for variables there
 		
@@ -380,6 +398,16 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get tree until data is loaded successfully"
 		
+	def GetWaveletCoeffRange(self):
+		"""Returns a tuple containing the range of values (min,max) of all the wavelet coefficients
+		"""
+		return (self.WavCoeffMin,self.WavCoeffMax)
+
+	def GetScalingCoeffRange(self):
+		"""Returns a tuple containing the range of values (min,max) of all the wavelet coefficients
+		"""
+		return (self.ScalCoeffMin,self.ScalCoeffMax)
+
 	def GetWaveletCoeffImages(self, ice_leaf_ids=None, ice_leaf_xmins=None ):
 		"""Returns a list of vtkImageData 2D image with the wavelet coefficients at all dimensions
 		for all nodes. If you give the positions and IDs of the leaf nodes, as laid out by
@@ -433,21 +461,25 @@ class DataSource(object):
 					offspring_pos = self.mapped_leaf_pos[offspring_idxs]
 					sorted_offspring_pos_idxs = N.argsort(offspring_pos)
 					sorted_offspring_idxs = offspring_idxs[sorted_offspring_pos_idxs]
-					img_tuple = tuple(pp for pp in self.CelWavCoeffs[sorted_offspring_idxs, self.Scales[node_id]])
-					# May need to transpose this...
-					img = N.concatenate(img_tuple, axis=0).T
+					# Need to reverse the order up-down of wav coeffs
+					img_list = list(pp[::-1,:] for pp in self.CelWavCoeffs[sorted_offspring_idxs, self.Scales[node_id]])
+					# Need to reverse the list to get in the right order
+					img_list.reverse()
+					# Need to transpose the concatenated matrices
+					img = N.concatenate(tuple(img_list), axis=0).T
 					
 					# Create vtkImageData out of WavCoeffs for texturing icicle view tree
 					# .copy() is to force the array to be contiguous for numpy_to_vtk
 					# deep=True should keep reference around even after numpy array is destroyed
 					
+					# Need to reverse the order again
 					WCvtk = VN.numpy_to_vtk(img.ravel()[::-1].copy(), deep=True)
 					WCvtk.SetName('Coeffs')
 					
 					WCimageData = vtk.vtkImageData()
 					WCimageData.SetOrigin(0,0,0)
 					WCimageData.SetSpacing(1,1,1)
-					WCimageData.SetDimensions(img.shape[0],img.shape[1],1)
+					WCimageData.SetDimensions(img.shape[1],img.shape[0],1)
 					WCimageData.GetPointData().AddArray(WCvtk)
 					WCimageData.GetPointData().SetActiveScalars('Coeffs')
 					

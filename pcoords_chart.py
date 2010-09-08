@@ -135,10 +135,10 @@ class PCoordsChart(object):
 # 					extrema.append(max)
 # 			exArray = N.array(extrema)
 			# Get extrema from _all_ wavelet coefficients instead of just used columns
-			exArray = self.ds.WavCoeffsOrig.ravel()
+			exRange = self.ds.GetWaveletCoeffRange()
 			# Move max/min in a bit on plot
-			chMax = exArray.max()*1.05	
-			chMin = exArray.min()*1.05
+			chMax = exRange[1]*1.05	
+			chMin = exRange[0]*1.05
 			tickPos = VN.numpy_to_vtk(N.array([chMin, 0.0, chMax]), deep=True)
 			tickNoPos = VN.numpy_to_vtk(N.array([]), deep=True)
 			
