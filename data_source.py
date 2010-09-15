@@ -50,14 +50,17 @@ class DataSource(object):
 		
 		# ----------
 		# Load and construct whole graph and multi-resolution data from Matlab structure
-		print 'Trying to load data set from .mat file...'
+		print 'Trying to load data set from .mat file... ', self.data_file
 		
 		if len(self.data_file) == 0:
+			print "No data file name error!!!"
 			raise IOError, "No data file name: Use SetFileName('file.mat') before LoadData()"
 		
+		print 'Trying to really load now...'
 		try:
 			MatInput = scipy.io.loadmat(self.data_file, struct_as_record=True)
 		except:
+			print 'loadmat crapping out for some reason...'
 			raise IOError, "Can't load supplied matlab file"
 			# return
 			
@@ -232,7 +235,8 @@ class DataSource(object):
 		#     IsALeaf = gW.isaleaf;
 		#     LeafNodes = gW.LeafNodes;
 		
-		self.GWTopts = MatInput['GWTopts']
+		# GWTopts structure giving problems on loadmat when running in standalone app...
+		# self.GWTopts = MatInput['GWTopts']
 
 		# X has already been projected to D dim by PCA
 		self.X = N.mat(MatInput['X'])
