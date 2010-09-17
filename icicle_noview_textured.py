@@ -492,7 +492,7 @@ class IcicleNoView(object):
 	# Navigation "buttons" callbacks
 	# NOTE: Directly accessing data source member variables here...
 	def OnNavUp(self, prev_ped_id):
-		new_ped_id = self.ds.CP[prev_ped_id]
+		new_ped_id = self.ds.cp[prev_ped_id]
 		if new_ped_id >= 0:
 			return new_ped_id
 		else:
@@ -530,7 +530,7 @@ class IcicleNoView(object):
 		
 		
 	def OnNavLDown(self, prev_ped_id):
-		new_ped_id_arr = N.nonzero(self.ds.CP==prev_ped_id)[0]
+		new_ped_id_arr = N.nonzero(self.ds.cp==prev_ped_id)[0]
 		if new_ped_id_arr.size == 2:
 			return new_ped_id_arr[0]
 		elif new_ped_id_arr.size == 1:
@@ -540,7 +540,7 @@ class IcicleNoView(object):
 			return prev_ped_id
 		
 	def OnNavRDown(self, prev_ped_id):
-		new_ped_id_arr = N.nonzero(self.ds.CP==prev_ped_id)[0]
+		new_ped_id_arr = N.nonzero(self.ds.cp==prev_ped_id)[0]
 		if new_ped_id_arr.size == 2:
 			return new_ped_id_arr[1]
 		elif new_ped_id_arr.size == 1:
