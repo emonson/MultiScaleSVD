@@ -299,6 +299,46 @@ class PCoordsChart(object):
 	# 	self.view.GetRepresentation(0).SetAnnotationLink(self.link)
 	# 	self.link.AddObserver("AnnotationChangedEvent", self.IcicleSelectionCallback)
 
+if __name__ == "__main__":
+
+	# from tkFileDialog import askopenfilename
+	from data_source import DataSource
+	
+	# data_file = askopenfilename()
+	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100909.mat'
+
+	# DataSource loads .mat file and can generate data from it for other views
+	ds = DataSource(data_file)
+		
+	# Set up an annotation link as if selections were coming from another class
+	ice_output_link = vtk.vtkAnnotationLink()
+	# ice_output_link.GetCurrentSelection().GetNode(0).SetFieldType(3)		# Vertex
+	# ice_output_link.GetCurrentSelection().GetNode(0).SetContentType(2)	# Pedigree Ids
+	# Above are the correct types, but we need a blank selection to begin
+	ice_output_link.GetCurrentSelection().RemoveAllNodes()
+
+	pc_class = PCoordsChart(ds)
+	pc_class.SetInputAnnotationLink(ice_output_link)
+	pc_class.GetView().GetRenderWindow().SetSize(600,300)
+		
+	# Set up an annotation link as if selections were coming from another class
+	dummy_link2 = vtk.vtkAnnotationLink()
+	dummy_link2.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+	dummy_link2.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
+	pc_class.SetHighlightAnnotationLink(dummy_link2)
+	
+	# Fill selection link with dummy IDs
+	id_array = N.array([102],dtype='int64')
+	id_list = VN.numpy_to_vtkIdTypeArray(id_array)
+	node = vtk.vtkSelectionNode()
+	node.SetFieldType(3)		# Vertex
+	node.SetContentType(2)	# Pedigree Ids
+	node.SetSelectionList(id_list)
+	ice_output_link.GetCurrentSelection().AddNode(node)
+	ice_output_link.InvokeEvent("AnnotationChangedEvent")
+	
+	# Only need to Start() interactor for one view
+	pc_class.GetView().GetRenderWindow().GetInteractor().Start()
 
 
 
