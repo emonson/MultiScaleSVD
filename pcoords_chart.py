@@ -115,6 +115,7 @@ class PCoordsChart(object):
 			currentScale = self.ds.Scales[node_id]	# Directly accessing member variable...
 			
 			self.chart.GetPlot(0).SetInput(self.table)
+			self.chart.GetPlot(0).Modified()
 			self.chart.SetDrawSets(True)
 			self.chart.SetNumPerSet(numPerSet)
 			self.chart.SetCurrentScale(currentScale)
@@ -190,6 +191,7 @@ class PCoordsChart(object):
 			self.PedIdToIndexSelection()
 
 			# self.view.ResetCamera()
+			self.chart.Modified()
 			self.view.Render()
 
 		else:

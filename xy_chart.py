@@ -217,6 +217,12 @@ class XYChart(object):
 		
 	def GetAxisView(self):
 		return self.axisView
+	
+	def GetAxisImageItem(self):
+		return self.ai
+	
+	def GetChartXY(self):
+		return self.chart
 		
 	# def SetAnnotationLink(self, externalLink):
 	# 	self.link = externalLink

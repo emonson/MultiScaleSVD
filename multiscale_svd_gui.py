@@ -92,10 +92,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# View #5 -- Axis Images (xy control) View
 		self.renWinList.append(self.xy_class.GetAxisView().GetRenderWindow())
 				
-		# Set up callback to update 3d render window when selections are changed in 
-		#       parallel coordinates view
-		self.if_al_out.AddObserver("AnnotationChangedEvent", self.IcicleSelectionCallback)
-		
 		# Set up all the render windows in the GUI
 		self.ui.setupUi(self, self.renWinList)
 		
@@ -114,9 +110,9 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.style3 = vtk.vtkInteractorStyleImage()
 		self.nf_class.SetInteractorStyle(self.style3)		
 		# XYChart
-		style4 = vtk.vtkInteractorStyleRubberBand2D()
-		self.xy_class.GetChartView().GetInteractor().SetInteractorStyle(style4)
-		self.xy_class.GetChartView().GetScene().SetInteractorStyle(style4)
+		self.style4 = vtk.vtkInteractorStyleRubberBand2D()
+		self.xy_class.GetChartView().GetInteractor().SetInteractorStyle(self.style4)
+		self.xy_class.GetChartView().GetScene().SetInteractorStyle(self.style4)
 		# AxisImages
 		style5 = vtk.vtkInteractorStyleRubberBand2D()
 		self.xy_class.GetAxisView().GetInteractor().SetInteractorStyle(style5)
@@ -132,6 +128,14 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# Connect signals and slots
 		QtCore.QObject.connect(self.ui.actionExit, QtCore.SIGNAL("triggered()"), self.fileExit)
 		QtCore.QObject.connect(self.ui.actionOpen, QtCore.SIGNAL("triggered()"), self.fileOpen)
+		
+		# Trying to see whether I can pass selection bounds from xy chart to pcoords
+		self.xy_class.GetChartView().GetInteractor().AddObserver("LeftButtonReleaseEvent", self.XYSelectionReleaseCallback)
+		# Trying to see whether I can pass selection bounds from xy chart to pcoords
+		self.xy_class.GetChartView().GetInteractor().AddObserver("LeftButtonPressEvent", self.XYSelectionPressCallback)
+		
+		# Testing out events for axis image modification so can have callback here
+		self.xy_class.GetAxisImageItem().AddObserver("PropertyModifiedEvent", self.AIxyChangedCallback)
 
 		# Only need to Start() interactor for one view
 		# self.pc_class.GetView().GetInteractor().Start()
@@ -139,6 +143,14 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		for rw in self.renWinList:
 			rw.Render()
 
+	def XYSelectionReleaseCallback(self, caller, event):
+		x0,y0 = caller.GetEventPosition()
+		print "Release (", x0, y0, ")"
+	
+	def XYSelectionPressCallback(self, caller, event):
+		x0,y0 = caller.GetEventPosition()
+		print "Press (", x0, y0, ")"
+	
 	def IcicleSelectionCallback(self, caller, event):
 	
 		annSel = caller.GetCurrentSelection()
@@ -151,6 +163,11 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		else:
 			print "if back to main with no selection node"
 	
+	def AIxyChangedCallback(self, caller, event):
+		xI = self.xy_class.GetAxisImageItem().GetXAxisIndex()
+		yI = self.xy_class.GetAxisImageItem().GetYAxisIndex()
+		print "AI CALLBACK: (%d, %d)" % (xI,yI)
+
 	def fileOpen(self):
 	
 		openFilesDefaultPath = ''
