@@ -32,8 +32,6 @@ class XYChart(object):
 
 		self.ai = vtkvtg.vtkAxisImageItem()
 		self.axisView.GetScene().AddItem(self.ai)
-		# self.ai.SetChartXY(self.chart)
-		self.ai.SetChartXYView(self.chartView)
 
 		self.highlight_link = None
 		if highlight_link is not None:
@@ -146,7 +144,6 @@ class XYChart(object):
 			self.chart.SetTooltipImageTargetSize(50)
 			self.chart.Update()
 			
-			self.ai.SetChartXY(self.chart)
 			self.ai.SetAxisImagesHorizontal()
 			self.ai.SetAxisImageStack(self.axis_images)
 			self.ai.SetCenterImage(self.center_image)

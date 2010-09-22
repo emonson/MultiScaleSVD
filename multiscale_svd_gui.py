@@ -167,6 +167,8 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		xI = self.xy_class.GetAxisImageItem().GetXAxisIndex()
 		yI = self.xy_class.GetAxisImageItem().GetYAxisIndex()
 		print "AI CALLBACK: (%d, %d)" % (xI,yI)
+		self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
+		self.xy_class.GetChartView().Render()
 
 	def fileOpen(self):
 	
