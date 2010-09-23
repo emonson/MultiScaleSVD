@@ -68,6 +68,10 @@ class XYChart(object):
 		
 		# self.chartView.ResetCamera()
 		# self.chartView.Render()
+		
+		# Want to keep track of whether the node coming in on the input_link
+		# is new or not
+		self.input_link_idx = 0
 
 
 	def SetInputAnnotationLink(self, link):
@@ -125,9 +129,13 @@ class XYChart(object):
 			self.table = self.ds.GetNodeOneScaleCoeffTable(node_id)
 			id_list = self.ds.PointsInNet[node_id]	# Directly accessing member variable
 			self.image_stack = self.ds.GetProjectedImages(id_list)
-			self.axis_images = self.ds.GetNodeWaveletImages(node_id)
+			self.axis_images = self.ds.GetNodeBasisImages(node_id)
 			self.center_image = self.ds.GetNodeCenterImage(node_id)
 
+			# Get the axis image XY indices in case resetting to those values
+			xI = self.ai.GetXAxisIndex()
+			yI = self.ai.GetYAxisIndex()
+			
 			self.chart.ClearPlots()
 			self.ai.ClearAxisImages()
 			
@@ -136,6 +144,11 @@ class XYChart(object):
 			line1.SetInput(self.table, 0, 1)
 			line1.SetMarkerStyle(2)
 			line1.SetColor(0, 0, 0, 255)
+			
+			# If this is the same icicle node as before, then reset to original XY indices
+			# before view is updated
+			if node_id == self.input_link_idx:
+				self.chart.SetPlotColumnIndices(xI,yI)
 
 			# Need to set the image stack for the plot which will get resliced 
 			self.chart.SetTooltipImageStack(self.image_stack)
@@ -147,11 +160,18 @@ class XYChart(object):
 			self.ai.SetAxisImagesHorizontal()
 			self.ai.SetAxisImageStack(self.axis_images)
 			self.ai.SetCenterImage(self.center_image)
+
+			# If this is the same icicle node as before, then reset to original XY indices
+			# before view is updated
+			if node_id == self.input_link_idx:
+				self.ai.SetAxisIndices(xI,yI)
+
 			self.ai.Update()
 
 			self.PedIdToIndexSelection()
 
 			# self.chartView.ResetCamera()
+			self.input_link_idx = node_id
 			self.chartView.Render()
 			self.axisView.Render()
 

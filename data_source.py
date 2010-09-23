@@ -349,6 +349,10 @@ class DataSource(object):
 		ice_ids_mapped = self.LeafNodesImap[ice_leaf_ids]
 		self.mapped_leaf_pos = N.zeros_like(ice_leaf_xmins)
 		self.mapped_leaf_pos[ice_ids_mapped] = ice_leaf_xmins
+		
+		# Flag to set whether generic routines should return Wavelet or Scaling Function
+		# coefficients / images -- "wav" or "scal"
+		self.coeff_source = "wav"
 
 		self.data_loaded = True
 
@@ -402,17 +406,36 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get tree until data is loaded successfully"
 		
-	def GetWaveletCoeffRange(self):
-		"""Returns a tuple containing the range of values (min,max) of all the wavelet coefficients
+	def SetCoeffSource(self, source_name):
+		"""Set whether generic routines should return Wavelet or Scaling Function
+		coefficents. Use "wav" or "scal", but it will work with longer, capitalized versions.
 		"""
-		return (self.WavCoeffMin,self.WavCoeffMax)
+		if source_name.lower().startswith('wav'):
+			self.coeff_source = 'wav'
+		elif source_name.lower().startswith('sca'):
+			self.coeff_source = 'scal'
+		else:
+			print "Error: Unknown coefficient source. Use 'wavelet' or 'scaling'."
 
-	def GetScalingCoeffRange(self):
-		"""Returns a tuple containing the range of values (min,max) of all the wavelet coefficients
+	def GetCoeffSource(self):
+		"""Get whether generic routines will return Wavelet or Scaling Function
+		coefficents: 'wavelet' or 'scaling'
 		"""
-		return (self.ScalCoeffMin,self.ScalCoeffMax)
+		if self.coeff_source == 'wav':
+			return 'wavelet'
+		else:
+			return 'scaling'		
+	
+	def GetCoeffRange(self):
+		"""Returns a tuple containing the range of values (min,max) of all the wavelet coefficients
+		or scaling coefficients depending on which has been set in SetCoeffSource. Default is Wavelet.
+		"""
+		if self.coeff_source == 'wav':
+			return (self.WavCoeffMin,self.WavCoeffMax)
+		else:
+			return (self.ScalCoeffMin,self.ScalCoeffMax)
 
-	def GetWaveletCoeffImages(self, ice_leaf_ids=None, ice_leaf_xmins=None ):
+	def GetCoeffImages(self, ice_leaf_ids=None, ice_leaf_xmins=None ):
 		"""Returns a list of vtkImageData 2D image with the wavelet coefficients at all dimensions
 		for all nodes. If you give the positions and IDs of the leaf nodes, as laid out by
 		the icicle view, then the matrix will be sorted accordingly 
@@ -426,6 +449,12 @@ class DataSource(object):
 				
 			else:
 			
+				# Switch for which coefficients to use for images
+				if self.coeff_source == 'wav':
+					CelCoeffs = self.CelWavCoeffs
+				else:
+					CelCoeffs = self.CelScalCoeffs
+					
 				# Matlab method for appending wavelet coeffients together
 				# Need to use this if the icicle view layout may have reordered the nodes
 				# 
@@ -466,7 +495,7 @@ class DataSource(object):
 					sorted_offspring_pos_idxs = N.argsort(offspring_pos)
 					sorted_offspring_idxs = offspring_idxs[sorted_offspring_pos_idxs]
 					# Need to reverse the order up-down of wav coeffs
-					img_list = list(pp[::-1,:] for pp in self.CelWavCoeffs[sorted_offspring_idxs, self.Scales[node_id]])
+					img_list = list(pp[::-1,:] for pp in CelCoeffs[sorted_offspring_idxs, self.Scales[node_id]])
 					# Need to reverse the list to get in the right order
 					img_list.reverse()
 					# Need to transpose the concatenated matrices
@@ -532,6 +561,12 @@ class DataSource(object):
 		
 		if self.data_loaded:
 			
+			# Switch for which coefficients to use for images
+			if self.coeff_source == 'wav':
+				CelCoeffs = self.CelWavCoeffs
+			else:
+				CelCoeffs = self.CelScalCoeffs
+					
 			# For a given node_id, get PIN and then extract all coeffs at every scale
 			# Columns of table will be rows of the WavCoeffsOrig matrix
 			
@@ -545,7 +580,7 @@ class DataSource(object):
 				mapped_node_idx = self.LeafNodesImap[leaf_node]
 				
 				# Skip any empty arrays
-				wav_row_tuple = tuple(arr[row,:] for arr in self.CelWavCoeffs[mapped_node_idx,:] if arr.size != 0)
+				wav_row_tuple = tuple(arr[row,:] for arr in CelCoeffs[mapped_node_idx,:] if arr.size != 0)
 				# Create zero-padded arrays
 				zero_row_tuple = tuple(N.zeros(sc) for sc in self.ScaleMaxDim)
 				# And transfer over values
@@ -585,6 +620,12 @@ class DataSource(object):
 		
 		if self.data_loaded:
 			
+			# Switch for which coefficients to use for images
+			if self.coeff_source == 'wav':
+				CelCoeffs = self.CelWavCoeffs
+			else:
+				CelCoeffs = self.CelScalCoeffs
+					
 			# For a given node_id, get PIN and then extract all coeffs at every scale
 			# Columns of table will be rows of the WavCoeffsOrig matrix
 			
@@ -598,7 +639,7 @@ class DataSource(object):
 				mapped_node_idx = self.LeafNodesImap[leaf_node]
 				
 				# Skip any empty arrays
-				wav_row_tuple = tuple(arr[row,:] for arr in self.CelWavCoeffs[mapped_node_idx,:] if arr.size != 0)
+				wav_row_tuple = tuple(arr[row,:] for arr in CelCoeffs[mapped_node_idx,:] if arr.size != 0)
 				# Create zero-padded arrays
 				zero_row_tuple = tuple(N.zeros(D) for sc in self.ScaleMaxDim)
 				# And transfer over values
@@ -639,6 +680,12 @@ class DataSource(object):
 				
 		if self.data_loaded:
 			
+			# Switch for which coefficients to use for images
+			if self.coeff_source == 'wav':
+				CelCoeffs = self.CelWavCoeffs
+			else:
+				CelCoeffs = self.CelScalCoeffs
+					
 			# For a given node_id, concatenate wavelet coeffs in proper order 
 			# (according to leaf node positions in icicle view if it was set already)
 			# Columns of table will be rows of the wavelet coeffs image
@@ -650,7 +697,7 @@ class DataSource(object):
 			offspring_pos = self.mapped_leaf_pos[offspring_idxs]
 			sorted_offspring_pos_idxs = N.argsort(offspring_pos)
 			sorted_offspring_idxs = offspring_idxs[sorted_offspring_pos_idxs]
-			img_tuple = tuple(pp for pp in self.CelWavCoeffs[sorted_offspring_idxs, scale])
+			img_tuple = tuple(pp for pp in CelCoeffs[sorted_offspring_idxs, scale])
 			# The image comes out with shape (npts, ndims)
 			# May need to reorder (reverse) this...?
 			img = N.concatenate(img_tuple, axis=0)
@@ -675,11 +722,17 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
-	def GetNodeWaveletImages(self, node_id):
+	def GetNodeBasisImages(self, node_id):
 		"""Returns a vtkImageData of all wavelet basis images for a given node."""
 				
 		if self.data_loaded:
 			
+			# Switch for which coefficients to use for images
+			if self.coeff_source == 'wav':
+				Bases = self.WavBases
+			else:
+				Bases = self.ScalFuns
+					
 			# %% Display all detail coordinates for a given leaf node
 			# 
 			# imagesc(reshape(V(:,1:D)*gW.ScalFuns{i}, self.imR,[])); 
@@ -688,31 +741,8 @@ class DataSource(object):
 
 			# Compute all detail images for that node
 			# Now V already chopped to AmbientDimension
-			image_cols = self.V*self.WavBases[node_id]
+			image_cols = self.V*Bases[node_id]
 			# To make it linear, it is the correct order (one image after another) to .ravel()
-			images_linear = N.asarray(image_cols.T).ravel()
-			
-			intensity = VN.numpy_to_vtk(images_linear, deep=True)
-			intensity.SetName('DiffIntensity')
-	
-			imageData = vtk.vtkImageData()
-			imageData.SetOrigin(0,0,0)
-			imageData.SetSpacing(1,1,1)
-			imageData.SetDimensions(self.imR, self.imC, image_cols.shape[1])
-			imageData.GetPointData().AddArray(intensity)
-			imageData.GetPointData().SetActiveScalars('DiffIntensity')
-			
-			return imageData
-			
-		else:
-			raise IOError, "Can't get image until data is loaded successfully"
-
-	def GetNodeScalingFunctionImages(self, node_id):
-		"""Returns a vtkImageData of all scaling function basis images for a given node."""
-				
-		if self.data_loaded:
-			
-			image_cols = self.V*self.ScalFuns[node_id]
 			images_linear = N.asarray(image_cols.T).ravel()
 			
 			intensity = VN.numpy_to_vtk(images_linear, deep=True)
@@ -900,7 +930,8 @@ class DataSource(object):
 			images_list = []
 			# Need to separate out images for each dimension
 			for node_id in chain:
-				images_list.append(self.GetNodeWaveletImages(node_id))
+				# Already a switch for wavelet or scaling functions in GetNodeBasisImages()
+				images_list.append(self.GetNodeBasisImages(node_id))
 
 			return images_list
 			
@@ -915,12 +946,18 @@ class DataSource(object):
 				
 		if self.data_loaded:
 			
+			# Switch for which coefficients to use for images
+			if self.coeff_source == 'wav':
+				CelCoeffs = self.CelWavCoeffs
+			else:
+				CelCoeffs = self.CelScalCoeffs
+					
 			leaf_node = self.IniLabels[data_id]
 			row = N.nonzero(self.PointsInNet[leaf_node]==data_id)[0][0]	# final zero turns array->scalar
 			mapped_node_idx = self.LeafNodesImap[leaf_node]
 			
 			# Skip any empty arrays
-			wav_row_tuple = tuple(arr[row,:] for arr in self.CelWavCoeffs[mapped_node_idx,:] if arr.size != 0)
+			wav_row_tuple = tuple(arr[row,:] for arr in CelCoeffs[mapped_node_idx,:] if arr.size != 0)
 			wav_row = N.concatenate(wav_row_tuple, axis=1)
 						
 			# Right now doing fractional magnitudes only relative to this row's (data point's) values

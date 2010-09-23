@@ -136,7 +136,7 @@ class PCoordsChart(object):
 # 					extrema.append(max)
 # 			exArray = N.array(extrema)
 			# Get extrema from _all_ wavelet coefficients instead of just used columns
-			exRange = self.ds.GetWaveletCoeffRange()
+			exRange = self.ds.GetCoeffRange()
 			# Move max/min in a bit on plot
 			chMax = exRange[1]*1.05	
 			chMin = exRange[0]*1.05

@@ -276,12 +276,12 @@ class IcicleNoView(object):
 		poly_bounds = VN.vtk_to_numpy(out_polys.GetCellData().GetArray('area'))
 		vertex_ids = VN.vtk_to_numpy(out_polys.GetCellData().GetArray('vertex_ids'))
 		
-		LeafIds = vertex_ids[isleaf>0]
-		LeafXmins = poly_bounds[isleaf>0,0]
-		XOrderedLeafIds = LeafIds[LeafXmins.argsort()]
+		self.LeafIds = vertex_ids[isleaf>0]
+		self.LeafXmins = poly_bounds[isleaf>0,0]
+		self.XOrderedLeafIds = self.LeafIds[self.LeafXmins.argsort()]
 					
 		# And then grab the Wavelet Coefficients images sorted according to this
-		self.WCimageDataList = self.ds.GetWaveletCoeffImages(LeafIds,LeafXmins)
+		self.WCimageDataList = self.ds.GetCoeffImages(self.LeafIds,self.LeafXmins)
 				
 		# Calculate extreme abs value for all images
 # 		WCext = 0.0
@@ -290,7 +290,7 @@ class IcicleNoView(object):
 # 			WCnew = abs(WCrange.min()) if (abs(WCrange.min()) > abs(WCrange.max())) else abs(WCrange.max())
 # 			if (WCnew > WCext):
 # 				WCext = WCnew
-		WCrange = self.ds.GetWaveletCoeffRange()
+		WCrange = self.ds.GetCoeffRange()
 		WCext = abs(WCrange[0]) if (abs(WCrange[0]) > abs(WCrange[1])) else abs(WCrange[1])
 		
 		# print WCext
@@ -480,13 +480,29 @@ class IcicleNoView(object):
 		self.renderer.AddActor(act4)
 		
 		# Get Ordered fractional positions for pedigree ids (for setting contour values)
-		self.ped_id_fracs = self.ds.GetIdsFractionalPosition(XOrderedLeafIds)
+		self.ped_id_fracs = self.ds.GetIdsFractionalPosition(self.XOrderedLeafIds)
 		
 		# Clear out selections on data change
 		self.output_link.GetCurrentSelection().RemoveAllNodes()
 		self.output_link.InvokeEvent("AnnotationChangedEvent")
 
 		self.renderer.ResetCamera(self.icicle_actor.GetBounds())
+
+	#---------------------------------------------------------
+	def ReloadTextureImages(self):
+	
+		# And then grab the Wavelet Coefficients images sorted according to this
+		self.WCimageDataList = self.ds.GetCoeffImages(self.LeafIds,self.LeafXmins)
+				
+		WCrange = self.ds.GetCoeffRange()
+		WCext = abs(WCrange[0]) if (abs(WCrange[0]) > abs(WCrange[1])) else abs(WCrange[1])
+		self.lut.SetRange(-WCext,WCext)
+		
+		for ii in range(len(self.WCimageDataList)):			
+			self.texture_list[ii].SetInput(self.WCimageDataList[ii])
+
+		self.output_link.InvokeEvent("AnnotationChangedEvent")
+		self.renWin.Render()
 
 	#---------------------------------------------------------
 	# Navigation "buttons" callbacks

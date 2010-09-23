@@ -481,6 +481,51 @@ class DetailImageFlow(object):
 			print "PC no selection node to image flow called"
 
 
+	def ReloadBasisImages(self):
+		"""Reload images when switching from wavelet to scaling function images
+		"""
+		annSel = self.input_link.GetCurrentSelection()
+		if annSel.GetNumberOfNodes() > 0:
+			idxVtk = annSel.GetNode(0).GetSelectionList()
+			if idxVtk.GetNumberOfTuples() > 0:
+				
+				# New selection list, so get new data
+				idxArr = VN.vtk_to_numpy(idxVtk)
+				print "Image Flow input to Nup Flow ", idxArr
+				
+				# Only allowing single index [0]
+				# Returning a list of image stacks
+				self.imStackList = self.ds.GetDetailImages(idxArr.tolist()[0])
+				i_array_name = 'DiffIntensity'
+				
+				self.imWeightArrList = self.ds.GetDetailWeights(idxArr.tolist()[0])
+
+				# Here is where we have to do things in a new order since there is one
+				# stack per scale, so can form assemblies directly instead of adding
+				# to each assembly in order as we go through the stacks.
+				for nn, imStack in enumerate(self.imStackList):
+					# Adjust a blue-white-red lookup table
+					# NOTE: Only basing on single image stack for now...
+					i_range = N.array(imStack.GetPointData().GetArray(i_array_name).GetRange())
+					i_ext = abs(i_range.min()) if (abs(i_range.min()) > abs(i_range.max())) else abs(i_range.max())
+					if abs(i_range[1]-i_range[0]) < 1e-10: i_ext = 1024
+					self.lut.SetRange(-i_ext,i_ext)
+					# self.lut.Build()
+					
+					self.colorList[nn].SetInput(imStack)
+					
+					prop3Dcollection = self.assemblyList[nn].GetParts()
+					prop3Dcollection.InitTraversal()
+					
+					tmp_actor = vtk.vtkImageActor.SafeDownCast(prop3Dcollection.GetNextProp3D())
+
+					for ii in range(prop3Dcollection.GetNumberOfItems()):							
+						# Set opacity according to relative magnitude of abs(wavelet coeff)
+						tmp_actor.SetOpacity(self.imWeightArrList[nn][ii])
+						tmp_actor = vtk.vtkImageActor.SafeDownCast(prop3Dcollection.GetNextProp3D())
+			
+				self.window.Render()
+
 	# --------------------------------------------------------
 	def setImagesPosition(self,slider_value):
 		xx = N.arange(self.numScales)-slider_value

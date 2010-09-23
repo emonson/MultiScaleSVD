@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'multiscale_svd.ui'
 #
-# Created: Fri Aug 20 09:51:22 2010
+# Created: Thu Sep 23 10:15:28 2010
 #      by: PyQt4 UI code generator 4.7
 #
 # WARNING! All changes made in this file will be lost!
@@ -56,6 +56,8 @@ class Ui_MainWindow(object):
         self.menubar.setObjectName("menubar")
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
+        self.menuView = QtGui.QMenu(self.menubar)
+        self.menuView.setObjectName("menuView")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -64,9 +66,18 @@ class Ui_MainWindow(object):
         self.actionOpen.setObjectName("actionOpen")
         self.actionExit = QtGui.QAction(MainWindow)
         self.actionExit.setObjectName("actionExit")
+        self.actionWavelet = QtGui.QAction(MainWindow)
+        self.actionWavelet.setCheckable(True)
+        self.actionWavelet.setObjectName("actionWavelet")
+        self.actionScaling = QtGui.QAction(MainWindow)
+        self.actionScaling.setCheckable(True)
+        self.actionScaling.setObjectName("actionScaling")
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addAction(self.actionExit)
+        self.menuView.addAction(self.actionWavelet)
+        self.menuView.addAction(self.actionScaling)
         self.menubar.addAction(self.menuFile.menuAction())
+        self.menubar.addAction(self.menuView.menuAction())
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -74,9 +85,14 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD", None, QtGui.QApplication.UnicodeUTF8))
         self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuView.setTitle(QtGui.QApplication.translate("MainWindow", "View", None, QtGui.QApplication.UnicodeUTF8))
         self.actionOpen.setText(QtGui.QApplication.translate("MainWindow", "Open", None, QtGui.QApplication.UnicodeUTF8))
         self.actionOpen.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+O", None, QtGui.QApplication.UnicodeUTF8))
         self.actionExit.setText(QtGui.QApplication.translate("MainWindow", "Exit", None, QtGui.QApplication.UnicodeUTF8))
         self.actionExit.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Q", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionWavelet.setText(QtGui.QApplication.translate("MainWindow", "Wavelet Bases", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionWavelet.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Alt+W", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionScaling.setText(QtGui.QApplication.translate("MainWindow", "Scaling Function Bases", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionScaling.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Alt+S", None, QtGui.QApplication.UnicodeUTF8))
 
 from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor

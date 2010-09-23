@@ -38,6 +38,10 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		print "Loading data from ", str(data_file)
 		self.ds = DataSource(str(data_file))
 		
+		# Explicitly set default here
+		self.ds.SetCoeffSource('wavelets')
+		# self.ds.SetCoeffSource('scaling')
+		
 		# All view classes have access to an instance of that data source for internal queries
 		# Note that the only view which will pull and display data right away is the icicle view
 		#  the other views need to be able to initialize without any data and only pull and show
@@ -125,9 +129,17 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.ui.splitter_3.setSizes([490,280])
 		self.ui.splitter_4.setSizes([330,770])
 		
+		# Only want one type of coefficient to be set at a time
+		basisActionGroup = QtGui.QActionGroup(self)
+		self.ui.actionWavelet.setChecked(True)
+		basisActionGroup.addAction(self.ui.actionWavelet)
+		basisActionGroup.addAction(self.ui.actionScaling)
+		
 		# Connect signals and slots
 		QtCore.QObject.connect(self.ui.actionExit, QtCore.SIGNAL("triggered()"), self.fileExit)
 		QtCore.QObject.connect(self.ui.actionOpen, QtCore.SIGNAL("triggered()"), self.fileOpen)
+		QtCore.QObject.connect(self.ui.actionWavelet, QtCore.SIGNAL("triggered()"), self.switchToWavelets)
+		QtCore.QObject.connect(self.ui.actionScaling, QtCore.SIGNAL("triggered()"), self.switchToScaling)
 		
 		# Trying to see whether I can pass selection bounds from xy chart to pcoords
 		self.xy_class.GetChartView().GetInteractor().AddObserver("LeftButtonReleaseEvent", self.XYSelectionReleaseCallback)
@@ -169,7 +181,40 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		print "AI CALLBACK: (%d, %d)" % (xI,yI)
 		self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
 		self.xy_class.GetChartView().Render()
+	
+	# - - - - - - - - - - - - - - - - - - - - - -
+	# TODO: Axis images by default switch back to 0,1 xy...
+	def switchToWavelets(self):
+		if self.ds.GetCoeffSource().lower().startswith('sca'):
+			# Record which xy indices are being plotted to reset after switchover
+			xI = self.xy_class.GetAxisImageItem().GetXAxisIndex()
+			yI = self.xy_class.GetAxisImageItem().GetYAxisIndex()
+			self.ds.SetCoeffSource('wavelet')
+			# Force other classes to reload their image and table data from new source
+			# while keeping all selections...
+			self.ice_class.ReloadTextureImages()
+			self.nf_class.ReloadBasisImages()
+			# self.xy_class.GetAxisImageItem().SetAxisIndices(xI,yI)
+			# self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
+			# self.xy_class.GetAxisView().Render()
+			# self.xy_class.GetChartView().Render()
 
+	def switchToScaling(self):
+		if self.ds.GetCoeffSource().lower().startswith('wav'):
+			# Record which xy indices are being plotted to reset after switchover
+			xI = self.xy_class.GetAxisImageItem().GetXAxisIndex()
+			yI = self.xy_class.GetAxisImageItem().GetYAxisIndex()
+			self.ds.SetCoeffSource('scaling')
+			# Force other classes to reload their image and table data from new source
+			# while keeping all selections...
+			self.ice_class.ReloadTextureImages()
+			self.nf_class.ReloadBasisImages()
+			# self.xy_class.GetAxisImageItem().SetAxisIndices(xI,yI)
+			# self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
+			# self.xy_class.GetAxisView().Render()
+			# self.xy_class.GetChartView().Render()
+
+	# - - - - - - - - - - - - - - - - - - - - - -
 	def fileOpen(self):
 	
 		openFilesDefaultPath = ''
