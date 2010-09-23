@@ -38,10 +38,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		print "Loading data from ", str(data_file)
 		self.ds = DataSource(str(data_file))
 		
-		# Explicitly set default here
-		self.ds.SetCoeffSource('wavelets')
-		# self.ds.SetCoeffSource('scaling')
-		
 		# All view classes have access to an instance of that data source for internal queries
 		# Note that the only view which will pull and display data right away is the icicle view
 		#  the other views need to be able to initialize without any data and only pull and show
@@ -98,6 +94,11 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 				
 		# Set up all the render windows in the GUI
 		self.ui.setupUi(self, self.renWinList)
+		
+		# Explicitly set default here
+		self.ds.SetCoeffSource('wavelets')
+		# self.ds.SetCoeffSource('scaling')
+		self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Wavelets", None, QtGui.QApplication.UnicodeUTF8))
 		
 		# Now need to get all the interactors working properly
 		# Icicle
@@ -198,6 +199,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
 			# self.xy_class.GetAxisView().Render()
 			# self.xy_class.GetChartView().Render()
+			self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Wavelets", None, QtGui.QApplication.UnicodeUTF8))
 
 	def switchToScaling(self):
 		if self.ds.GetCoeffSource().lower().startswith('wav'):
@@ -213,6 +215,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
 			# self.xy_class.GetAxisView().Render()
 			# self.xy_class.GetChartView().Render()
+			self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Scaling Functions", None, QtGui.QApplication.UnicodeUTF8))
 
 	# - - - - - - - - - - - - - - - - - - - - - -
 	def fileOpen(self):
