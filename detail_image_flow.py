@@ -470,11 +470,11 @@ class DetailImageFlow(object):
 				else:
 					self.needToResetCamera = False
 				
-			if event is not None:
-				self.window.Render()
-
 			# Use output_link callback to update highlight properly
 			self.ScaleSelectionCallback()
+
+			if event is not None:
+				self.window.Render()
 
 		else:
 			# If there is no SelectionNode in PC selection -- shouldn't reach here...

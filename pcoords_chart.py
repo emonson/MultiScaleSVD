@@ -241,7 +241,6 @@ class PCoordsChart(object):
 		else:
 			print "PC highlight_link_idxs NO NODES"
 		self.highlight_link_idxs.SetCurrentSelection(idxSel)
-		print "_>_>_>_> set PC current selection"
 
 	def PCoordsSelectionCallback(self, caller, event):
 		# Defined for testing ID picking
@@ -293,6 +292,9 @@ class PCoordsChart(object):
 
 	def GetView(self):
 		return self.view
+		
+	def GetChart(self):
+		return self.chart
 		
 	# def SetAnnotationLink(self, externalLink):
 	# 	self.link = externalLink

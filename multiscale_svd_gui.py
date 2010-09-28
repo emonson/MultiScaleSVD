@@ -159,6 +159,10 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 	def XYSelectionReleaseCallback(self, caller, event):
 		x0,y0 = caller.GetEventPosition()
 		print "Release (", x0, y0, ")"
+		# Using this callback to get rid of parallel coordinates selection bars
+		# if a selection has been made in the XY chart...
+		self.pc_class.GetChart().ClearAxesSelections()
+		self.pc_class.GetView().Render()
 	
 	def XYSelectionPressCallback(self, caller, event):
 		x0,y0 = caller.GetEventPosition()
