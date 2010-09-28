@@ -560,10 +560,14 @@ class DetailImageFlow(object):
 		
 		# Also move highlight rectangle if something picked
 		if self.highlightIndex >= 0:
-			self.highlightActor.SetOrientation(self.assemblyList[self.highlightIndex].GetOrientation())
-			tmpPos = self.assemblyList[self.highlightIndex].GetPosition()
-			usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
-			self.highlightActor.SetPosition(usePos)
+			# Make sure not trying to highlight a scale that doesn't exist in this data point
+			if self.highlightIndex > (len(self.assemblyList)-1):
+				self.manuallySelectScale(len(self.assemblyList)-1)
+			else:
+				self.highlightActor.SetOrientation(self.assemblyList[self.highlightIndex].GetOrientation())
+				tmpPos = self.assemblyList[self.highlightIndex].GetPosition()
+				usePos = (tmpPos[0],tmpPos[1],tmpPos[2]+0.01)
+				self.highlightActor.SetPosition(usePos)
 			
 	# --------------------------------------------------------
 	def sliderCallback(self,caller,event):
@@ -608,6 +612,23 @@ class DetailImageFlow(object):
 			
 		print "scale picked in detail view: ", scale_list
 		
+		id_array = N.array(scale_list, dtype='int64')
+		id_vtk = VN.numpy_to_vtkIdTypeArray(id_array, deep=True)
+		self.output_link.GetCurrentSelection().GetNode(0).SetSelectionList(id_vtk)
+		# This event should update selection highlight based on picked scale
+		self.output_link.InvokeEvent("AnnotationChangedEvent")
+		
+	# --------------------------------------------------------
+	def manuallySelectScale(self, index):
+		"""Here just detect whether something was picked and pass the index (or empty list)
+		to the output_link, then rely on the output_link callback to update the highlight
+		actor and scroll the view to the correct index"""
+		
+		if index >= 0:
+			scale_list = [self.scale_dict[index]]
+		else:
+			scale_list = []
+					
 		id_array = N.array(scale_list, dtype='int64')
 		id_vtk = VN.numpy_to_vtkIdTypeArray(id_array, deep=True)
 		self.output_link.GetCurrentSelection().GetNode(0).SetSelectionList(id_vtk)

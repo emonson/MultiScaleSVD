@@ -194,7 +194,9 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# Force other classes to reload their image and table data from new source
 			# while keeping all selections...
 			self.ice_class.ReloadTextureImages()
-			self.nf_class.ReloadBasisImages()
+			# self.nf_class.ReloadBasisImages()
+			# Instead of reloading basis images in detail view, try just firing event from image flow...
+			self.if_al_out.InvokeEvent("AnnotationChangedEvent")
 			# self.xy_class.GetAxisImageItem().SetAxisIndices(xI,yI)
 			# self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
 			# self.xy_class.GetAxisView().Render()
@@ -210,7 +212,9 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# Force other classes to reload their image and table data from new source
 			# while keeping all selections...
 			self.ice_class.ReloadTextureImages()
-			self.nf_class.ReloadBasisImages()
+			# self.nf_class.ReloadBasisImages()
+			# Instead of reloading basis images in detail view, try just firing event from image flow...
+			self.if_al_out.InvokeEvent("AnnotationChangedEvent")
 			# self.xy_class.GetAxisImageItem().SetAxisIndices(xI,yI)
 			# self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
 			# self.xy_class.GetAxisView().Render()

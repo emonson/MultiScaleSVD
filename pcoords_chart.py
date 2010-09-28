@@ -4,7 +4,7 @@ import numpy as N
 import sys
 # sys.path.append("/Users/emonson/Programming/VTK_git/vtkVTG/build/bin")
 # import libvtkvtgChartsPython as vtgCh
-import vtkvtg as vtgCh
+import vtkvtg
 
 class PCoordsChart(object):
 
@@ -24,7 +24,7 @@ class PCoordsChart(object):
 		self.view.GetRenderer().SetBackground(1.0, 1.0, 1.0)
 		self.view.GetRenderWindow().SetSize(600,300)
 		
-		self.chart = vtgCh.vtkMyChartParallelCoordinates()
+		self.chart = vtkvtg.vtkMyChartParallelCoordinates()
 		
 		self.highlight_link = None
 		if highlight_link is not None:
@@ -86,6 +86,13 @@ class PCoordsChart(object):
 		self.highlight_link_idxs.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
 		self.chart.SetHighlightLink(self.highlight_link_idxs)
 
+	def SetScaleDimLimit(self, dim_limit):
+		self.dim_limit = dim_limit
+		self.ReloadData()
+
+	def ReloadData(self):
+		self.InputSelectionCallback(self.input_link, None)
+
 	def InputSelectionCallback(self, caller, event):
 		"""This is the callback that tracks changes in the icicle view and
 		sets the input table for the parallel coordinates chart accordingly.
@@ -106,35 +113,38 @@ class PCoordsChart(object):
 			
 			# NOTE: Hard coding for testing!!!
 			# numPerSet = self.ds.ManifoldDim			# Directly accessing member variable...	
-			numPerSet = 3
+			# numPerSet = 3
 			
 			# NOTE: Using only first few dimensions for testing!!!
-			# self.table = self.ds.GetNodeAllScaleCoeffTable(node_id)
-			self.table = self.ds.GetNodeAllScaleDDimCoeffTable(node_id,numPerSet)
+			self.table, self.scale_dims = self.ds.GetNodeAllScaleCoeffTable(node_id)
+			# self.table = self.ds.GetNodeAllScaleDDimCoeffTable(node_id,numPerSet)
+			begin_idxs = N.array(self.scale_dims).cumsum()
 
 			currentScale = self.ds.Scales[node_id]	# Directly accessing member variable...
 			
-			self.chart.GetPlot(0).SetInput(self.table)
-			self.chart.GetPlot(0).Modified()
-			self.chart.SetDrawSets(True)
-			self.chart.SetNumPerSet(numPerSet)
-			self.chart.SetCurrentScale(currentScale)
+			# Since can't really clear out and reload new plot on PCoords chart, 
+			# and much is based on chart visible columns, trying to clear out visibility
+			# and reload new before change data. Column visibility is just based on names
+			# in a vtkStringArray
+			self.chart.SetAllColumnsInvisible()
 			
-			# By default only 10 axes (columns)
+			# By default only 10 axes (columns). Set these before try to change data
+			# since plot update depends on column visibility numbers
 			for ii in range(self.table.GetNumberOfColumns()):
 				col_name = self.table.GetColumnName(ii)
 				if not col_name.lower().endswith('_ids'):
 					self.chart.SetColumnVisibility(col_name, True)
 			
-			# Compile range of all data columns to set axes to same ranges
-# 			extrema = []
-# 			for ii in range(self.table.GetNumberOfColumns()):
-# 				col_name = self.table.GetColumnName(ii)
-# 				if not col_name.lower().endswith('_ids'):
-# 					min,max = self.table.GetColumn(ii).GetRange()
-# 					extrema.append(min)
-# 					extrema.append(max)
-# 			exArray = N.array(extrema)
+			self.chart.GetPlot(0).SetInput(self.table)
+			self.chart.GetPlot(0).Modified()
+			self.chart.SetDrawSets(True)
+			# self.chart.SetNumPerSet(numPerSet)
+			self.chart.SetNumberOfScales(len(self.scale_dims))
+			for ii in range(len(self.scale_dims)):
+				self.chart.SetScaleDim(ii, self.scale_dims[ii])
+			self.chart.SetCurrentScale(currentScale)
+			self.chart.Update()
+			
 			# Get extrema from _all_ wavelet coefficients instead of just used columns
 			exRange = self.ds.GetCoeffRange()
 			# Move max/min in a bit on plot
@@ -162,7 +172,7 @@ class PCoordsChart(object):
 					self.chart.GetAxis(ii).SetMaximum(chMax)
 					self.chart.GetAxis(ii).SetMinimum(chMin)
 					# Only put ticks on first axis, plus last in any set
-					if (ii==0) or (N.mod(ii,numPerSet)==(numPerSet-1)):
+					if (ii==0): # or (ii not in begin_idxs):
 						self.chart.GetAxis(ii).SetTickPositions(tickPos)
 						self.chart.GetAxis(ii).SetTickLabels(tickLabels)
 					else:
@@ -177,20 +187,8 @@ class PCoordsChart(object):
 					else:
 						self.chart.GetAxis(ii).SetTitle(col_name[:-2])
 			
-			# Default to all lines selected so can view all images
-# 			num_rows = self.table.GetNumberOfRows()
-# 			all_id_vtk = VN.numpy_to_vtkIdTypeArray(N.arange(num_rows,dtype='int64'), deep=True)
-# 			self.link.GetCurrentSelection().GetNode(0).SetSelectionList(all_id_vtk)
-# 			empty_vtk = VN.numpy_to_vtkIdTypeArray(N.array([],dtype='int64'), deep=True)
-# 			self.highlight_link.GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
-			
-			# And make sure the output_link knows the selection has changed
-			# NOTE: Commented out for now so we can preserve selections across icicle_view node changes
-			# self.link.InvokeEvent("AnnotationChangedEvent")
-			# self.highlight_link.InvokeEvent("AnnotationChangedEvent")
 			self.PedIdToIndexSelection()
 
-			# self.view.ResetCamera()
 			self.chart.Modified()
 			self.view.Render()
 
@@ -218,7 +216,6 @@ class PCoordsChart(object):
 			# self.view.ResetCamera()
 			# self.view.Render()
 			
-			
 	def PedIdToIndexSelection(self):
 		
 		# Get pedigree ids from current output_link selection
@@ -238,12 +235,13 @@ class PCoordsChart(object):
 		if idxSel.GetNumberOfNodes() > 0:
 			idxVtk = idxSel.GetNode(0).GetSelectionList()
 			if idxVtk.GetNumberOfTuples() > 0:
-				print "highlight_link_idxs indices: ", VN.vtk_to_numpy(idxVtk)
+				print "PC highlight_link_idxs indices: ", VN.vtk_to_numpy(idxVtk)
 			else:
-				print "highlight_link_idxs NO TUPLES"
+				print "PC highlight_link_idxs NO TUPLES"
 		else:
-			print "highlight_link_idxs NO NODES"
+			print "PC highlight_link_idxs NO NODES"
 		self.highlight_link_idxs.SetCurrentSelection(idxSel)
+		print "_>_>_>_> set PC current selection"
 
 	def PCoordsSelectionCallback(self, caller, event):
 		# Defined for testing ID picking

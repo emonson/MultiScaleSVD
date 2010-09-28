@@ -199,11 +199,11 @@ class XYChart(object):
 		if idxSel.GetNumberOfNodes() > 0:
 			idxVtk = idxSel.GetNode(0).GetSelectionList()
 			if idxVtk.GetNumberOfTuples() > 0:
-				print "highlight_link_idxs indices: ", VN.vtk_to_numpy(idxVtk)
+				print "XY highlight_link_idxs indices: ", VN.vtk_to_numpy(idxVtk)
 			else:
-				print "highlight_link_idxs NO TUPLES"
+				print "XY highlight_link_idxs NO TUPLES"
 		else:
-			print "highlight_link_idxs NO NODES"
+			print "XY highlight_link_idxs NO NODES"
 		self.highlight_link_idxs.SetCurrentSelection(idxSel)
 
 	def HighlightSelectionCallback(self, caller, event):

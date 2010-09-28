@@ -548,7 +548,7 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
-	def GetNodeAllScaleCoeffTable(self, node_id):
+	def GetNodeAllScaleCoeffTable(self, node_id, dim_limit=0):
 		"""Returns a table of all the wavelet coefficients for a single tree
 		icicle view) node at all scales for plotting on a parallel coodinates plot.
 		For right now, padding with zeros for unused dimensions in some nodes..."""
@@ -572,7 +572,23 @@ class DataSource(object):
 			
 			IDarray = self.PointsInNet[node_id]
 			
-			wav_coeffs = N.zeros((len(IDarray),sum(self.ScaleMaxDim)))
+			# Really want zeros padded only to max dim at each scale for _this_ particular
+			# node and its children, not the max that exists in the entire data set.
+			leaf_children = list(self.get_leaf_children(self.cp, node_id))
+			mapped_leaf_children = [self.LeafNodesImap[nod] for nod in leaf_children]
+			# Even empty arrays in CelCoeffs give back okay shape[1] (0)
+			dims_arr_lin = N.array(list(arr.shape[1] for id in mapped_leaf_children for arr in CelCoeffs[id,:]))
+			dims_arr = dims_arr_lin.reshape((-1,self.ScaleMaxDim.size))
+			scale_max_dim = dims_arr.max(axis=0)
+			
+			# Need to trim off zeros at the end or they cause problems...
+			scale_max_dim = scale_max_dim[N.nonzero(scale_max_dim)]
+			
+			# TEST: Try limiting to a max number of dims...
+			if (dim_limit > 0):
+				scale_max_dim[scale_max_dim > dim_limit] = dim_limit
+			
+			wav_coeffs = N.zeros((len(IDarray),sum(scale_max_dim)))
 			# Append all zero-padded rows gathered from CelWavCoeffs
 			for ii,data_id in enumerate(IDarray):
 				leaf_node = self.IniLabels[data_id]
@@ -582,16 +598,17 @@ class DataSource(object):
 				# Skip any empty arrays
 				wav_row_tuple = tuple(arr[row,:] for arr in CelCoeffs[mapped_node_idx,:] if arr.size != 0)
 				# Create zero-padded arrays
-				zero_row_tuple = tuple(N.zeros(sc) for sc in self.ScaleMaxDim)
+				zero_row_tuple = tuple(N.zeros(sc) for sc in scale_max_dim)
 				# And transfer over values
 				for zz in range(len(wav_row_tuple)):
-					zero_row_tuple[zz][:len(wav_row_tuple[zz])] = wav_row_tuple[zz][:]
+					sz_limit = min([scale_max_dim[zz], len(wav_row_tuple[zz])])
+					zero_row_tuple[zz][:sz_limit] = wav_row_tuple[zz][:sz_limit]
 				
 				wav_coeffs[ii,:] = N.concatenate(zero_row_tuple, axis=1)
 
 			table = vtk.vtkTable()
 			col_idx = 0
-			for scale,maxdim in enumerate(self.ScaleMaxDim):
+			for scale,maxdim in enumerate(scale_max_dim):
 				for ii in range(maxdim):
 					column = VN.numpy_to_vtk(wav_coeffs[:,col_idx].copy(), deep=True)
 					column.SetName(str(scale) + '.' + str(ii)) 
@@ -604,7 +621,7 @@ class DataSource(object):
 			table.AddColumn(IDvtk)
 			table.GetRowData().SetActivePedigreeIds('pedigree_ids')
 			
-			return table
+			return table, scale_max_dim.tolist()
 			
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
