@@ -27,12 +27,12 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.renWinList = []
 		   
 		# data_file = askopenfilename()
-		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100909.mat'
-# 		self.openFilesDefaultPath = QtCore.QDir.homePath()
-# 		data_file = QtGui.QFileDialog.getOpenFileName(self,
-# 				"Load Saved Matlab File", 
-# 				self.openFilesDefaultPath,
-# 				"All Files (*);;Matlab Files (*.mat)")
+# 		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100909.mat'
+		self.openFilesDefaultPath = QtCore.QDir.homePath()
+		data_file = QtGui.QFileDialog.getOpenFileName(self,
+				"Load Saved Matlab File", 
+				self.openFilesDefaultPath,
+				"All Files (*);;Matlab Files (*.mat)")
 		
 		# DataSource loads .mat file and can generate data from it for other views
 		print "Loading data from ", str(data_file)

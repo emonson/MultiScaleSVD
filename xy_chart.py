@@ -141,7 +141,10 @@ class XYChart(object):
 			
 			line1 = vtkvtg.vtkMyPlotPoints()
 			self.chart.AddPlot(line1)		# POINTS
-			line1.SetInput(self.table, 0, 1)
+			if (self.table.GetNumberOfColumns() > 2):
+				line1.SetInput(self.table, 0, 1)
+			else:
+				line1.SetInput(self.table, 0, 0)
 			line1.SetMarkerStyle(2)
 			line1.SetColor(0, 0, 0, 255)
 			
