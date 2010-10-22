@@ -136,11 +136,23 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		basisActionGroup.addAction(self.ui.actionWavelet)
 		basisActionGroup.addAction(self.ui.actionScaling)
 		
+		# Only want one type of parallel coordinates scale range to be set at a time
+		pcScaleRangeActionGroup = QtGui.QActionGroup(self)
+		self.ui.actionPC_All_Scales.setChecked(True)
+		pcScaleRangeActionGroup.addAction(self.ui.actionPC_All_Scales)
+		pcScaleRangeActionGroup.addAction(self.ui.actionPC_Current_Scale)
+		pcScaleRangeActionGroup.addAction(self.ui.actionPC_Coarsest_to_Current)
+		pcScaleRangeActionGroup.addAction(self.ui.actionPC_Current_to_Finest)
+		
 		# Connect signals and slots
 		QtCore.QObject.connect(self.ui.actionExit, QtCore.SIGNAL("triggered()"), self.fileExit)
 		QtCore.QObject.connect(self.ui.actionOpen, QtCore.SIGNAL("triggered()"), self.fileOpen)
 		QtCore.QObject.connect(self.ui.actionWavelet, QtCore.SIGNAL("triggered()"), self.switchToWavelets)
 		QtCore.QObject.connect(self.ui.actionScaling, QtCore.SIGNAL("triggered()"), self.switchToScaling)
+		QtCore.QObject.connect(self.ui.actionPC_All_Scales, QtCore.SIGNAL("triggered()"), self.switchToPCAllScales)
+		QtCore.QObject.connect(self.ui.actionPC_Current_Scale, QtCore.SIGNAL("triggered()"), self.switchToPCCurrentScale)
+		QtCore.QObject.connect(self.ui.actionPC_Coarsest_to_Current, QtCore.SIGNAL("triggered()"), self.switchToPCCoarsestToCurrent)
+		QtCore.QObject.connect(self.ui.actionPC_Current_to_Finest, QtCore.SIGNAL("triggered()"), self.switchToPCCurrentToFinest)
 		
 		# Trying to see whether I can pass selection bounds from xy chart to pcoords
 		self.xy_class.GetChartView().GetInteractor().AddObserver("LeftButtonReleaseEvent", self.XYSelectionReleaseCallback)
@@ -186,6 +198,8 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		print "AI CALLBACK: (%d, %d)" % (xI,yI)
 		self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
 		self.xy_class.GetChartView().Render()
+		self.pc_class.SetCurrentXY(xI,yI)
+		self.pc_class.GetView().Render()
 	
 	# - - - - - - - - - - - - - - - - - - - - - -
 	# TODO: Axis images by default switch back to 0,1 xy...
@@ -225,6 +239,22 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# self.xy_class.GetChartView().Render()
 			self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Scaling Functions", None, QtGui.QApplication.UnicodeUTF8))
 
+	def switchToPCAllScales(self):
+		self.pc_class.SetScaleRange('all')
+		self.pc_class.UpdateChartWithCurrentData()
+		
+	def switchToPCCurrentScale(self):
+		self.pc_class.SetScaleRange('current')
+		self.pc_class.UpdateChartWithCurrentData()		
+		
+	def switchToPCCoarsestToCurrent(self):
+		self.pc_class.SetScaleRange('coarse')
+		self.pc_class.UpdateChartWithCurrentData()
+		
+	def switchToPCCurrentToFinest(self):
+		self.pc_class.SetScaleRange('fine')
+		self.pc_class.UpdateChartWithCurrentData()
+		
 	# - - - - - - - - - - - - - - - - - - - - - -
 	def fileOpen(self):
 	

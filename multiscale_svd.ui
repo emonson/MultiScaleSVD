@@ -79,6 +79,11 @@
     </property>
     <addaction name="actionWavelet"/>
     <addaction name="actionScaling"/>
+    <addaction name="separator"/>
+    <addaction name="actionPC_All_Scales"/>
+    <addaction name="actionPC_Coarsest_to_Current"/>
+    <addaction name="actionPC_Current_Scale"/>
+    <addaction name="actionPC_Current_to_Finest"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
@@ -120,6 +125,50 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+S</string>
+   </property>
+  </action>
+  <action name="actionPC_All_Scales">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>PC All Scales</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+1</string>
+   </property>
+  </action>
+  <action name="actionPC_Current_Scale">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>PC Current Scale</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+3</string>
+   </property>
+  </action>
+  <action name="actionPC_Coarsest_to_Current">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>PC Coarsest to Current</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+2</string>
+   </property>
+  </action>
+  <action name="actionPC_Current_to_Finest">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>PC Current to Finest</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+4</string>
    </property>
   </action>
  </widget>

@@ -51,7 +51,12 @@ class PCoordsChart(object):
 		self.view.GetScene().AddItem(self.chart)
 		# self.view.ResetCamera()
 		# self.view.Render()
+		
+		self.scale_range = 'all'
 
+		# Want to keep track of whether the node coming in on the input_link
+		# is new or not
+		self.input_link_idx = 0
 
 	def SetInputAnnotationLink(self, link):
 		
@@ -90,6 +95,18 @@ class PCoordsChart(object):
 		self.dim_limit = dim_limit
 		self.ReloadData()
 
+	def SetScaleRange(self, sr):
+		if (sr.lower() == 'all' or sr.lower() == 'current' or sr.lower() == 'coarse' or sr.lower() == 'fine'):
+			self.scale_range = sr
+		else:
+			self.scale_range = 'all'
+		
+	def SetCurrentXY(self, xI, yI):
+		self.chart.SetXYcurrentX(xI)
+		self.chart.SetXYcurrentY(yI)
+		self.XYcurrentX = xI
+		self.XYcurrentY = yI
+		
 	def ReloadData(self):
 		self.InputSelectionCallback(self.input_link, None)
 
@@ -118,79 +135,43 @@ class PCoordsChart(object):
 			# NOTE: Using only first few dimensions for testing!!!
 			self.table, self.scale_dims = self.ds.GetNodeAllScaleCoeffTable(node_id)
 			# self.table = self.ds.GetNodeAllScaleDDimCoeffTable(node_id,numPerSet)
-			begin_idxs = N.array(self.scale_dims).cumsum()
 
-			currentScale = self.ds.Scales[node_id]	# Directly accessing member variable...
+			self.currentScale = self.ds.Scales[node_id]	# Directly accessing member variable...
 			
-			# Since can't really clear out and reload new plot on PCoords chart, 
-			# and much is based on chart visible columns, trying to clear out visibility
-			# and reload new before change data. Column visibility is just based on names
-			# in a vtkStringArray
-			self.chart.SetAllColumnsInvisible()
-			
-			# By default only 10 axes (columns). Set these before try to change data
-			# since plot update depends on column visibility numbers
-			for ii in range(self.table.GetNumberOfColumns()):
-				col_name = self.table.GetColumnName(ii)
-				if not col_name.lower().endswith('_ids'):
-					self.chart.SetColumnVisibility(col_name, True)
-			
-			self.chart.GetPlot(0).SetInput(self.table)
-			self.chart.GetPlot(0).Modified()
-			self.chart.SetDrawSets(True)
-			# self.chart.SetNumPerSet(numPerSet)
-			self.chart.SetNumberOfScales(len(self.scale_dims))
-			for ii in range(len(self.scale_dims)):
-				self.chart.SetScaleDim(ii, self.scale_dims[ii])
-			self.chart.SetCurrentScale(currentScale)
-			self.chart.Update()
-			
-			# Get extrema from _all_ wavelet coefficients instead of just used columns
-			exRange = self.ds.GetCoeffRange()
-			# Move max/min in a bit on plot
-			chMax = exRange[1]*1.05	
-			chMin = exRange[0]*1.05
-			tickPos = VN.numpy_to_vtk(N.array([chMin, 0.0, chMax]), deep=True)
-			tickNoPos = VN.numpy_to_vtk(N.array([]), deep=True)
-			
-			tickLabels = vtk.vtkStringArray()
-			tickLabels.SetName('tick_labels')
-			tickLabels.SetNumberOfComponents(1)
-			tickLabels.InsertNextValue(str(int(N.round(chMin))))
-			tickLabels.InsertNextValue(str(int(0)))
-			tickLabels.InsertNextValue(str(int(N.round(chMax))))
-			
-			noLabels = vtk.vtkStringArray()
-			noLabels.SetName('no_labels')
-			noLabels.SetNumberOfComponents(1)
-			
-			for ii in range(self.table.GetNumberOfColumns()):
-				col_name = self.table.GetColumnName(ii)
-				if not col_name.lower().endswith('_ids'):
-					self.chart.GetAxis(ii).SetBehavior(1)	# fixed
-					# Set same range for all axes
-					self.chart.GetAxis(ii).SetMaximum(chMax)
-					self.chart.GetAxis(ii).SetMinimum(chMin)
-					# Only put ticks on first axis, plus last in any set
-					if (ii==0): # or (ii not in begin_idxs):
-						self.chart.GetAxis(ii).SetTickPositions(tickPos)
-						self.chart.GetAxis(ii).SetTickLabels(tickLabels)
-					else:
-						self.chart.GetAxis(ii).SetTickPositions(tickNoPos)
-						self.chart.GetAxis(ii).SetTickLabels(noLabels)
-					# Only put range labels on first set of axes
-					if ii != 0:
-						self.chart.GetAxis(ii).SetLabelsVisible(False)
-					# Only put title at bottom for first in set, and remove the .0 from that
-					if not col_name.endswith('.0'):
-						self.chart.GetAxis(ii).SetTitle('')
-					else:
-						self.chart.GetAxis(ii).SetTitle(col_name[:-2])
-			
-			self.PedIdToIndexSelection()
+			# If this is the same icicle node as before, then reset to original XY indices
+			# before view is updated
+			if node_id != self.input_link_idx:
+				self.XYcurrentX = 0
+				self.XYcurrentY = 1
 
-			self.chart.Modified()
-			self.view.Render()
+			# Get the axis image XY indices in case resetting to those values
+			# and the number of dimensions has changed, and xI or yI are over the limit
+			if self.XYcurrentY > self.XYcurrentX:
+				y_bigger = 1
+			else:
+				y_bigger = 0
+			
+			# Check whether they're out of range for the new data
+			max_dim = self.scale_dims[self.currentScale] - 1
+			if self.XYcurrentY > max_dim:
+				self.XYcurrentY = max_dim
+			if self.XYcurrentX > max_dim:
+				self.XYcurrentX = max_dim
+			if self.XYcurrentX == self.XYcurrentY:
+				if y_bigger:
+					self.XYcurrentX = self.XYcurrentY-1
+				else:
+					self.XYcurrentY = self.XYcurrentX-1
+			if self.XYcurrentX < 0 or self.XYcurrentY < 0:
+				self.XYcurrentX = 0
+				self.XYcurrentY = 1
+			
+			# self.chartView.ResetCamera()
+			self.input_link_idx = node_id
+
+			# Using method for rest of call so don't have to load in new data if
+			# just resetting axis set range
+			self.UpdateChartWithCurrentData()
 
 		else:
 			# Need to clear out annotation link so downstream views will be cleared
@@ -216,6 +197,93 @@ class PCoordsChart(object):
 			# self.view.ResetCamera()
 			# self.view.Render()
 			
+	def UpdateChartWithCurrentData(self):
+		# Since can't really clear out and reload new plot on PCoords chart, 
+		# and much is based on chart visible columns, trying to clear out visibility
+		# and reload new before change data. Column visibility is just based on names
+		# in a vtkStringArray
+		self.chart.SetAllColumnsInvisible()
+		
+		# Set up list of allowed scale values based on scale_range setting
+		allowed_scales = []
+		for ii in range(len(self.scale_dims)):
+			if (self.scale_range == 'all') or \
+				 (self.scale_range == 'current' and ii == self.currentScale) or \
+				 (self.scale_range == 'coarse' and ii <= self.currentScale) or \
+				 (self.scale_range == 'fine' and ii >= self.currentScale):
+				allowed_scales.append(ii)
+		
+		# By default only 10 axes (columns). Set these before try to change data
+		#   since plot update depends on column visibility numbers
+		# And build a list of valid column names to use for setting axis properties
+		#   which will be in the same order as the axes, so indices will match up
+		valid_names = []
+		for ii in range(self.table.GetNumberOfColumns()):
+			col_name = self.table.GetColumnName(ii)
+			if not col_name.lower().endswith('_ids') and int(col_name.split('.')[0]) in allowed_scales:
+				self.chart.SetColumnVisibility(col_name, True)
+				valid_names.append(col_name)
+		
+		self.chart.GetPlot(0).SetInput(self.table)
+		self.chart.GetPlot(0).Modified()
+		self.chart.SetDrawSets(True)
+		
+		# Only set number of scales and scale dims for proper subset of columns
+		self.chart.SetNumberOfScales(len(allowed_scales))
+		for ii, val in enumerate(allowed_scales):
+			self.chart.SetScaleDim(ii, self.scale_dims[val])
+		# Current scale is relative to beginning of list
+		self.chart.SetCurrentScale(allowed_scales.index(self.currentScale))
+		self.chart.SetXYcurrentX(self.XYcurrentX)
+		self.chart.SetXYcurrentY(self.XYcurrentY)
+		self.chart.Update()
+		
+		# Get extrema from _all_ wavelet coefficients instead of just used columns
+		exRange = self.ds.GetCoeffRange()
+		# Move max/min in a bit on plot
+		chMax = exRange[1]*1.05	
+		chMin = exRange[0]*1.05
+		tickPos = VN.numpy_to_vtk(N.array([chMin, 0.0, chMax]), deep=True)
+		tickNoPos = VN.numpy_to_vtk(N.array([]), deep=True)
+		
+		tickLabels = vtk.vtkStringArray()
+		tickLabels.SetName('tick_labels')
+		tickLabels.SetNumberOfComponents(1)
+		tickLabels.InsertNextValue(str(int(N.round(chMin))))
+		tickLabels.InsertNextValue(str(int(0)))
+		tickLabels.InsertNextValue(str(int(N.round(chMax))))
+		
+		noLabels = vtk.vtkStringArray()
+		noLabels.SetName('no_labels')
+		noLabels.SetNumberOfComponents(1)
+		
+		# Set axis ranges, labels and ticks
+		for ii, col_name in enumerate(valid_names):
+			self.chart.GetAxis(ii).SetBehavior(1)	# fixed
+			# Set same range for all axes
+			self.chart.GetAxis(ii).SetMaximum(chMax)
+			self.chart.GetAxis(ii).SetMinimum(chMin)
+			# Only put ticks on first axis, plus last in any set
+			if (ii==0):
+				self.chart.GetAxis(ii).SetTickPositions(tickPos)
+				self.chart.GetAxis(ii).SetTickLabels(tickLabels)
+			else:
+				self.chart.GetAxis(ii).SetTickPositions(tickNoPos)
+				self.chart.GetAxis(ii).SetTickLabels(noLabels)
+			# Only put range labels on first set of axes
+			if ii != 0:
+				self.chart.GetAxis(ii).SetLabelsVisible(False)
+			# Only put title at bottom for first in set, and remove the .0 from that
+			if not col_name.endswith('.0'):
+				self.chart.GetAxis(ii).SetTitle('')
+			else:
+				self.chart.GetAxis(ii).SetTitle(col_name[:-2])
+		
+		self.PedIdToIndexSelection()
+
+		self.chart.Modified()
+		self.view.Render()
+	
 	def PedIdToIndexSelection(self):
 		
 		# Get pedigree ids from current output_link selection

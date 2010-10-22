@@ -133,8 +133,29 @@ class XYChart(object):
 			self.center_image = self.ds.GetNodeCenterImage(node_id)
 
 			# Get the axis image XY indices in case resetting to those values
+			# and the number of dimensions has changed, and xI or yI are over the limit
 			xI = self.ai.GetXAxisIndex()
 			yI = self.ai.GetYAxisIndex()
+			if yI > xI:
+				y_bigger = 1
+			else:
+				y_bigger = 0
+			
+			# Check whether they're out of range for the new data
+			(dX,dY,dZ) = self.axis_images.GetDimensions()
+			max_dim = dZ - 1
+			if yI > max_dim:
+				yI = max_dim
+			if xI > max_dim:
+				xI = max_dim
+			if xI == yI:
+				if y_bigger:
+					xI = yI-1
+				else:
+					yI = xI-1
+			if xI < 0 or yI < 0:
+				xI = 0
+				yI = 1
 			
 			self.chart.ClearPlots()
 			self.ai.ClearAxisImages()

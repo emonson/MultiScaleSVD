@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'multiscale_svd.ui'
 #
-# Created: Thu Sep 23 10:15:28 2010
+# Created: Thu Oct 21 09:14:08 2010
 #      by: PyQt4 UI code generator 4.7
 #
 # WARNING! All changes made in this file will be lost!
@@ -72,10 +72,27 @@ class Ui_MainWindow(object):
         self.actionScaling = QtGui.QAction(MainWindow)
         self.actionScaling.setCheckable(True)
         self.actionScaling.setObjectName("actionScaling")
+        self.actionPC_All_Scales = QtGui.QAction(MainWindow)
+        self.actionPC_All_Scales.setCheckable(True)
+        self.actionPC_All_Scales.setObjectName("actionPC_All_Scales")
+        self.actionPC_Current_Scale = QtGui.QAction(MainWindow)
+        self.actionPC_Current_Scale.setCheckable(True)
+        self.actionPC_Current_Scale.setObjectName("actionPC_Current_Scale")
+        self.actionPC_Coarsest_to_Current = QtGui.QAction(MainWindow)
+        self.actionPC_Coarsest_to_Current.setCheckable(True)
+        self.actionPC_Coarsest_to_Current.setObjectName("actionPC_Coarsest_to_Current")
+        self.actionPC_Current_to_Finest = QtGui.QAction(MainWindow)
+        self.actionPC_Current_to_Finest.setCheckable(True)
+        self.actionPC_Current_to_Finest.setObjectName("actionPC_Current_to_Finest")
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addAction(self.actionExit)
         self.menuView.addAction(self.actionWavelet)
         self.menuView.addAction(self.actionScaling)
+        self.menuView.addSeparator()
+        self.menuView.addAction(self.actionPC_All_Scales)
+        self.menuView.addAction(self.actionPC_Coarsest_to_Current)
+        self.menuView.addAction(self.actionPC_Current_Scale)
+        self.menuView.addAction(self.actionPC_Current_to_Finest)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuView.menuAction())
 
@@ -94,5 +111,13 @@ class Ui_MainWindow(object):
         self.actionWavelet.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Alt+W", None, QtGui.QApplication.UnicodeUTF8))
         self.actionScaling.setText(QtGui.QApplication.translate("MainWindow", "Scaling Function Bases", None, QtGui.QApplication.UnicodeUTF8))
         self.actionScaling.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Alt+S", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionPC_All_Scales.setText(QtGui.QApplication.translate("MainWindow", "PC All Scales", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionPC_All_Scales.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Alt+1", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionPC_Current_Scale.setText(QtGui.QApplication.translate("MainWindow", "PC Current Scale", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionPC_Current_Scale.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Alt+3", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionPC_Coarsest_to_Current.setText(QtGui.QApplication.translate("MainWindow", "PC Coarsest to Current", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionPC_Coarsest_to_Current.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Alt+2", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionPC_Current_to_Finest.setText(QtGui.QApplication.translate("MainWindow", "PC Current to Finest", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionPC_Current_to_Finest.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Alt+4", None, QtGui.QApplication.UnicodeUTF8))
 
 from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
