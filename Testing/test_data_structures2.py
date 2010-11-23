@@ -7,7 +7,7 @@ import vtk.util.numpy_support as VN
 import numpy as N
 
 data_dir = '/Users/emonson/Data/Fodava/EMoGWDataSets/'
-data_file = data_dir + 'mnist12_1k_20100825.mat'
+data_file = data_dir + 'mnist3569_1k_20101119.mat'
 
 
 print 'Trying to load data set from .mat file...'
@@ -20,11 +20,11 @@ try:
 except:
 	raise IOError, "Can't load supplied matlab file"
 	# return
-	
+
 # Get variables out of Matlab structure
 print 'Transferring variables from Matlab structures'
 
-# gW = 
+# gW =
 #                   knn: 20
 #           knnAutotune: 10
 #      SmallestMetisNet: 10
@@ -46,13 +46,13 @@ print 'Transferring variables from Matlab structures'
 #                    approximation
 #       .Centers: cell array of the centers of the nodes
 #       .ScalFuns: cell array of the local bases of the nodes
-#       .Sigmas: cell array of the local singular values 
+#       .Sigmas: cell array of the local singular values
 #       .WavBasis: cell array of wavelet bases; each cell encodes the basis vectors that are
 #                        present in the current node but orthogonal to the
 #                        parent. For simplicity, the wavelet basis at the root
 #                        is identified with the scaling functions at the root
 #       .WavConsts: cell array of translations that are needed to move to a
-#                           node from its parent                       
+#                           node from its parent
 #       .WavSingVals: cell array of corresponding singular values associated
 #                             with the wavelet bases. At the root, it coincides
 #                             with .Sigmas
@@ -85,19 +85,19 @@ print 'Transferring variables from Matlab structures'
 #   Data: a structure of the following fields:
 #       .ScalCoeffs: N by k*J matrix of coefficients relative to the
 #                    scaling functions at the local nets
-#       .Projections: N-by-D-by-J array of projections of X onto the 
+#       .Projections: N-by-D-by-J array of projections of X onto the
 #                     local tangent planes at all J scales
 #       .MatWavCoeffs: N by k*J matrix of wavelet coefficients relative to the
 #                      wavelet bases at the local nets
 #       .CelWavCoeffs: N by J cell array of wavelet coefficients relative to the
 #                      wavelet bases at the local nets
-#       .Wavelets: N-by-D-by-J array of differences between the projections 
+#       .Wavelets: N-by-D-by-J array of differences between the projections
 #                  at consecutive scales
 #        (In the above, J is the number of scales, and k is the manifold
 #         dimension)
 
 # NEW Data version in pruning code (8/25/2010)
-# 
+#
 #              CelScalCoeffs: {52x8 cell}
 #                Projections: [2000x120x8 double]
 #               CelWavCoeffs: {52x8 cell}
@@ -113,8 +113,8 @@ print 'Transferring variables from Matlab structures'
 
 # Data = MatInput['Data']
 
-# 		GWTopts = 
-# 
+# 		GWTopts =
+#
 #             AmbientDimension: 120
 #                          knn: 50
 #                  knnAutotune: 30
@@ -132,40 +132,40 @@ print 'Transferring variables from Matlab structures'
 
 # NEW: Poofed out variables
 #
-#     % "poofing" out variables for easier loading in Python code 
+#     % "poofing" out variables for easier loading in Python code
 #     % and for file size since don't need nearly all of this stuff...
 #     % I know it makes it less flexible later...
-# 
+#
 #     AmbientDimension = GWTopts.AmbientDimension;
 #     X = gW.X;
 #     % cm
 #     % imR
 #     % imC
-#     
+#
 #     % Redundant for now...
 #     CelWavCoeffs = Data.CelWavCoeffs;
-#     
+#
 #     num_nodes = length(gW.cp);
 #     LeafNodesImap(gW.LeafNodes) = 1:length(gW.LeafNodes);
 #     NodeWavCoeffs = cell(1,num_nodes);
-# 
+#
 #     for node_idx = 1:num_nodes,
 #         offspring = [node_idx get_offspring(gW.cp, node_idx)];
 #         relevantLeafNodes = offspring(logical(gW.isaleaf(offspring)));
 #         NodeWavCoeffs{node_idx} = cat(1, Data.CelWavCoeffs{LeafNodesImap(relevantLeafNodes), gW.Scales(node_idx)});
 #     end
-#     
+#
 #     CelScalCoeffs = Data.CelScalCoeffs;
 #     NodeScalCoeffs = cell(1,num_nodes);
-# 
+#
 #     for node_idx = 1:num_nodes,
 #         offspring = [node_idx get_offspring(gW.cp, node_idx)];
 #         relevantLeafNodes = offspring(logical(gW.isaleaf(offspring)));
 #         NodeScalCoeffs{node_idx} = cat(1, Data.CelWavCoeffs{LeafNodesImap(relevantLeafNodes), gW.Scales(node_idx)});
 #     end
-#     
+#
 #     % Should calculate Projections rather than storing -- it's big...
-#     
+#
 #     % node_idx = leafNodes(leaf_node_idx);
 #     % data_idxs = find(gW.IniLabels == node_idx); % same as PointsInNet{net}
 #     % nPts = length(data_idxs);
@@ -174,13 +174,13 @@ print 'Transferring variables from Matlab structures'
 #     % Data.Projections(data_idxs,:,j_max) = Data.CelScalCoeffs{i,j_max}*gW.ScalFuns{node_idx}' + gWCentersnet;
 #     % X_approx = Data.Projections(:,:,scale);
 #     % X_img = X_approx*V(:,1:GWTopts.AmbientDimension)'+repmat(cm, size(X_approx,1),1);
-# 
+#
 #     % Projections = Data.Projections;
-#     
+#
 #     % May be able to get away with only saving
 #     % V(:,1:GWTopts.AmbientDimension)
 #     V = Data.V(:,1:GWTopts.AmbientDimension);
-#     
+#
 #     cp = gW.cp;
 #     IniLabels = gW.IniLabels;
 #     PointsInNet = gW.PointsInNet;
@@ -192,7 +192,7 @@ print 'Transferring variables from Matlab structures'
 #     IsALeaf = gW.isaleaf;
 #     LeafNodes = gW.LeafNodes;
 
-GWTopts = MatInput['GWTopts']
+# GWTopts = MatInput['GWTopts']
 
 # X has already been projected to D dim by PCA
 X = N.mat(MatInput['X'])
@@ -231,13 +231,14 @@ for ii in range(CelWavCoeffs.shape[0]):
 		if (CelWavCoeffs[ii,jj].size > 0):
 			wmax = N.amax(CelWavCoeffs[ii,jj])
 			wmin = N.amin(CelWavCoeffs[ii,jj])
-			smax = N.amax(CelScalCoeffs[ii,jj])
-			smin = N.amin(CelScalCoeffs[ii,jj])
 			if (wmax > WavCoeffMax): WavCoeffMax = wmax
 			if (wmin < WavCoeffMin): WavCoeffMin = wmin
+		if (CelScalCoeffs[ii,jj].size > 0):
+			smax = N.amax(CelScalCoeffs[ii,jj])
+			smin = N.amin(CelScalCoeffs[ii,jj])
 			if (smax > ScalCoeffMax): ScalCoeffMax = smax
-			if (smin < ScalCoeffMin): ScalCoeffMin = smin 
-		
+			if (smin < ScalCoeffMin): ScalCoeffMin = smin
+
 # NOTE: gW and Data are class numpy.ndarray
 #		MatInput is just a dict, so can directly look for variables there
 
@@ -266,7 +267,7 @@ else:
 # NumPts = Number of data points (here number of individual images)
 NumPts = IniLabels.shape[0]
 AmbientDimension = MatInput['AmbientDimension'][0,0]	# used to call this D
-		
+
 # Manifold dimensionality variable now, not fixed...
 # ManifoldDim = gW['ManifoldDimension'][0,0][0,0]
 
@@ -284,38 +285,38 @@ PointsInNet = []	# Points In Net
 ScalFuns = []	# Scaling functions
 WavBases = []	# Wavelet bases
 Centers = []	# Center of each node
-NodeWavCoeffs = []
-NodeScalCoeffs = []
+# NodeWavCoeffs = []
+# NodeScalCoeffs = []
 for ii in range(MatInput['PointsInNet'].shape[1]):
 	PointsInNet.append(MatInput['PointsInNet'][0,ii][0]-1)	# 0-based indices
 	ScalFuns.append(N.mat(MatInput['ScalFuns'][0,ii]))			# matrix
 	WavBases.append(N.mat(MatInput['WavBases'][0,ii]))			# matrix
 	Centers.append(N.mat(MatInput['Centers'][0,ii][0])) 		# matrix
-	NodeWavCoeffs.append(N.mat(MatInput['NodeWavCoeffs'][0,ii])) 		# matrix
-	NodeScalCoeffs.append(N.mat(MatInput['NodeScalCoeffs'][0,ii])) 		# matrix
+	# NodeWavCoeffs.append(N.mat(MatInput['NodeWavCoeffs'][0,ii])) 		# matrix
+	# NodeScalCoeffs.append(N.mat(MatInput['NodeScalCoeffs'][0,ii])) 		# matrix
 
 # J = Total number of scales
 J = Scales.max()
 
 def get_offspring(cp, node_id):
-	"""Internal method finds all the offspring of (but not including) 
+	"""Internal method finds all the offspring of (but not including)
 	the given node in the tree cp."""
-	
+
 	# function offspring = get_offspring(cp, node)
 	# offspring = [];
 	# currentNodes = node;
-	# 
-	# while ~isempty(currentNodes)  
+	#
+	# while ~isempty(currentNodes)
 	#     newNodes = []; % collects all the children of currentNodes
 	#     for i = 1:length(currentNodes)
 	#         children = find(cp == currentNodes(i));
 	#         newNodes = [newNodes children];
 	#     offspring = [offspring newNodes];
 	#     currentNodes = newNodes;
-	
+
 	offspring = N.array([],dtype='int32')
 	current_nodes = N.array([node_id],dtype='int32')
-	
+
 	while (current_nodes.size > 0):
 		new_nodes = N.array([],dtype='int32')		# collects children of current_nodes
 		for node in current_nodes:
@@ -323,18 +324,18 @@ def get_offspring(cp, node_id):
 			new_nodes = N.concatenate((new_nodes,children))
 		offspring = N.concatenate((offspring,new_nodes))
 		current_nodes = new_nodes
-	
+
 	return offspring
-			
+
 def get_offspring2(cp, node_id):
 	"""Returns a nested list of all offspring. Can be "flattened" by xflatten(result)"""
 	children = N.nonzero(cp == node_id)[0]
-	
+
 	if children.size > 0:
 		return [children.tolist(),[get_offspring2(cp,child) for child in children]]
 	else:
 		return []
-		
+
 def has_children(cp, node_id):
 	if N.nonzero(cp == node_id)[0].size > 0:
 		return True
@@ -344,14 +345,14 @@ def has_children(cp, node_id):
 def get_leaf_children(cp, node_id):
 	"""This reaturns all leaf nodes that are descendants of a given node"""
 	children = N.nonzero(cp == node_id)[0]
-	
+
 	if len(children)==0:
 		yield node_id
 	else:
 		for x in children:
 			for y in get_leaf_children(cp, x):
 				yield y
-		
+
 def xflatten(seq):
 	"""a generator to flatten a nested list
 	from vegaseat on http://www.daniweb.com/forums/thread66694.html
@@ -363,4 +364,3 @@ def xflatten(seq):
 				yield y
 		else:
 				yield x
-				
