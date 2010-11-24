@@ -24,8 +24,8 @@
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
-       <widget class="QVTKWidget" name="qvtkWidget_5"/>
-       <widget class="QVTKWidget" name="qvtkWidget_4"/>
+       <widget class="QVTKWidget" name="qvtkWidget_5" native="true"/>
+       <widget class="QVTKWidget" name="qvtkWidget_4" native="true"/>
       </widget>
       <widget class="QSplitter" name="splitter_3">
        <property name="orientation">
@@ -35,15 +35,15 @@
         <property name="orientation">
          <enum>Qt::Vertical</enum>
         </property>
-        <widget class="QVTKWidget" name="qvtkWidget_0"/>
-        <widget class="QVTKWidget" name="qvtkWidget_1"/>
+        <widget class="QVTKWidget" name="qvtkWidget_0" native="true"/>
+        <widget class="QVTKWidget" name="qvtkWidget_1" native="true"/>
        </widget>
        <widget class="QSplitter" name="splitter_0">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
         </property>
-        <widget class="QVTKWidget" name="qvtkWidget_3"/>
-        <widget class="QVTKWidget" name="qvtkWidget_2">
+        <widget class="QVTKWidget" name="qvtkWidget_3" native="true"/>
+        <widget class="QVTKWidget" name="qvtkWidget_2" native="true">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -77,13 +77,33 @@
     <property name="title">
      <string>View</string>
     </property>
+    <widget class="QMenu" name="menuPC_Scales">
+     <property name="title">
+      <string>PC Scales</string>
+     </property>
+     <addaction name="actionPC_All_Scales"/>
+     <addaction name="actionPC_Coarsest_to_Current"/>
+     <addaction name="actionPC_Current_Scale"/>
+     <addaction name="actionPC_Current_to_Finest"/>
+    </widget>
+    <widget class="QMenu" name="menuType_Here">
+     <property name="title">
+      <string>Type Here</string>
+     </property>
+    </widget>
+    <widget class="QMenu" name="menuPlot_Colors">
+     <property name="title">
+      <string>Plot Color by Array</string>
+     </property>
+     <addaction name="actionNone"/>
+    </widget>
     <addaction name="actionWavelet"/>
     <addaction name="actionScaling"/>
     <addaction name="separator"/>
-    <addaction name="actionPC_All_Scales"/>
-    <addaction name="actionPC_Coarsest_to_Current"/>
-    <addaction name="actionPC_Current_Scale"/>
-    <addaction name="actionPC_Current_to_Finest"/>
+    <addaction name="menuPC_Scales"/>
+    <addaction name="separator"/>
+    <addaction name="menuPlot_Colors"/>
+    <addaction name="menuType_Here"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
@@ -169,6 +189,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+4</string>
+   </property>
+  </action>
+  <action name="actionNone">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>None</string>
    </property>
   </action>
  </widget>
