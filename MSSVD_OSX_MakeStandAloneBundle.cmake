@@ -17,22 +17,13 @@ if(COMMAND CMAKE_POLICY)
   cmake_policy(SET CMP0011 NEW)
 endif(COMMAND CMAKE_POLICY)
 
+# set (PluginList)
+# foreach (pluginname ${packaged_plugin_names})
+#   list (APPEND PluginList "/Users/emonson/Programming/ParaView_git/ParaView/serial/bin/lib${pluginname}.dylib")
+# endforeach()
 
-# GLOB the list of Python.so files (treat them like plugins, too, for
-# fixup_bundle purposes since they will not be pulled in automatically
-# by dependency analysis)
-#
-file(GLOB VTK_Python_Libs "/Users/emonson/Programming/VTK_git/VTK/build/bin/*Python.so")
-file(GLOB VTKVTG_Python_Libs "/Users/emonson/Programming/VTK_git/vtkVTG/build/bin/*Python.so")
-file(GLOB PyQt_Python_Libs "/Library/Python/2.6/site-packages/PyQt4/Qt*.so")
-
-# file(GLOB VTK_Libs "/Users/emonson/Programming/VTK_git/VTK/build/bin/*.dylib")
-# file(GLOB VTKVTG_Libs "/Users/emonson/Programming/VTK_git/vtkVTG/build/bin/*.dylib")
-
-set (PluginList)
-foreach (pluginname ${packaged_plugin_names})
-  list (APPEND PluginList "/Users/emonson/Programming/ParaView_git/ParaView/serial/bin/lib${pluginname}.dylib")
-endforeach()
+# list(APPEND PluginList "/usr/local/Trolltech/Qt-4.7.0/plugins/sqldrivers/libqsqlite.dylib")
+ 
  
 # gp_item_default_embedded_path_override item default_embedded_path_var
 #
@@ -72,7 +63,8 @@ function(gp_item_default_embedded_path_override item default_embedded_path_var)
   #
   list(FIND VTK_Python_Libs ${item} libFound)
   if(libFound GREATER -1)
-    set(path "@executable_path/../Resources/ExtensionModules/vtk")
+    set(path "@executable_path/../Resources/ExtensionModules")
+    # set(path "@executable_path/../Resources/ExtensionModules/vtk")
   endif(libFound GREATER -1)
 
   # ...embed VTKVTG Python libs from ${VTKVTG_Python_Libs} 
@@ -113,22 +105,25 @@ execute_process(WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 COMMAND python2.6 makeapplication.py build
                 )
 
-set(bundle "${InstallPrefix}/MS_SVD_vis_1022.app")
+set(bundle "${InstallPrefix}/MS_SVD_vis_color_0104.app")
  
 if(NOT EXISTS "${bundle}")
   message(FATAL_ERROR "error: have to generate bundle with bundlebuilder first: ${bundle}")
 endif()
  
- 
 # Fixup the .app bundle in the install tree:
 #
 include(BundleUtilities)
 
-# list(APPEND PluginList "/usr/local/Trolltech/Qt-4.6.2/plugins/sqldrivers/libqsqlite.dylib")
- 
-# Additional libs may be found in:
-#   (not sure if I can get rid of above GLOB for these directories, then...
+# GLOB the list of Python.so files (treat them like plugins, too, for
+# fixup_bundle purposes since they will not be pulled in automatically
+# by dependency analysis)
 #
+file(GLOB VTK_Python_Libs "${bundle}/Contents/Resources/ExtensionModules/*Python.so")
+file(GLOB VTKVTG_Python_Libs "${bundle}/Contents/Resources/ExtensionModules/vtkvtg/*Python.so")
+file(GLOB PyQt_Python_Libs "${bundle}/Contents/Resources/ExtensionModules/PyQt/*Python.so")
+
+# Additional libs may be found in:
 set(libs_path "/Users/emonson/Programming/VTK_git/VTK/build/bin")
 list(APPEND libs_path "/Users/emonson/Programming/VTK_git/vtkVTG/build/bin")
 list(APPEND libs_path "/Library/Python/2.6/site-packages/PyQt4")
@@ -139,6 +134,6 @@ list(REMOVE_DUPLICATES libs_path)
 #
 fixup_bundle(
   "${bundle}"
-  "${VTK_Python_Libs};${VTKVTG_Python_Libs};${PyQt_Python_Libs};"
+  "${VTK_Python_Libs};${VTKVTG_Python_Libs};${PyQt_Python_Libs}"
   "${libs_path}"
   )

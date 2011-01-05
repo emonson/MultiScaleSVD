@@ -7,7 +7,8 @@ import vtk.util.numpy_support as VN
 import numpy as N
 
 data_dir = '/Users/emonson/Data/Fodava/EMoGWDataSets/'
-data_file = data_dir + 'mnist3569_1k_20101119.mat'
+# data_file = data_dir + 'mnist123456_5c_1119.mat'
+data_file = data_dir + 'yaleB_pca200_0103_labels.mat'
 
 
 print 'Trying to load data set from .mat file...'
@@ -16,7 +17,7 @@ if len(data_file) == 0:
 	raise IOError, "No data file name: Use SetFileName('file.mat') before LoadData()"
 
 try:
-	MatInput = scipy.io.loadmat(data_file, struct_as_record=True)
+	MatInput = scipy.io.loadmat(data_file, struct_as_record=True, chars_as_strings=True)
 except:
 	raise IOError, "Can't load supplied matlab file"
 	# return
@@ -213,12 +214,47 @@ LeafNodesImap = (MatInput['LeafNodesImap'][0].astype('int16') - 1)		# zero-based
 CelWavCoeffs = MatInput['CelWavCoeffs']
 CelScalCoeffs = MatInput['CelScalCoeffs']
 
+# TODO: Need to do this for Scaling functions, too and switch between when appropriate
 # Need the max number of dims at each scale to fill in zeros for pcoords plot
-ScaleMaxDim = N.zeros(CelWavCoeffs.shape[1],dtype='int')
+WavMaxDim = N.zeros(CelWavCoeffs.shape[1],dtype='int')
 for row in range(CelWavCoeffs.shape[0]):
 	for col in range(CelWavCoeffs.shape[1]):
-		if ScaleMaxDim[col] < CelWavCoeffs[row,col].shape[1]:
-			ScaleMaxDim[col] = CelWavCoeffs[row,col].shape[1]
+		if WavMaxDim[col] < CelWavCoeffs[row,col].shape[1]:
+			WavMaxDim[col] = CelWavCoeffs[row,col].shape[1]
+ScalMaxDim = N.zeros(CelScalCoeffs.shape[1],dtype='int')
+for row in range(CelScalCoeffs.shape[0]):
+	for col in range(CelScalCoeffs.shape[1]):
+		if ScalMaxDim[col] < CelScalCoeffs[row,col].shape[1]:
+			ScalMaxDim[col] = CelScalCoeffs[row,col].shape[1]
+
+# Load in category labels, but map them to sequential integers starting at 0
+if 'Labels' in MatInput:
+	labels_tmp = MatInput['Labels'] # ncats x npoints 2d array
+	cat_labels = N.zeros_like(labels_tmp)
+	for ii in range(labels_tmp.shape[0]):
+		cl_unique = set(labels_tmp[ii,:])
+		cl_map = {}
+		for jj,vv in enumerate(cl_unique):
+			cl_map[vv] = jj
+		cat_labels[ii,:] = N.array([cl_map[vv] for vv in labels_tmp[ii,:]])
+	cat_labels_exist = True
+else:
+	cat_labels_exist = False
+
+if cat_labels_exist:
+	label_names = []
+	# Check whether there are labels names and if there are the right number
+	# NOTE: When bundled, scipy.io has trouble with cell arrays of strings, so
+	#  for now I am storing strings in Matlab character arrays which import as 
+	#  arrays of strings
+	if ('LabelNames' in MatInput) and (MatInput['LabelNames'].size == cat_labels.shape[0]):
+		names_array = MatInput['LabelNames']
+		for name_ar in names_array:
+			label_names.append(name_ar + '_ids')
+	# Else generate fake names
+	else:
+		for ii in range(cat_labels.shape[0]):
+			label_names.append('label_' + str(ii) + '_ids')
 
 # Gather helpful statistics to be used by other classes
 print 'Calulating extrema of coefficients'

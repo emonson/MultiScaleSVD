@@ -13,8 +13,13 @@ import numpy as N
 import os
 
 # print os.getcwd()
-
 from PyQt4 import QtCore, QtGui
+
+try:
+    _fromUtf8 = QtCore.QString.fromUtf8
+except AttributeError:
+    _fromUtf8 = lambda s: s
+
 from ui_multiscale_svd import Ui_MainWindow
 
 class MultiScaleSVDViews(QtGui.QMainWindow):
@@ -27,17 +32,23 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.renWinList = []
 
 		# data_file = askopenfilename()
-		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/text_20101119.mat'
-# 		self.openFilesDefaultPath = QtCore.QDir.homePath()
-# 		data_file = QtGui.QFileDialog.getOpenFileName(self,
-# 				"Load Saved Matlab File",
-# 				self.openFilesDefaultPath,
-# 				"All Files (*);;Matlab Files (*.mat)")
+# 		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/yaleB_pca200_1207_labels.mat'
+		if os.path.exists('/Users/emonson/Data/Fodava/EMoGWDataSets'):
+			self.openFilesDefaultPath = '/Users/emonson/Data/Fodava/EMoGWDataSets'
+		else:
+			self.openFilesDefaultPath = QtCore.QDir.homePath()
+		
+		data_file = QtGui.QFileDialog.getOpenFileName(self,
+				"Load Saved Matlab File",
+				self.openFilesDefaultPath,
+				"All Files (*);;Matlab Files (*.mat)")
 
 		# DataSource loads .mat file and can generate data from it for other views
 		print "Loading data from ", str(data_file)
 		self.ds = DataSource(str(data_file))
-
+		
+		self.last_data_dir = os.path.dirname(str(data_file))
+		
 		# All view classes have access to an instance of that data source for internal queries
 		# Note that the only view which will pull and display data right away is the icicle view
 		#  the other views need to be able to initialize without any data and only pull and show
@@ -52,7 +63,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.renWinList.append(self.ice_class.GetRenderWindow())
 
 		# Note: With the way I've implemented the output annotation link in PCoords chart,
-		#   it will always have a selection node, but the selection list may have no tuples if
+		#	it will always have a selection node, but the selection list may have no tuples if
 		#	it's an empty selection (and event gets fired on every empty selection
 
 		# View #1 -- PCoords View
@@ -95,9 +106,31 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# Set up all the render windows in the GUI
 		self.ui.setupUi(self, self.renWinList)
 
+		# Deal with color_by_array menu items
+		self.color_array_actions_list = []
+		# Only want one array color to be set at a time
+		self.colorActionGroup = QtGui.QActionGroup(self)
+		# TODO: Switch this for different default
+		self.ui.actionColorNone.setChecked(True)
+		self.colorActionGroup.addAction(self.ui.actionColorNone)
+		if self.ds.cat_labels_exist:
+			for ii,label in enumerate(self.ds.label_names):
+				actionTmp = QtGui.QAction(self)
+				actionTmp.setCheckable(True)
+				actionTmp.setObjectName(_fromUtf8(label))
+				actionTmp.setText(QtGui.QApplication.translate("MainWindow", label, None, QtGui.QApplication.UnicodeUTF8))
+				self.color_array_actions_list.append(actionTmp)
+				self.ui.menuPlot_Colors.addAction(self.color_array_actions_list[ii])
+				self.colorActionGroup.addAction(self.color_array_actions_list[ii])
+				QtCore.QObject.connect(self.color_array_actions_list[ii], QtCore.SIGNAL("triggered()"), self.setColorByArray)
+
 		# Explicitly set default here
 		self.ds.SetCoeffSource('wavelets')
 		# self.ds.SetCoeffSource('scaling')
+		
+		# TODO: Need to call menu actions to set color and coeff defaults rather than
+		#   hard-coding them here...
+		
 		self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Wavelets", None, QtGui.QApplication.UnicodeUTF8))
 
 		# Now need to get all the interactors working properly
@@ -138,7 +171,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 
 		# Only want one type of parallel coordinates scale range to be set at a time
 		pcScaleRangeActionGroup = QtGui.QActionGroup(self)
-		self.ui.actionPC_All_Scales.setChecked(True)
+		self.ui.actionPC_Coarsest_to_Current.setChecked(True)
 		pcScaleRangeActionGroup.addAction(self.ui.actionPC_All_Scales)
 		pcScaleRangeActionGroup.addAction(self.ui.actionPC_Current_Scale)
 		pcScaleRangeActionGroup.addAction(self.ui.actionPC_Coarsest_to_Current)
@@ -153,7 +186,8 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		QtCore.QObject.connect(self.ui.actionPC_Current_Scale, QtCore.SIGNAL("triggered()"), self.switchToPCCurrentScale)
 		QtCore.QObject.connect(self.ui.actionPC_Coarsest_to_Current, QtCore.SIGNAL("triggered()"), self.switchToPCCoarsestToCurrent)
 		QtCore.QObject.connect(self.ui.actionPC_Current_to_Finest, QtCore.SIGNAL("triggered()"), self.switchToPCCurrentToFinest)
-
+		QtCore.QObject.connect(self.ui.actionColorNone, QtCore.SIGNAL("triggered()"), self.setColorByArray)
+			
 		# Trying to see whether I can pass selection bounds from xy chart to pcoords
 		self.xy_class.GetChartView().GetInteractor().AddObserver("LeftButtonReleaseEvent", self.XYSelectionReleaseCallback)
 		# Trying to see whether I can pass selection bounds from xy chart to pcoords
@@ -195,14 +229,13 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 	def AIxyChangedCallback(self, caller, event):
 		xI = self.xy_class.GetAxisImageItem().GetXAxisIndex()
 		yI = self.xy_class.GetAxisImageItem().GetYAxisIndex()
-		print "AI CALLBACK: (%d, %d)" % (xI,yI)
+		# print "AI CALLBACK: (%d, %d)" % (xI,yI)
 		self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
 		self.xy_class.GetChartView().Render()
 		self.pc_class.SetCurrentXY(xI,yI)
 		self.pc_class.GetView().Render()
 
 	# - - - - - - - - - - - - - - - - - - - - - -
-	# TODO: Axis images by default switch back to 0,1 xy...
 	def switchToWavelets(self):
 		if self.ds.GetCoeffSource().lower().startswith('sca'):
 			# Record which xy indices are being plotted to reset after switchover
@@ -215,10 +248,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# self.nf_class.ReloadBasisImages()
 			# Instead of reloading basis images in detail view, try just firing event from image flow...
 			self.if_al_out.InvokeEvent("AnnotationChangedEvent")
-			# self.xy_class.GetAxisImageItem().SetAxisIndices(xI,yI)
-			# self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
-			# self.xy_class.GetAxisView().Render()
-			# self.xy_class.GetChartView().Render()
 			self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Wavelets", None, QtGui.QApplication.UnicodeUTF8))
 
 	def switchToScaling(self):
@@ -233,10 +262,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# self.nf_class.ReloadBasisImages()
 			# Instead of reloading basis images in detail view, try just firing event from image flow...
 			self.if_al_out.InvokeEvent("AnnotationChangedEvent")
-			# self.xy_class.GetAxisImageItem().SetAxisIndices(xI,yI)
-			# self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
-			# self.xy_class.GetAxisView().Render()
-			# self.xy_class.GetChartView().Render()
 			self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Scaling Functions", None, QtGui.QApplication.UnicodeUTF8))
 
 	def switchToPCAllScales(self):
@@ -255,6 +280,38 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.pc_class.SetScaleRange('fine')
 		self.pc_class.UpdateChartWithCurrentData()
 
+	def setColorByArray(self):
+		sender = self.sender()
+		
+		if sender in self.color_array_actions_list:
+			self.pc_class.SetColorByArray(str(sender.text()))
+			self.pc_class.GetView().Render()
+			self.xy_class.SetColorByArray(str(sender.text()))
+			self.xy_class.GetChartView().Render()
+		else:
+			self.pc_class.SetColorByArrayOff()
+			self.pc_class.GetView().Render()
+			self.xy_class.SetColorByArrayOff()
+			self.xy_class.GetChartView().Render()
+		
+	def generate_color_array_actions(self):
+		self.color_array_actions_list = []
+		# Only want one array color to be set at a time
+		self.colorActionGroup = QtGui.QActionGroup(self)
+		# TODO: Switch this for different default
+		self.ui.actionColorNone.setChecked(True)
+		self.colorActionGroup.addAction(self.ui.actionColorNone)
+		if self.ds.cat_labels_exist:
+			for ii,label in enumerate(self.ds.label_names):
+				actionTmp = QtGui.QAction(self)
+				actionTmp.setCheckable(True)
+				actionTmp.setObjectName(_fromUtf8(label))
+				actionTmp.setText(QtGui.QApplication.translate("MainWindow", label, None, QtGui.QApplication.UnicodeUTF8))
+				self.color_array_actions_list.append(actionTmp)
+				self.ui.menuPlot_Colors.addAction(self.color_array_actions_list[ii])
+				self.colorActionGroup.addAction(self.color_array_actions_list[ii])
+				QtCore.QObject.connect(self.color_array_actions_list[ii], QtCore.SIGNAL("triggered()"), self.setColorByArray)
+		
 	# - - - - - - - - - - - - - - - - - - - - - -
 	def fileOpen(self):
 
@@ -265,12 +322,22 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# Just change the string in the next to last line of the method for different file types
 		file = QtGui.QFileDialog.getOpenFileName(self,
 				"Load Saved Matlab File",
-				openFilesDefaultPath,
+				self.last_data_dir,
 				"All Files (*);;Matlab Files (*.mat)")
 
 		if file:
 			self.ds.SetFileName(str(file))
 			self.ds.LoadData()
+			
+			# Remove old color_by_array menu items
+			for action in self.color_array_actions_list:
+				self.ui.menuPlot_Colors.removeAction(action)
+				self.colorActionGroup.removeAction(action)
+				QtCore.QObject.connect(action, QtCore.SIGNAL("triggered()"), self.setColorByArray)
+			
+			# Add new color_by_array menu items
+			self.generate_color_array_actions()
+			
 			self.ice_class.LoadData()
 
 	def fileExit(self):

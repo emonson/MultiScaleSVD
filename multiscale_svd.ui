@@ -86,16 +86,11 @@
      <addaction name="actionPC_Current_Scale"/>
      <addaction name="actionPC_Current_to_Finest"/>
     </widget>
-    <widget class="QMenu" name="menuType_Here">
-     <property name="title">
-      <string>Type Here</string>
-     </property>
-    </widget>
     <widget class="QMenu" name="menuPlot_Colors">
      <property name="title">
       <string>Plot Color by Array</string>
      </property>
-     <addaction name="actionNone"/>
+     <addaction name="actionColorNone"/>
     </widget>
     <addaction name="actionWavelet"/>
     <addaction name="actionScaling"/>
@@ -103,7 +98,6 @@
     <addaction name="menuPC_Scales"/>
     <addaction name="separator"/>
     <addaction name="menuPlot_Colors"/>
-    <addaction name="menuType_Here"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
@@ -191,7 +185,7 @@
     <string>Ctrl+Alt+4</string>
    </property>
   </action>
-  <action name="actionNone">
+  <action name="actionColorNone">
    <property name="checkable">
     <bool>true</bool>
    </property>

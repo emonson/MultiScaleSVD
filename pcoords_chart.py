@@ -52,57 +52,20 @@ class PCoordsChart(object):
 		# self.view.ResetCamera()
 		# self.view.Render()
 
-		self.scale_range = 'all'
+		# Set default scale range to show: 'all', 'coarse', 'fine'
+		# TODO: Should check the menu to see which is checked so default is
+		#   set by GUI
+		self.scale_range = 'coarse'
 
 		# Want to keep track of whether the node coming in on the input_link
 		# is new or not
 		self.input_link_idx = 0
 
 		# Flag for whether to color by 'category_ids'
-		self.color_by_array = True
-		self.color_array_name = 'category_ids'
+		# TODO: Should check the menu to see which is checked so default is
+		#   set by GUI
+		self.SetColorByArray("None")
 
-		cl = []
-		cl.append([float(cc)/255.0 for cc in [27, 158, 119]])	# Colorbrewer Dark2
-		cl.append([float(cc)/255.0 for cc in [217, 95, 2]])
-		cl.append([float(cc)/255.0 for cc in [117, 112, 179]])
-		cl.append([float(cc)/255.0 for cc in [231, 41, 138]])
-		cl.append([float(cc)/255.0 for cc in [102, 166, 30]])
-		cl.append([float(cc)/255.0 for cc in [230, 171, 2]])
-		cl.append([float(cc)/255.0 for cc in [166, 118, 29]])
-		cl.append([float(cc)/255.0 for cc in [102, 102, 102]])
-
-# 		cl.append([float(cc)/255.0 for cc in [102, 102, 102]])	# Colorbrewer Dark2 (rev)
-# 		cl.append([float(cc)/255.0 for cc in [166, 118, 29]])
-# 		cl.append([float(cc)/255.0 for cc in [230, 171, 2]])
-# 		cl.append([float(cc)/255.0 for cc in [102, 166, 30]])
-# 		cl.append([float(cc)/255.0 for cc in [231, 41, 138]])
-# 		cl.append([float(cc)/255.0 for cc in [117, 112, 179]])
-# 		cl.append([float(cc)/255.0 for cc in [217, 95, 2]])
-# 		cl.append([float(cc)/255.0 for cc in [27, 158, 119]])
-
-# 		cl.append([float(cc)/255.0 for cc in [228, 26, 28]])  # Colorbrewer Set2 modY+4
-# 		cl.append([float(cc)/255.0 for cc in [55, 126, 184]])
-# 		cl.append([float(cc)/255.0 for cc in [77, 175, 74]])
-# 		cl.append([float(cc)/255.0 for cc in [152, 78, 163]])
-# 		cl.append([float(cc)/255.0 for cc in [255, 127, 0]])
-# 		cl.append([float(cc)/255.0 for cc in [245, 193, 61]])
-# 		cl.append([float(cc)/255.0 for cc in [166, 86, 40]])
-# 		cl.append([float(cc)/255.0 for cc in [247, 129, 191]])
-# 		cl.append([float(cc)/255.0 for cc in [153, 153, 153]])
-# 		cl.append([float(cc)/255.0 for cc in [143, 0, 0]])
-# 		cl.append([float(cc)/255.0 for cc in [22, 65, 110]])
-# 		cl.append([float(cc)/255.0 for cc in [40, 115, 33]])
-# 		cl.append([float(cc)/255.0 for cc in [61, 61, 61]])
-
-		self.lut = vtk.vtkLookupTable()
-		lutNum = len(cl)
-		self.lut.SetNumberOfTableValues(lutNum)
-		self.lut.Build()
-		for ii,cc in enumerate(cl):
-			self.lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
-		self.lut.SetRange(0,len(cl)-1)
-		self.lut.SetAlpha(0.25)
 
 	def SetInputAnnotationLink(self, link):
 
@@ -153,23 +116,32 @@ class PCoordsChart(object):
 		self.XYcurrentX = xI
 		self.XYcurrentY = yI
 
-	def SetColorByArrayOn(self):
-
-		self.color_by_array = True
-		self.color_array_name = 'category_ids'
-
 	def SetColorByArray(self, array_name):
 
-		self.color_by_array = True
-		if type(array_name).__name__ == 'str':
+		if (type(array_name).__name__ == 'str') and (array_name in self.ds.label_names):
+			self.color_by_array = True
 			self.color_array_name = array_name
+			self.lut = self.ds.GetCategoryLUT(self.ds.label_names.index(array_name))
+			self.lut.SetAlpha(0.1)
+			if self.chart.GetNumberOfPlots() > 0:
+				self.chart.GetPlot(0).SetScalarVisibility(1)
+				self.chart.GetPlot(0).SetLookupTable(self.lut)
+				self.chart.GetPlot(0).SelectColorArray(self.color_array_name)
+				self.chart.Modified()
+				self.chart.GetPlot(0).Modified()
 		else:
+			self.color_by_array = False
 			self.color_array_name = ''
-
-	def SetColorByCategoryOff(self):
+			if self.chart.GetNumberOfPlots() > 0:
+				self.chart.GetPlot(0).SetScalarVisibility(0)
+				self.chart.GetPlot(0).SetColor(0, 0, 0, 20)
+		
+	def SetColorByArrayOff(self):
 
 		self.color_by_array = False
 		self.color_array_name = ''
+		self.chart.GetPlot(0).SetScalarVisibility(0)
+		self.chart.GetPlot(0).SetColor(0, 0, 0, 20)
 
 	def ReloadData(self):
 		self.InputSelectionCallback(self.input_link, None)
@@ -226,9 +198,10 @@ class PCoordsChart(object):
 					self.XYcurrentX = self.XYcurrentY-1
 				else:
 					self.XYcurrentY = self.XYcurrentX-1
-			if self.XYcurrentX < 0 or self.XYcurrentY < 0:
+			if self.XYcurrentX < 0:
 				self.XYcurrentX = 0
-				self.XYcurrentY = 1
+			if self.XYcurrentY < 0:
+				self.XYcurrentY = 0
 
 			# self.chartView.ResetCamera()
 			self.input_link_idx = node_id
@@ -292,13 +265,7 @@ class PCoordsChart(object):
 		self.chart.GetPlot(0).Modified()
 		self.chart.SetDrawSets(True)
 
-		if self.color_by_array:
-			self.chart.GetPlot(0).SetScalarVisibility(1)
-			self.chart.GetPlot(0).SetLookupTable(self.lut)
-			self.chart.GetPlot(0).SelectColorArray(self.color_array_name)
-		else:
-			self.chart.GetPlot(0).SetScalarVisibility(0)
-			self.chart.GetPlot(0).SetColor(0, 0, 0, 255)
+		self.SetColorByArray(self.color_array_name)
 
 		# Only set number of scales and scale dims for proper subset of columns
 		self.chart.SetNumberOfScales(len(allowed_scales))
@@ -306,8 +273,6 @@ class PCoordsChart(object):
 			self.chart.SetScaleDim(ii, self.scale_dims[val])
 		# Current scale is relative to beginning of list
 		self.chart.SetCurrentScale(allowed_scales.index(self.currentScale))
-		self.chart.SetXYcurrentX(self.XYcurrentX)
-		self.chart.SetXYcurrentY(self.XYcurrentY)
 		self.chart.Update()
 
 		# Get extrema from _all_ wavelet coefficients instead of just used columns
@@ -447,7 +412,7 @@ if __name__ == "__main__":
 	from data_source import DataSource
 
 	# data_file = askopenfilename()
-	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100909.mat'
+	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/yaleB_pca200_1207_labels.mat'
 
 	# DataSource loads .mat file and can generate data from it for other views
 	ds = DataSource(data_file)
@@ -462,6 +427,7 @@ if __name__ == "__main__":
 	pc_class = PCoordsChart(ds)
 	pc_class.SetInputAnnotationLink(ice_output_link)
 	pc_class.GetView().GetRenderWindow().SetSize(600,300)
+	pc_class.SetColorByArray('pose_ids')
 
 	# Set up an annotation link as if selections were coming from another class
 	dummy_link2 = vtk.vtkAnnotationLink()
@@ -470,7 +436,7 @@ if __name__ == "__main__":
 	pc_class.SetHighlightAnnotationLink(dummy_link2)
 
 	# Fill selection link with dummy IDs
-	id_array = N.array([102],dtype='int64')
+	id_array = N.array([182],dtype='int64')
 	id_list = VN.numpy_to_vtkIdTypeArray(id_array)
 	node = vtk.vtkSelectionNode()
 	node.SetFieldType(3)		# Vertex

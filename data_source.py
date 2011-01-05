@@ -58,7 +58,7 @@ class DataSource(object):
 
 		print 'Trying to really load now...'
 		try:
-			MatInput = scipy.io.loadmat(self.data_file, struct_as_record=True)
+			MatInput = scipy.io.loadmat(self.data_file, struct_as_record=True, chars_as_strings=True)
 		except:
 			print 'loadmat crapping out for some reason...'
 			raise IOError, "Can't load supplied matlab file"
@@ -67,186 +67,26 @@ class DataSource(object):
 		# Get variables out of Matlab structure
 		print 'Transferring variables from Matlab structures'
 
-		# gW =
-		#                   knn: 20
-		#           knnAutotune: 10
-		#      SmallestMetisNet: 10
-		#            threshold0: 0
-		#            threshold1: 0.0100
-		#            threshold2: 0.0100
-		#     ManifoldDimension: 4
-		#   gW: a structure with the following fields:
-		#       .cp: vector encoding the metis tree structure with .cp(x) = the parent of x.
-		#             Each node is a subset of points and a parent is the union of its children
-		#       .IniLabels: the labels of the data points w.r.t. the leaf nodes in the
-		#                  METIS tree (all the leaves are a full partition of the data)
-		#       .PointsInNet: cell array, PointsInNet{i} contains all the points that
-		#                           is in the node i of the metis tree
-		#       .Sizes: vector of number of points in each node
-		#       .Radii: vector of the radius of each node
-		#       .Scales: vector of scales of all the nodes in the metis tree;
-		#                    the root has scale 1 and a larger scale implies a finer
-		#                    approximation
-		#       .Centers: cell array of the centers of the nodes
-		#       .ScalFuns: cell array of the local bases of the nodes
-		#       .Sigmas: cell array of the local singular values
-		#       .WavBasis: cell array of wavelet bases; each cell encodes the basis vectors that are
-		#                        present in the current node but orthogonal to the
-		#                        parent. For simplicity, the wavelet basis at the root
-		#                        is identified with the scaling functions at the root
-		#       .WavConsts: cell array of translations that are needed to move to a
-		#                           node from its parent
-		#       .WavSingVals: cell array of corresponding singular values associated
-		#                             with the wavelet bases. At the root, it coincides
-		#                             with .Sigmas
-
-		# NEW gW version in pruning code (8/25/2010)
-		# 		               X: [2000x120 double]
-		#              X_clean: [2000x120 double]
-		#                   X0: [2000x784 double]
-		#                 opts: [1x1 struct]
-		#                   cp: [1x103 double]
-		#               Scales: [1x103 double]
-		#              isaleaf: [1x103 double]
-		#            LeafNodes: [1x52 double]
-		#            IniLabels: [1x2000 double]
-		#          PointsInNet: {1x103 cell}
-		#                Radii: [1x103 double]
-		#                Sizes: [1x103 double]
-		#              Centers: {1x103 cell}
-		#             ScalFuns: {1x103 cell}
-		#               Sigmas: {1x103 cell}
-		#             WavBases: {1x103 cell}
-		#            WavConsts: {1x103 cell}
-		#          WavSingVals: {1x103 cell}
-		#     epsEncodingCosts: [1x103 double]
-		#              cp_orig: [1x103 double]
-		#            DictCosts: 420240
-
-		# self.gW = MatInput['gW']
-
-		#   Data: a structure of the following fields:
-		#       .ScalCoeffs: N by k*J matrix of coefficients relative to the
-		#                    scaling functions at the local nets
-		#       .Projections: N-by-D-by-J array of projections of X onto the
-		#                     local tangent planes at all J scales
-		#       .MatWavCoeffs: N by k*J matrix of wavelet coefficients relative to the
-		#                      wavelet bases at the local nets
-		#       .CelWavCoeffs: N by J cell array of wavelet coefficients relative to the
-		#                      wavelet bases at the local nets
-		#       .Wavelets: N-by-D-by-J array of differences between the projections
-		#                  at consecutive scales
-		#        (In the above, J is the number of scales, and k is the manifold
-		#         dimension)
-
-		# NEW Data version in pruning code (8/25/2010)
-		#
-		#              CelScalCoeffs: {52x8 cell}
-		#                Projections: [2000x120x8 double]
-		#               CelWavCoeffs: {52x8 cell}
-		#                   Wavelets: [2000x120x8 double]
-		#      TangentialCorrections: [2000x120x8 double]
-		#     ProjectedInitialErrors: [2000x120x8 double]
-		#               MatWavCoeffs: [2000x187 double]
-		#                 maxWavDims: [6 6 7 8 7 42 64 47]
-		#                 MatWavDims: [2000x8 double]
-		#                CoeffsCosts: 60208
-		#                      Xmean: [1x784 double]
-		#                          V: [784x784 double]
-
-		# self.Data = MatInput['Data']
-
-		# 		GWTopts =
-		#
-		#             AmbientDimension: 120
-		#                          knn: 50
-		#                  knnAutotune: 30
-		#             smallestMetisNet: 20
-		#            ManifoldDimension: 0
-		#                    errorType: 'relative'
-		#                   threshold0: 0.5000
-		#                    precision: 0.0100
-		#                   threshold1: 0.1000
-		#                   threshold2: 0.0100
-		#                      pruning: 1
-		#     addTangentialCorrections: 1
-		#                  sparsifying: 0
-		#                    splitting: 0
-
-		# NEW: Poofed out variables
-		#
-		#     % "poofing" out variables for easier loading in Python code
-		#     % and for file size since don't need nearly all of this stuff...
-		#     % I know it makes it less flexible later...
-		#
-		#     AmbientDimension = GWTopts.AmbientDimension;
-		#     X = gW.X;
-		#     % cm
-		#     % imR
-		#     % imC
-		#
-		#     % Redundant for now...
-		#     CelWavCoeffs = Data.CelWavCoeffs;
-		#
-		#     num_nodes = length(gW.cp);
-		#     LeafNodesImap(gW.LeafNodes) = 1:length(gW.LeafNodes);
-		#     NodeWavCoeffs = cell(1,num_nodes);
-		#
-		#     for node_idx = 1:num_nodes,
-		#         offspring = [node_idx get_offspring(gW.cp, node_idx)];
-		#         relevantLeafNodes = offspring(logical(gW.isaleaf(offspring)));
-		#         NodeWavCoeffs{node_idx} = cat(1, Data.CelWavCoeffs{LeafNodesImap(relevantLeafNodes), gW.Scales(node_idx)});
-		#     end
-		#
-		#     CelScalCoeffs = Data.CelScalCoeffs;
-		#     NodeScalCoeffs = cell(1,num_nodes);
-		#
-		#     for node_idx = 1:num_nodes,
-		#         offspring = [node_idx get_offspring(gW.cp, node_idx)];
-		#         relevantLeafNodes = offspring(logical(gW.isaleaf(offspring)));
-		#         NodeScalCoeffs{node_idx} = cat(1, Data.CelWavCoeffs{LeafNodesImap(relevantLeafNodes), gW.Scales(node_idx)});
-		#     end
-		#
-		#     % Should calculate Projections rather than storing -- it's big...
-		#
-		#     % node_idx = leafNodes(leaf_node_idx);
-		#     % data_idxs = find(gW.IniLabels == node_idx); % same as PointsInNet{net}
-		#     % nPts = length(data_idxs);
-		#     % j_max = gW.Scales(node_idx);
-		#     % gWCentersnet = repmat(gW.Centers{node_idx},nPts,1);
-		#     % Data.Projections(data_idxs,:,j_max) = Data.CelScalCoeffs{i,j_max}*gW.ScalFuns{node_idx}' + gWCentersnet;
-		#     % X_approx = Data.Projections(:,:,scale);
-		#     % X_img = X_approx*V(:,1:GWTopts.AmbientDimension)'+repmat(cm, size(X_approx,1),1);
-		#
-		#     % Projections = Data.Projections;
-		#
-		#     % May be able to get away with only saving
-		#     % V(:,1:GWTopts.AmbientDimension)
-		#     V = Data.V(:,1:GWTopts.AmbientDimension);
-		#
-		#     cp = gW.cp;
-		#     IniLabels = gW.IniLabels;
-		#     PointsInNet = gW.PointsInNet;
-		#     NumberInNet = gW.Sizes;
-		#     ScalFuns = gW.ScalFuns;
-		#     WavBases = gW.WavBases;
-		#     Centers = gW.Centers;
-		#     Scales = gW.Scales;
-		#     IsALeaf = gW.isaleaf;
-		#     LeafNodes = gW.LeafNodes;
-
 		# GWTopts structure giving problems on loadmat when running in standalone app...
 		# self.GWTopts = MatInput['GWTopts']
 
-		# X has already been projected to D dim by PCA
-		self.X = N.mat(MatInput['X'])
-		self.cm = N.mat(MatInput['cm'])	# not sure if should be matrix or array...
+		# Test if original images are downsampled in this data
+		if MatInput.has_key('X_down'):
+			self.X_down = N.mat(MatInput['X_down'])
+			self.downsampled = True
+		else:
+			# X has already been projected to D dim by PCA
+			self.X = N.mat(MatInput['X'])
+			self.downsampled = False
+			# V = SVD result (X = (X0-mean)*V[:,:D])
+			# This V already is only V(:,1:D) so we can use it whole
+			self.V = N.mat(MatInput['V'])
+			self.cm = N.mat(MatInput['cm'])	# not sure if should be matrix or array...
 
 		# Various plain matrices
 		# NOTE: Have to be careful of anything that can have a 0 value in Matlab
 		# because it might be naturally imported as an unsigned int, and then
 		# when you subtract 1 from it you don't get a negative number as you'd expect
-		self.V = N.mat(MatInput['V'])
 		self.cp = (MatInput['cp'][0].astype('int16') - 1)	# change here to zero-based indexing
 		self.IniLabels = (MatInput['IniLabels'][0] - 1)		# change here to zero-based indexing
 		self.NumberInNet = MatInput['NumberInNet'][0]
@@ -259,23 +99,44 @@ class DataSource(object):
 		self.CelScalCoeffs = MatInput['CelScalCoeffs']
 
 		# Load in category labels, but map them to sequential integers starting at 0
-		if 'cat_labels' in MatInput:
-			cat_labels = MatInput['cat_labels'].T[0] # otherwise you get a 2d array
-			cl_unique = set(cat_labels)
-			cl_map = {}
-			for ii,vv in enumerate(cl_unique):
-				cl_map[vv] = ii
-			self.cat_labels = N.array([cl_map[vv] for vv in cat_labels])
+		if 'Labels' in MatInput:
+			labels_array = MatInput['Labels'] # ncats x npoints 2d array
+			self.cat_labels = N.zeros_like(labels_array)
+			for ii in range(labels_array.shape[0]):
+				cl_unique = set(labels_array[ii,:])
+				cl_map = {}
+				for jj,vv in enumerate(cl_unique):
+					cl_map[vv] = jj
+				self.cat_labels[ii,:] = N.array([cl_map[vv] for vv in labels_array[ii,:]])
 			self.cat_labels_exist = True
 		else:
 			self.cat_labels_exist = False
+		
+		if self.cat_labels_exist:
+			self.label_names = []
+			# Check whether there are labels names and if there are the right number
+			if ('LabelNames' in MatInput) and (MatInput['LabelNames'][0].size == self.cat_labels.shape[0]):
+				names_array = MatInput['LabelNames'][0]
+				for name_ar in names_array:
+					self.label_names.append(name_ar[0] + '_ids')
+			# Else generate fake names
+			else:
+				for ii in range(self.cat_labels.shape[0]):
+					self.label_names.append('label_' + str(ii) + '_ids')
 
 		# Need the max number of dims at each scale to fill in zeros for pcoords plot
-		self.ScaleMaxDim = N.zeros(self.CelWavCoeffs.shape[1],dtype='int')
+		# Create copies for both wavelet coeffs and scaling functions since these often
+		#  have different dimensionalities
+		self.WavMaxDim = N.zeros(self.CelWavCoeffs.shape[1],dtype='int')
 		for row in range(self.CelWavCoeffs.shape[0]):
 			for col in range(self.CelWavCoeffs.shape[1]):
-				if self.ScaleMaxDim[col] < self.CelWavCoeffs[row,col].shape[1]:
-					self.ScaleMaxDim[col] = self.CelWavCoeffs[row,col].shape[1]
+				if self.WavMaxDim[col] < self.CelWavCoeffs[row,col].shape[1]:
+					self.WavMaxDim[col] = self.CelWavCoeffs[row,col].shape[1]
+		self.ScalMaxDim = N.zeros(self.CelScalCoeffs.shape[1],dtype='int')
+		for row in range(self.CelScalCoeffs.shape[0]):
+			for col in range(self.CelScalCoeffs.shape[1]):
+				if self.ScalMaxDim[col] < self.CelScalCoeffs[row,col].shape[1]:
+					self.ScalMaxDim[col] = self.CelScalCoeffs[row,col].shape[1]
 
 		# Gather helpful statistics to be used by other classes
 		print 'Calulating extrema of coefficients'
@@ -320,6 +181,9 @@ class DataSource(object):
 				self.imR = 20
 				self.imC = 20
 				print 'Could not find matching file name -- probably wrong image dimensions!!!!'
+		if self.downsampled:
+			self.imR_down = MatInput['imR_down'][0,0]
+			self.imC_down = MatInput['imC_down'][0,0]
 
 		# NumPts = Number of data points (here number of individual images)
 		self.NumPts = self.IniLabels.shape[0]
@@ -328,29 +192,28 @@ class DataSource(object):
 		# Manifold dimensionality variable now, not fixed...
 		# self.ManifoldDim = self.gW['ManifoldDimension'][0,0][0,0]
 
-		# V = SVD result (X = (X0-mean)*V[:,:D])
-		# This V already is only V(:,1:D) so we can use it whole
-		self.V = N.mat(MatInput['V'])
-
-		#     PointsInNet = gW.PointsInNet;
-		#     ScalFuns = gW.ScalFuns;
-		#     WavBases = gW.WavBases;
-		#     Centers = gW.Centers;
-
 		# Converting cell arrays to lists of numpy arrays
 		self.PointsInNet = []	# Points In Net
-		self.ScalFuns = []	# Scaling functions
-		self.WavBases = []	# Wavelet bases
-		self.Centers = []	# Center of each node
-		# self.NodeWavCoeffs = []
-		# self.NodeScalCoeffs = []
 		for ii in range(MatInput['PointsInNet'].shape[1]):
 			self.PointsInNet.append(MatInput['PointsInNet'][0,ii][0]-1)	# 0-based indices
-			self.ScalFuns.append(N.mat(MatInput['ScalFuns'][0,ii]))			# matrix
-			self.WavBases.append(N.mat(MatInput['WavBases'][0,ii]))			# matrix
-			self.Centers.append(N.mat(MatInput['Centers'][0,ii][0])) 		# matrix
-			# self.NodeWavCoeffs.append(N.mat(MatInput['NodeWavCoeffs'][0,ii])) 		# matrix
-			# self.NodeScalCoeffs.append(N.mat(MatInput['NodeScalCoeffs'][0,ii])) 		# matrix
+
+		if self.downsampled:
+			self.Centers_down = []
+			self.WavBases_down = []
+			self.ScalFuns_down = []
+			for ii in range(MatInput['PointsInNet'].shape[1]):
+				self.Centers_down.append(N.mat(MatInput['Centers_down'][0,ii]))			# matrix
+				self.WavBases_down.append(N.mat(MatInput['WavBases_down'][0,ii]))			# matrix
+				self.ScalFuns_down.append(N.mat(MatInput['ScalFuns_down'][0,ii]))			# matrix
+		else:
+			self.ScalFuns = []	# Scaling functions
+			self.WavBases = []	# Wavelet bases
+			self.Centers = []	# Center of each node
+			for ii in range(MatInput['PointsInNet'].shape[1]):
+				self.ScalFuns.append(N.mat(MatInput['ScalFuns'][0,ii]))			# matrix
+				self.WavBases.append(N.mat(MatInput['WavBases'][0,ii]))			# matrix
+				self.Centers.append(N.mat(MatInput['Centers'][0,ii][0])) 		# matrix
+
 
 		# J = Total number of scales
 		# self.J = self.Scales.max()
@@ -365,7 +228,7 @@ class DataSource(object):
 
 		# Flag to set whether generic routines should return Wavelet or Scaling Function
 		# coefficients / images -- "wav" or "scal"
-		self.coeff_source = "wav"
+		self.SetCoeffSource("wavelet")
 
 		self.data_loaded = True
 
@@ -425,8 +288,20 @@ class DataSource(object):
 		"""
 		if source_name.lower().startswith('wav'):
 			self.coeff_source = 'wav'
+			self.ScaleMaxDim = self.WavMaxDim
+			self.CelCoeffs = self.CelWavCoeffs
+			if self.downsampled:
+				self.Bases_down = self.WavBases_down
+			else:
+				self.Bases = self.WavBases
 		elif source_name.lower().startswith('sca'):
 			self.coeff_source = 'scal'
+			self.ScaleMaxDim = self.ScalMaxDim
+			self.CelCoeffs = self.CelScalCoeffs
+			if self.downsampled:
+				self.Bases_down = self.ScalFuns_down
+			else:
+				self.Bases = self.ScalFuns
 		else:
 			print "Error: Unknown coefficient source. Use 'wavelet' or 'scaling'."
 
@@ -448,19 +323,23 @@ class DataSource(object):
 		else:
 			return (self.ScalCoeffMin,self.ScalCoeffMax)
 
-	def GetCategoryLabelRange(self):
+	def GetCategoryLabelRange(self, idx=0):
 		"""Returns a tuple containing the range of values (min,max) of
 		the category labels (which have been mapped above to sequential integers).
+		For multiple category labels you can pass an index value (0-based), which
+		defaults to zero.
 		"""
-		if self.cat_labels_exist:
-			return (N.min(self.cat_labels), N.max(self.cat_labels))
+		if self.cat_labels_exist and (idx < self.cat_labels.shape[0]):
+			return (N.min(self.cat_labels[idx,:]), N.max(self.cat_labels[idx,:]))
 		else:
 			# TODO: Should think about what to return here...
+			# TODO: Should also probably put up an error...
 			return (0,0)
 
 	def GetCoeffImages(self, ice_leaf_ids=None, ice_leaf_xmins=None ):
-		"""Returns a list of vtkImageData 2D image with the wavelet coefficients at all dimensions
-		for all nodes. If you give the positions and IDs of the leaf nodes, as laid out by
+		"""Returns a list of vtkImageData 2D image with the wavelet or scaling function
+		coefficients at all dimensions for all nodes. 
+		If you give the positions and IDs of the leaf nodes, as laid out by
 		the icicle view, then the matrix will be sorted accordingly
 		so the image should be correct for the icicle view."""
 
@@ -471,12 +350,6 @@ class DataSource(object):
 				raise ValueError, "Number of leaves in icicle view doesn't match leaf nodes in tree"
 
 			else:
-
-				# Switch for which coefficients to use for images
-				if self.coeff_source == 'wav':
-					CelCoeffs = self.CelWavCoeffs
-				else:
-					CelCoeffs = self.CelScalCoeffs
 
 				# Matlab method for appending wavelet coeffients together
 				# Need to use this if the icicle view layout may have reordered the nodes
@@ -518,7 +391,7 @@ class DataSource(object):
 					sorted_offspring_pos_idxs = N.argsort(offspring_pos)
 					sorted_offspring_idxs = offspring_idxs[sorted_offspring_pos_idxs]
 					# Need to reverse the order up-down of wav coeffs
-					img_list = list(pp[::-1,:] for pp in CelCoeffs[sorted_offspring_idxs, self.Scales[node_id]])
+					img_list = list(pp[::-1,:] for pp in self.CelCoeffs[sorted_offspring_idxs, self.Scales[node_id]])
 					# Need to reverse the list to get in the right order
 					img_list.reverse()
 					# Need to transpose the concatenated matrices
@@ -582,12 +455,6 @@ class DataSource(object):
 
 		if self.data_loaded:
 
-			# Switch for which coefficients to use for images
-			if self.coeff_source == 'wav':
-				CelCoeffs = self.CelWavCoeffs
-			else:
-				CelCoeffs = self.CelScalCoeffs
-
 			# For a given node_id, get PIN and then extract all coeffs at every scale
 			# Columns of table will be rows of the WavCoeffsOrig matrix
 
@@ -597,8 +464,8 @@ class DataSource(object):
 			# node and its children, not the max that exists in the entire data set.
 			leaf_children = list(self.get_leaf_children(self.cp, node_id))
 			mapped_leaf_children = [self.LeafNodesImap[nod] for nod in leaf_children]
-			# Even empty arrays in CelCoeffs give back okay shape[1] (0)
-			dims_arr_lin = N.array(list(arr.shape[1] for id in mapped_leaf_children for arr in CelCoeffs[id,:]))
+			# Even empty arrays in self.CelCoeffs give back okay shape[1] (0)
+			dims_arr_lin = N.array(list(arr.shape[1] for id in mapped_leaf_children for arr in self.CelCoeffs[id,:]))
 			dims_arr = dims_arr_lin.reshape((-1,self.ScaleMaxDim.size))
 			scale_max_dim = dims_arr.max(axis=0)
 
@@ -617,7 +484,7 @@ class DataSource(object):
 				mapped_node_idx = self.LeafNodesImap[leaf_node]
 
 				# Skip any empty arrays
-				wav_row_tuple = tuple(arr[row,:] for arr in CelCoeffs[mapped_node_idx,:] if arr.size != 0)
+				wav_row_tuple = tuple(arr[row,:] for arr in self.CelCoeffs[mapped_node_idx,:] if arr.size != 0)
 				# Create zero-padded arrays
 				zero_row_tuple = tuple(N.zeros(sc) for sc in scale_max_dim)
 				# And transfer over values
@@ -645,9 +512,10 @@ class DataSource(object):
 			# Adding in category labels
 			# Name needs to end in _ids so plots will ignore it
 			if self.cat_labels_exist:
-				CATvtk = VN.numpy_to_vtk(self.cat_labels[IDarray], deep=True)
-				CATvtk.SetName('category_ids')
-				table.AddColumn(CATvtk)
+				for ii in range(self.cat_labels.shape[0]):
+					CATvtk = VN.numpy_to_vtk(self.cat_labels[ii,IDarray], deep=True)
+					CATvtk.SetName(self.label_names[ii])
+					table.AddColumn(CATvtk)
 
 			return table, scale_max_dim.tolist()
 
@@ -665,12 +533,6 @@ class DataSource(object):
 
 		if self.data_loaded:
 
-			# Switch for which coefficients to use for images
-			if self.coeff_source == 'wav':
-				CelCoeffs = self.CelWavCoeffs
-			else:
-				CelCoeffs = self.CelScalCoeffs
-
 			# For a given node_id, get PIN and then extract all coeffs at every scale
 			# Columns of table will be rows of the WavCoeffsOrig matrix
 
@@ -684,7 +546,7 @@ class DataSource(object):
 				mapped_node_idx = self.LeafNodesImap[leaf_node]
 
 				# Skip any empty arrays
-				wav_row_tuple = tuple(arr[row,:] for arr in CelCoeffs[mapped_node_idx,:] if arr.size != 0)
+				wav_row_tuple = tuple(arr[row,:] for arr in self.CelCoeffs[mapped_node_idx,:] if arr.size != 0)
 				# Create zero-padded arrays
 				zero_row_tuple = tuple(N.zeros(D) for sc in self.ScaleMaxDim)
 				# And transfer over values
@@ -726,12 +588,6 @@ class DataSource(object):
 
 		if self.data_loaded:
 
-			# Switch for which coefficients to use for images
-			if self.coeff_source == 'wav':
-				CelCoeffs = self.CelWavCoeffs
-			else:
-				CelCoeffs = self.CelScalCoeffs
-
 			# For a given node_id, concatenate wavelet coeffs in proper order
 			# (according to leaf node positions in icicle view if it was set already)
 			# Columns of table will be rows of the wavelet coeffs image
@@ -743,7 +599,7 @@ class DataSource(object):
 			offspring_pos = self.mapped_leaf_pos[offspring_idxs]
 			sorted_offspring_pos_idxs = N.argsort(offspring_pos)
 			sorted_offspring_idxs = offspring_idxs[sorted_offspring_pos_idxs]
-			img_tuple = tuple(pp for pp in CelCoeffs[sorted_offspring_idxs, scale])
+			img_tuple = tuple(pp for pp in self.CelCoeffs[sorted_offspring_idxs, scale])
 			# The image comes out with shape (npts, ndims)
 			# May need to reorder (reverse) this...?
 			img = N.concatenate(img_tuple, axis=0)
@@ -765,9 +621,10 @@ class DataSource(object):
 			# Adding in category labels
 			# Name needs to end in _ids so plots will ignore it
 			if self.cat_labels_exist:
-				CATvtk = VN.numpy_to_vtk(self.cat_labels[IDarray], deep=True)
-				CATvtk.SetName('category_ids')
-				table.AddColumn(CATvtk)
+				for ii in range(self.cat_labels.shape[0]):
+					CATvtk = VN.numpy_to_vtk(self.cat_labels[ii,IDarray], deep=True)
+					CATvtk.SetName(self.label_names[ii])
+					table.AddColumn(CATvtk)
 
 			return table
 
@@ -776,15 +633,16 @@ class DataSource(object):
 			raise IOError, "Can't get image until data is loaded successfully"
 
 	def GetNodeBasisImages(self, node_id):
-		"""Returns a vtkImageData of all wavelet basis images for a given node."""
+		"""Returns a vtkImageData of all wavelet or scaling function
+		basis images for a given node."""
 
 		if self.data_loaded:
 
-			# Switch for which coefficients to use for images
-			if self.coeff_source == 'wav':
-				Bases = self.WavBases
-			else:
-				Bases = self.ScalFuns
+			# Scaling functions coeffs are defined wrt parent node scaling functions...
+			# TODO: Switch this back when back to computing CelScalCoeffs rather than
+			#   CelTangCoeffs...
+			if self.coeff_source == 'scal' and self.cp[node_id] >= 0:
+				node_id = self.cp[node_id]
 
 			# %% Display all detail coordinates for a given leaf node
 			#
@@ -792,9 +650,19 @@ class DataSource(object):
 			#
 			# Need to create separate images (Z) for each column of matrix result
 
-			# Compute all detail images for that node
-			# Now V already chopped to AmbientDimension
-			image_cols = self.V*Bases[node_id]
+			if self.downsampled:
+				image_cols = self.WavBases_down[node_id]
+				imR = self.imR_down
+				imC = self.imC_down
+			else:
+				# V now already chopped to AmbientDimension
+				# Compute all detail images for that dimension
+				# print "DS Calculating center image"
+				# print node_id, self.Centers[node_id].shape, self.V.T.shape, self.cm.shape
+				image_cols = self.V*self.Bases[node_id]
+				imR = self.imR
+				imC = self.imC
+
 			# To make it linear, it is the correct order (one image after another) to .ravel()
 			images_linear = N.asarray(image_cols.T).ravel()
 
@@ -804,7 +672,7 @@ class DataSource(object):
 			imageData = vtk.vtkImageData()
 			imageData.SetOrigin(0,0,0)
 			imageData.SetSpacing(1,1,1)
-			imageData.SetDimensions(self.imR, self.imC, image_cols.shape[1])
+			imageData.SetDimensions(imR, imC, image_cols.shape[1])
 			imageData.GetPointData().AddArray(intensity)
 			imageData.GetPointData().SetActiveScalars('DiffIntensity')
 
@@ -820,8 +688,20 @@ class DataSource(object):
 
 			# imagesc(reshape(gW.Centers{1}*V(:,1:D)'+cm,28,[]))
 
-			# Compute all detail images for that dimension
-			image_col = self.Centers[node_id]*self.V.T + self.cm
+			if self.downsampled:
+				image_col = self.Centers_down[node_id]
+				imR = self.imR_down
+				imC = self.imC_down
+			else:
+				# V now already chopped to AmbientDimension
+				# Compute all detail images for that dimension
+				# print "DS Calculating center image"
+				# print node_id, self.Centers[node_id].shape, self.V.T.shape, self.cm.shape
+				image_col = self.Centers[node_id]*self.V.T + self.cm
+				imR = self.imR
+				imC = self.imC
+
+			# print "DS done calculating center image"
 			# To make it linear, it is the correct order (one image after another) to .ravel()
 			image_linear = N.asarray(image_col.T).ravel()
 
@@ -831,7 +711,7 @@ class DataSource(object):
 			imageData = vtk.vtkImageData()
 			imageData.SetOrigin(0,0,0)
 			imageData.SetSpacing(1,1,1)
-			imageData.SetDimensions(self.imR, self.imC, 1)
+			imageData.SetDimensions(imR, imC, 1)
 			imageData.GetPointData().AddArray(intensity)
 			imageData.GetPointData().SetActiveScalars('Intensity')
 
@@ -849,51 +729,19 @@ class DataSource(object):
 
 			# X_orig = X*V(:,1:GWTopts.AmbientDimension)'+repmat(cm, size(X,1),1);
 
-			# V now already chopped to AmbientDimension
-			Xtmp = self.X[IDlist,:]*self.V.T
-
-			# numpy should automatically do tiling!!
-			X_orig = Xtmp + self.cm
-			# X_orig = Xtmp + N.tile(self.cm,(Xtmp.shape[0],1))	# tile ~ repmat
-
-			# To make it linear, it is the correct order (one image after another) to .ravel()
-			X_linear = N.asarray(X_orig).ravel()
-
-			# If we want to rearrange it into a stack of images in numpy
-			# X_im = N.asarray(X_orig).reshape(Xtmp.shape[0],self.imR,-1)
-
-			# Going ahead and using numpy_support here...  Much faster!!!
-			Xvtk = VN.numpy_to_vtk(X_linear, deep=True)	# even with the (necessary) deep copy
-			Xvtk.SetName('Intensity')
-
-			imageData = vtk.vtkImageData()
-			imageData.SetOrigin(0,0,0)
-			imageData.SetSpacing(1,1,1)
-			imageData.SetDimensions(self.imR, self.imC, Xtmp.shape[0])
-			imageData.GetPointData().AddArray(Xvtk)
-			imageData.GetPointData().SetActiveScalars('Intensity')
-
-			return imageData
-
-		else:
-			raise IOError, "Can't get image until data is loaded successfully"
-
-	def GetProjectedDownsampledImages(self, IDlist):
-		"""Given a list of IDs selected from a parallel coordinates plot, returns
-		a vtkImageData with all of the projected (reduced dimensionality by SVD) images
-		for those IDs. (e.g. typically 120 dim rather than original 768 dim for MNIST digits)
-		This version downsamples large images so the original size doesn't have to be
-		stored all at once for fast tooltip image stacks."""
-
-		if self.data_loaded:
-
-			# X_orig = X*V(:,1:GWTopts.AmbientDimension)'+repmat(cm, size(X,1),1);
-
-			# V now already chopped to AmbientDimension
-			Xtmp = self.X[IDlist,:]*self.V.T
-
-			# numpy should automatically do tiling!!
-			X_orig = Xtmp + self.cm
+			if self.downsampled:
+				X_orig = self.X_down[IDlist,:]
+				imR = self.imR_down
+				imC = self.imC_down
+			else:
+				# V now already chopped to AmbientDimension
+				Xtmp = self.X[IDlist,:]*self.V.T
+	
+				# numpy should automatically do tiling!!
+				X_orig = Xtmp + self.cm
+				# X_orig = Xtmp + N.tile(self.cm,(Xtmp.shape[0],1))	# tile ~ repmat
+				imR = self.imR
+				imC = self.imC
 
 			# To make it linear, it is the correct order (one image after another) to .ravel()
 			X_linear = N.asarray(X_orig).ravel()
@@ -908,7 +756,7 @@ class DataSource(object):
 			imageData = vtk.vtkImageData()
 			imageData.SetOrigin(0,0,0)
 			imageData.SetSpacing(1,1,1)
-			imageData.SetDimensions(self.imR, self.imC, Xtmp.shape[0])
+			imageData.SetDimensions(imR, imC, X_orig.shape[0])
 			imageData.GetPointData().AddArray(Xvtk)
 			imageData.GetPointData().SetActiveScalars('Intensity')
 
@@ -1033,23 +881,17 @@ class DataSource(object):
 	def GetDetailWeights(self, data_id):
 		"""Returns a list of arrays corresponding to the weights associated with
 		the detail images for this particular data ID. (This is equivalent to the
-		magnitudes of the wavelet coefficients, reordered like the detail image stacks
-		(one list item array for each scale)."""
+		magnitudes of the wavelet or scaling function coefficients,
+		reordered like the detail image stacks (one list item array for each scale)."""
 
 		if self.data_loaded:
-
-			# Switch for which coefficients to use for images
-			if self.coeff_source == 'wav':
-				CelCoeffs = self.CelWavCoeffs
-			else:
-				CelCoeffs = self.CelScalCoeffs
 
 			leaf_node = self.IniLabels[data_id]
 			row = N.nonzero(self.PointsInNet[leaf_node]==data_id)[0][0]	# final zero turns array->scalar
 			mapped_node_idx = self.LeafNodesImap[leaf_node]
 
 			# Skip any empty arrays
-			wav_row_tuple = tuple(arr[row,:] for arr in CelCoeffs[mapped_node_idx,:] if arr.size != 0)
+			wav_row_tuple = tuple(arr[row,:] for arr in self.CelCoeffs[mapped_node_idx,:] if arr.size != 0)
 			wav_row = N.concatenate(wav_row_tuple, axis=1)
 
 			# Right now doing fractional magnitudes only relative to this row's (data point's) values
@@ -1059,6 +901,96 @@ class DataSource(object):
 
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
+
+
+	def GetCategoryLUT(self, idx = 0):
+		"""Returns a LUT for category coloring. Result depends on number
+		of categories. Pass an index to get a proper label map (otherwise
+		it defaults to the first (zeroth) label."""
+
+		if self.data_loaded:
+
+			cl = []
+			lut = vtk.vtkLookupTable()
+			
+			if self.cat_labels_exist:
+				num_labels = len(N.unique(self.cat_labels[idx,:]))
+				
+				if num_labels > 8 and num_labels <= 13:
+					cl.append([float(cc)/255.0 for cc in [228, 26, 28]])  # Colorbrewer Set2 modY+4
+					cl.append([float(cc)/255.0 for cc in [55, 126, 184]])
+					cl.append([float(cc)/255.0 for cc in [77, 175, 74]])
+					cl.append([float(cc)/255.0 for cc in [152, 78, 163]])
+					cl.append([float(cc)/255.0 for cc in [255, 127, 0]])
+					cl.append([float(cc)/255.0 for cc in [245, 193, 61]])
+					cl.append([float(cc)/255.0 for cc in [166, 86, 40]])
+					cl.append([float(cc)/255.0 for cc in [247, 129, 191]])
+					cl.append([float(cc)/255.0 for cc in [153, 153, 153]])
+					cl.append([float(cc)/255.0 for cc in [143, 0, 0]])
+					cl.append([float(cc)/255.0 for cc in [22, 65, 110]])
+					cl.append([float(cc)/255.0 for cc in [40, 115, 33]])
+					cl.append([float(cc)/255.0 for cc in [61, 61, 61]])
+
+					lutNum = len(cl)
+					lut.SetNumberOfTableValues(lutNum)
+					lut.Build()
+					for ii,cc in enumerate(cl):
+						lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
+					lut.SetRange(0,len(cl)-1)
+					lut.Build()
+					return lut
+									
+				if num_labels <= 8:
+					cl.append([float(cc)/255.0 for cc in [27, 158, 119]])	# Colorbrewer Dark2
+					cl.append([float(cc)/255.0 for cc in [217, 95, 2]])
+					cl.append([float(cc)/255.0 for cc in [117, 112, 179]])
+					cl.append([float(cc)/255.0 for cc in [231, 41, 138]])
+					cl.append([float(cc)/255.0 for cc in [102, 166, 30]])
+					cl.append([float(cc)/255.0 for cc in [230, 171, 2]])
+					cl.append([float(cc)/255.0 for cc in [166, 118, 29]])
+					cl.append([float(cc)/255.0 for cc in [102, 102, 102]])
+			
+			# 		cl.append([float(cc)/255.0 for cc in [102, 102, 102]])	# Colorbrewer Dark2 (rev)
+			# 		cl.append([float(cc)/255.0 for cc in [166, 118, 29]])
+			# 		cl.append([float(cc)/255.0 for cc in [230, 171, 2]])
+			# 		cl.append([float(cc)/255.0 for cc in [102, 166, 30]])
+			# 		cl.append([float(cc)/255.0 for cc in [231, 41, 138]])
+			# 		cl.append([float(cc)/255.0 for cc in [117, 112, 179]])
+			# 		cl.append([float(cc)/255.0 for cc in [217, 95, 2]])
+			# 		cl.append([float(cc)/255.0 for cc in [27, 158, 119]])
+			
+					lutNum = len(cl)
+					lut.SetNumberOfTableValues(lutNum)
+					lut.Build()
+					for ii,cc in enumerate(cl):
+						lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
+					lut.SetRange(0,len(cl)-1)
+					lut.Build()
+					return lut
+
+				if num_labels > 13:
+					
+					lut.SetNumberOfTableValues(num_labels)
+					lut.SetValueRange(0.8, 0.8)
+					lut.SetSaturationRange(0.8, 0.8)
+					lut.SetHueRange(0.0,1.0)
+					lut.SetRampToLinear()
+					lut.SetRange(0,num_labels-1)
+					lut.Build()
+					return lut
+			
+			lut.SetNumberOfTableValues(256)
+			lut.SetValueRange(1.0, 1.0)
+			lut.SetSaturationRange(1.0, 1.0)
+			lut.SetHueRange(0.0,1.0)
+			lut.SetRampToLinear()
+			lut.SetRange(0,10)
+			lut.Build()
+			return lut
+	
+
+# ==================
+# Internal utility methods
 
 	def find_path_down_the_tree(self, leafNodeID):
 		""" Internal method returning chain: vector of the path down the tree,

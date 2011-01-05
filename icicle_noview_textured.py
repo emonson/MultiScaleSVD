@@ -332,11 +332,9 @@ class IcicleNoView(object):
 			self.lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
 		self.lut.SetRange(-WCext,WCext)
 		
-		# # # TODO * *
 		# For each node and corresponding image data in self.WCimageDataList, need to create a texture,
 		# then pull out the correct rectangle from areapoly0 (using vtkExtractSelectedPolyDataIds
 		# and create a mapper and actor and apply the texture. 
-		# Put all of these things in lists?
 		
 		self.texture_list = []
 		self.tex_mapper_list = []

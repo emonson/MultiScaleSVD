@@ -24,7 +24,19 @@ class XYChart(object):
 		self.chartView = vtk.vtkContextView()
 		self.chartView.GetRenderer().SetBackground(1.0, 1.0, 1.0)
 
+		# vtkChart::
+			# PAN 	
+			# ZOOM 	
+			# SELECT 	
+		# vtkContextMouseEvent:
+		# enum  	
+		#  { NO_BUTTON = 0, LEFT_BUTTON = 1, MIDDLE_BUTTON = 2, RIGHT_BUTTON = 4 }
+		
 		self.chart = vtkvtg.vtkMyChartXY()
+		# self.chart.SetMouseMoveSelectZoomButtons(2,1,4)
+		self.chart.SetActionToButton(vtk.vtkChart.PAN, 2)
+		self.chart.SetActionToButton(vtk.vtkChart.ZOOM, 4)
+		self.chart.SetActionToButton(vtk.vtkChart.SELECT, 1)
 		self.chartView.GetScene().AddItem(self.chart)
 
 		self.axisView = vtk.vtkContextView()
@@ -73,51 +85,9 @@ class XYChart(object):
 		# is new or not
 		self.input_link_idx = 0
 
-		# Flag for whether to color by 'category_ids'
-		self.color_by_array = True
-		self.color_array_name = 'category_ids'
-
-		cl = []
-		cl.append([float(cc)/255.0 for cc in [27, 158, 119]])	# Colorbrewer Dark2
-		cl.append([float(cc)/255.0 for cc in [217, 95, 2]])
-		cl.append([float(cc)/255.0 for cc in [117, 112, 179]])
-		cl.append([float(cc)/255.0 for cc in [231, 41, 138]])
-		cl.append([float(cc)/255.0 for cc in [102, 166, 30]])
-		cl.append([float(cc)/255.0 for cc in [230, 171, 2]])
-		cl.append([float(cc)/255.0 for cc in [166, 118, 29]])
-		cl.append([float(cc)/255.0 for cc in [102, 102, 102]])
-
-# 		cl.append([float(cc)/255.0 for cc in [102, 102, 102]])	# Colorbrewer Dark2 (rev)
-# 		cl.append([float(cc)/255.0 for cc in [166, 118, 29]])
-# 		cl.append([float(cc)/255.0 for cc in [230, 171, 2]])
-# 		cl.append([float(cc)/255.0 for cc in [102, 166, 30]])
-# 		cl.append([float(cc)/255.0 for cc in [231, 41, 138]])
-# 		cl.append([float(cc)/255.0 for cc in [117, 112, 179]])
-# 		cl.append([float(cc)/255.0 for cc in [217, 95, 2]])
-# 		cl.append([float(cc)/255.0 for cc in [27, 158, 119]])
-
-# 		cl.append([float(cc)/255.0 for cc in [228, 26, 28]])  # Colorbrewer Set2 modY+4
-# 		cl.append([float(cc)/255.0 for cc in [55, 126, 184]])
-# 		cl.append([float(cc)/255.0 for cc in [77, 175, 74]])
-# 		cl.append([float(cc)/255.0 for cc in [152, 78, 163]])
-# 		cl.append([float(cc)/255.0 for cc in [255, 127, 0]])
-# 		cl.append([float(cc)/255.0 for cc in [245, 193, 61]])
-# 		cl.append([float(cc)/255.0 for cc in [166, 86, 40]])
-# 		cl.append([float(cc)/255.0 for cc in [247, 129, 191]])
-# 		cl.append([float(cc)/255.0 for cc in [153, 153, 153]])
-# 		cl.append([float(cc)/255.0 for cc in [143, 0, 0]])
-# 		cl.append([float(cc)/255.0 for cc in [22, 65, 110]])
-# 		cl.append([float(cc)/255.0 for cc in [40, 115, 33]])
-# 		cl.append([float(cc)/255.0 for cc in [61, 61, 61]])
-
-		self.lut = vtk.vtkLookupTable()
-		lutNum = len(cl)
-		self.lut.SetNumberOfTableValues(lutNum)
-		self.lut.Build()
-		for ii,cc in enumerate(cl):
-			self.lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
-		self.lut.SetRange(0,len(cl)-1)
-		self.lut.SetAlpha(0.8)
+		# TODO: Should check the menu to see which is checked so default is
+		#   set by GUI
+		self.SetColorByArray("None")
 
 	def SetInputAnnotationLink(self, link):
 
@@ -152,23 +122,31 @@ class XYChart(object):
 		self.highlight_link_idxs.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
 		self.chart.SetHighlightLink(self.highlight_link_idxs)
 
-	def SetColorByArrayOn(self):
-
-		self.color_by_array = True
-		self.color_array_name = 'category_ids'
-
 	def SetColorByArray(self, array_name):
 
-		self.color_by_array = True
-		if type(array_name).__name__ == 'str':
+		if (type(array_name).__name__ == 'str') and (array_name in self.ds.label_names):
+			self.color_by_array = True
 			self.color_array_name = array_name
+			self.lut = self.ds.GetCategoryLUT(self.ds.label_names.index(array_name))
+			self.lut.SetAlpha(0.6)
+			if self.chart.GetNumberOfPlots() > 0:
+				self.chart.GetPlot(0).SetScalarVisibility(1)
+				self.chart.GetPlot(0).SetLookupTable(self.lut)
+				self.chart.GetPlot(0).SelectColorArray(self.color_array_name)
 		else:
+			self.color_by_array = False
 			self.color_array_name = ''
+			if self.chart.GetNumberOfPlots() > 0:
+				self.chart.GetPlot(0).SetScalarVisibility(0)
+				self.chart.GetPlot(0).SetColor(0, 0, 0, 100)
 
-	def SetColorByCategoryOff(self):
+		
+	def SetColorByArrayOff(self):
 
 		self.color_by_array = False
 		self.color_array_name = ''
+		self.chart.GetPlot(0).SetScalarVisibility(0)
+		self.chart.GetPlot(0).SetColor(0, 0, 0, 100)
 
 	def XYSelectionCallback(self, caller, event):
 
@@ -191,9 +169,13 @@ class XYChart(object):
 			node_id = idxArr[0]
 			self.table = self.ds.GetNodeOneScaleCoeffTable(node_id)
 			id_list = self.ds.PointsInNet[node_id]	# Directly accessing member variable
+			print "XY Getting Projected Images"
 			self.image_stack = self.ds.GetProjectedImages(id_list)
+			print "XY Getting Node Basis Images"
 			self.axis_images = self.ds.GetNodeBasisImages(node_id)
+			print "XY Getting Node Center Images"
 			self.center_image = self.ds.GetNodeCenterImage(node_id)
+			print "XY Finished getting images"
 
 			# Get the axis image XY indices in case resetting to those values
 			# and the number of dimensions has changed, and xI or yI are over the limit
@@ -216,28 +198,28 @@ class XYChart(object):
 					xI = yI-1
 				else:
 					yI = xI-1
-			if xI < 0 or yI < 0:
+			if xI < 0:
 				xI = 0
-				yI = 1
+			if yI < 0:
+				yI = 0
 
 			self.chart.ClearPlots()
 			self.ai.ClearAxisImages()
 
 			line1 = vtkvtg.vtkMyPlotPoints()
 			self.chart.AddPlot(line1)		# POINTS
-			if (self.table.GetNumberOfColumns() > 2):
+
+			# Count number of non-_ids column names
+			num_real_cols = len([self.table.GetColumnName(ii) 
+			                    for ii in range(self.table.GetNumberOfColumns()) 
+			                    if not self.table.GetColumnName(ii).endswith('_ids')])
+			if (num_real_cols > 1):
 				line1.SetInput(self.table, 0, 1)
 			else:
 				line1.SetInput(self.table, 0, 0)
 			line1.SetMarkerStyle(vtkvtg.vtkMyPlotPoints.CIRCLE)
 
-			if self.color_by_array:
-				line1.SetScalarVisibility(1)
-				line1.SetLookupTable(self.lut)
-				line1.SelectColorArray(self.color_array_name)
-			else:
-				line1.SetScalarVisibility(0)
-				line1.SetColor(0, 0, 0, 255)
+			self.SetColorByArray(self.color_array_name)
 
 			# If this is the same icicle node as before, then reset to original XY indices
 			# before view is updated
