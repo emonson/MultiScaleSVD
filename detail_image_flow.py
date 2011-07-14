@@ -114,7 +114,8 @@ class DetailImageFlow(object):
 		self.cam = self.renderer.GetActiveCamera()
 
 		# renderer.SetBackground(0.15, 0.12, 0.1)
-		cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [40,40,40]]
+		# cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [40,40,40]]
+		cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [60, 60, 60]]
 		self.renderer.SetBackground(cc0,cc1,cc2)
 				
 		self.highlightRect = vtk.vtkOutlineSource()

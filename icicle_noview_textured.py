@@ -54,7 +54,8 @@ class NavMenu(object):
 			act = vtk.vtkActor2D()
 			act.SetMapper(map)
 			act.SetPickable(True)
-			act.GetProperty().SetColor(0.5, 0.45, 0.35)
+			# act.GetProperty().SetColor(0.5, 0.45, 0.35)
+			act.GetProperty().SetColor(0.4, 0.4, 0.4)
 			act.GetProperty().SetLineWidth(0.0)
 			act.GetPositionCoordinate().SetCoordinateSystemToNormalizedDisplay()
 			act.GetPositionCoordinate().SetValue(0.075 ,0.15)
@@ -116,7 +117,8 @@ class IcicleNoView(object):
 		# Apply a theme to the views
 		self.theme = vtk.vtkViewTheme.CreateMellowTheme()
 		self.theme.SetPointColor(0,0,0)
-		self.theme.SetPointOpacity(0.1)
+		# self.theme.SetPointOpacity(0.1)	# lines around icicle blocks
+		self.theme.SetPointOpacity(0)
 		c = N.array([255,204,0])/255.0		# nice yellow
 		self.theme.SetSelectedPointColor(c[0],c[1],c[2])
 		self.theme.SetBackgroundColor(0.1, 0.1, 0.06)
@@ -125,7 +127,8 @@ class IcicleNoView(object):
 		# self.renderer.SetBackground(self.theme.GetBackgroundColor())
 		# self.renderer.SetBackground2(self.theme.GetBackgroundColor2())
 		# self.renderer.SetGradientBackground(True)
-		cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [40,40,40]]
+		# cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [40, 40, 40]]
+		cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [60, 60, 60]]
 		self.renderer.SetBackground(cc0,cc1,cc2)
 		self.renderer.SetGradientBackground(False)
 		

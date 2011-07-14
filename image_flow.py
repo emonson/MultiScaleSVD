@@ -81,7 +81,8 @@ class ImageFlow(object):
 		# renderer.SetBackground(0.15, 0.12, 0.1)
 		# cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [68,57,53]]
 		# self.renderer.SetBackground(cc0,cc1,cc2)
-		cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [60,60,60]]
+		# cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [60,60,60]]
+		cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [160, 160, 160]]
 		self.renderer.SetBackground(cc0,cc1,cc2)
 
 		self.renderer.AddActor(self.actorList[0])

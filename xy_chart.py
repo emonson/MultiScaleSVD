@@ -230,7 +230,7 @@ class XYChart(object):
 			self.chart.SetTooltipImageStack(self.image_stack)
 			self.chart.SetTooltipShowImage(True)
 			# self.chart.SetTooltipImageScalingFactor(2.0)
-			self.chart.SetTooltipImageTargetSize(50)
+			self.chart.SetTooltipImageTargetSize(64)
 			self.chart.Update()
 
 			self.ai.SetAxisImagesHorizontal()
