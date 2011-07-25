@@ -264,6 +264,9 @@ class PCoordsChart(object):
 		self.chart.GetPlot(0).SetInput(self.table)
 		self.chart.GetPlot(0).Modified()
 		self.chart.SetDrawSets(True)
+		self.chart.SetXYcurrentX(self.XYcurrentX)
+		self.chart.SetXYcurrentY(self.XYcurrentY)
+
 
 		self.SetColorByArray(self.color_array_name)
 
@@ -320,6 +323,7 @@ class PCoordsChart(object):
 
 		self.chart.Modified()
 		self.view.Render()
+		print "after PC VIEW RENDER"
 
 	def PedIdToIndexSelection(self):
 

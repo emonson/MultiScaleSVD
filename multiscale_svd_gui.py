@@ -238,9 +238,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 	# - - - - - - - - - - - - - - - - - - - - - -
 	def switchToWavelets(self):
 		if self.ds.GetCoeffSource().lower().startswith('sca'):
-			# Record which xy indices are being plotted to reset after switchover
-			xI = self.xy_class.GetAxisImageItem().GetXAxisIndex()
-			yI = self.xy_class.GetAxisImageItem().GetYAxisIndex()
 			self.ds.SetCoeffSource('wavelet')
 			# Force other classes to reload their image and table data from new source
 			# while keeping all selections...
@@ -248,13 +245,17 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# self.nf_class.ReloadBasisImages()
 			# Instead of reloading basis images in detail view, try just firing event from image flow...
 			self.if_al_out.InvokeEvent("AnnotationChangedEvent")
+			# Axis images seems to reset properly on switchover, so follow that...
+			xI = self.xy_class.GetAxisImageItem().GetXAxisIndex()
+			yI = self.xy_class.GetAxisImageItem().GetYAxisIndex()
+# 			self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
+# 			self.xy_class.GetChartView().Render()
+			self.pc_class.SetCurrentXY(xI,yI)
+			self.pc_class.GetView().Render()
 			self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Wavelets", None, QtGui.QApplication.UnicodeUTF8))
 
 	def switchToScaling(self):
 		if self.ds.GetCoeffSource().lower().startswith('wav'):
-			# Record which xy indices are being plotted to reset after switchover
-			xI = self.xy_class.GetAxisImageItem().GetXAxisIndex()
-			yI = self.xy_class.GetAxisImageItem().GetYAxisIndex()
 			self.ds.SetCoeffSource('scaling')
 			# Force other classes to reload their image and table data from new source
 			# while keeping all selections...
@@ -262,6 +263,13 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# self.nf_class.ReloadBasisImages()
 			# Instead of reloading basis images in detail view, try just firing event from image flow...
 			self.if_al_out.InvokeEvent("AnnotationChangedEvent")
+			# Axis images seems to reset properly on switchover, so follow that...
+			xI = self.xy_class.GetAxisImageItem().GetXAxisIndex()
+			yI = self.xy_class.GetAxisImageItem().GetYAxisIndex()
+# 			self.xy_class.GetChartXY().SetPlotColumnIndices(xI,yI)
+# 			self.xy_class.GetChartView().Render()
+			self.pc_class.SetCurrentXY(xI,yI)
+			self.pc_class.GetView().Render()
 			self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Scaling Functions", None, QtGui.QApplication.UnicodeUTF8))
 
 	def switchToPCAllScales(self):

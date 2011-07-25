@@ -202,6 +202,13 @@ class XYChart(object):
 				xI = 0
 			if yI < 0:
 				yI = 0
+				
+			# Deal with the case where go from 1D to mutipleD on wav/scal switchover
+			if (max_dim > 0) and (xI == 0) and (yI == 0):
+				yI = 1
+			
+			# DEBUG
+			print "__ Axis image max_dim, xI, yI: ", max_dim, xI, yI
 
 			self.chart.ClearPlots()
 			self.ai.ClearAxisImages()
@@ -221,10 +228,6 @@ class XYChart(object):
 
 			self.SetColorByArray(self.color_array_name)
 
-			# If this is the same icicle node as before, then reset to original XY indices
-			# before view is updated
-			if node_id == self.input_link_idx:
-				self.chart.SetPlotColumnIndices(xI,yI)
 
 			# Need to set the image stack for the plot which will get resliced
 			self.chart.SetTooltipImageStack(self.image_stack)
@@ -233,6 +236,12 @@ class XYChart(object):
 			self.chart.SetTooltipImageTargetSize(64)
 			self.chart.Update()
 
+			# If this is the same icicle node as before, then reset to original XY indices
+			# before view is updated
+			if node_id == self.input_link_idx:
+				print "__ Axis image setting PlotColumns"
+				self.chart.SetPlotColumnIndices(xI,yI)
+
 			self.ai.SetAxisImagesHorizontal()
 			self.ai.SetAxisImageStack(self.axis_images)
 			self.ai.SetCenterImage(self.center_image)
@@ -240,6 +249,7 @@ class XYChart(object):
 			# If this is the same icicle node as before, then reset to original XY indices
 			# before view is updated
 			if node_id == self.input_link_idx:
+				print "__ Axis image setting AxisIndices"
 				self.ai.SetAxisIndices(xI,yI)
 
 			self.ai.Update()
