@@ -28,7 +28,7 @@ resource_list.append(os.path.join(package_root,'BlankImage.png'))
 # liblist.append('/Users/emonson/Programming/VTK_git/vtkVTG/build/bin/libvtkvtgChartsPythonD.dylib')
 
 buildapp(
-    name='MS_SVD_vis_color_0104.app', # what to build
+    name='MS_SVD_vis_color_0725.app', # what to build
     mainprogram='main.py', # your app's main()
     # argv_emulation=1, # drag&dropped filenames show up in sys.argv
     # iconfile='myapp.icns', # file containing your app's icons

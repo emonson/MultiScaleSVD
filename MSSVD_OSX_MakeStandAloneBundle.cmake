@@ -105,7 +105,7 @@ execute_process(WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 COMMAND python2.6 makeapplication.py build
                 )
 
-set(bundle "${InstallPrefix}/MS_SVD_vis_color_0104.app")
+set(bundle "${InstallPrefix}/MS_SVD_vis_color_0725.app")
  
 if(NOT EXISTS "${bundle}")
   message(FATAL_ERROR "error: have to generate bundle with bundlebuilder first: ${bundle}")
