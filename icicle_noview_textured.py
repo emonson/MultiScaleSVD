@@ -298,41 +298,8 @@ class IcicleNoView(object):
 		
 		# print WCext
 		
-		# Create blue to white to red lookup table
-		# NOTE: For now I'll use a single LUT and feed that into all textures
-		self.lut = vtk.vtkLookupTable()
-		lutNum = 256
-		self.lut.SetNumberOfTableValues(lutNum)
-		self.lut.Build()
-		ctf = vtk.vtkColorTransferFunction()
-		ctf.SetColorSpaceToDiverging()
-# 		ccLo = [float(cc)/255.0 for cc in [59,76,192]]	# Blue-red
-# 		ccHi = [float(cc)/255.0 for cc in [180,4,38]]
-# 		ccLo = [float(cc)/255.0 for cc in [1, 102, 94]]	# Colorbrewer BrBG 7
-# 		ccHi = [float(cc)/255.0 for cc in [140, 81, 10]]
-# 		ccLo = [float(cc)/255.0 for cc in [27, 120, 55]]	# Colorbrewer PRGn 7
-# 		ccHi = [float(cc)/255.0 for cc in [118, 42, 131]]
-# 		ccLo = [float(cc)/255.0 for cc in [84, 39, 136]]	# Colorbrewer PuOr 7
-# 		ccHi = [float(cc)/255.0 for cc in [230, 97, 1]]
-# 		ctf.AddRGBPoint(0.0, ccLo[0], ccLo[1], ccLo[2])
-# 		ctf.AddRGBPoint(1.0, ccHi[0], ccHi[1], ccHi[2])
-
-		cl = []
-		cl.append([float(cc)/255.0 for cc in [140, 81, 10]])	# Colorbrewer BrBG 7
-		cl.append([float(cc)/255.0 for cc in [216, 179, 101]])
-		cl.append([float(cc)/255.0 for cc in [246, 232, 195]])
-		cl.append([float(cc)/255.0 for cc in [245, 245, 245]])
-		cl.append([float(cc)/255.0 for cc in [199, 234, 229]])
-		cl.append([float(cc)/255.0 for cc in [90, 180, 172]])
-		cl.append([float(cc)/255.0 for cc in [1, 102, 94]])
-		vv = [float(xx)/float(len(cl)-1) for xx in range(len(cl))]
-		vv.reverse()
-		for pt,color in zip(vv,cl):
-			ctf.AddRGBPoint(pt, color[0], color[1], color[2])
-
-		for ii,ss in enumerate([float(xx)/float(lutNum) for xx in range(lutNum)]):
-			cc = ctf.GetColor(ss)
-			self.lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
+		# Create a BrBg7 lookup table
+		self.lut = self.ds.GetDivergingLUT('BrBg')
 		self.lut.SetRange(-WCext,WCext)
 		
 		# For each node and corresponding image data in self.WCimageDataList, need to create a texture,

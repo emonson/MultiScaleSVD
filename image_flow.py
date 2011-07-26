@@ -46,12 +46,8 @@ class ImageFlow(object):
 		self.flowSpacing = float(tmp[1]-tmp[0])*1.1
 
 		# Create a greyscale lookup table
-		self.lut = vtk.vtkLookupTable()
+		self.lut = self.ds.GetGrayscaleLUT('gray')
 		self.lut.SetRange(self.blankImageReader.GetOutput().GetPointData().GetArray('PNGImage').GetRange()) # image intensity range
-		self.lut.SetValueRange(0.0, 1.0) # from black to white
-		self.lut.SetSaturationRange(0.0, 0.0) # no color saturation
-		self.lut.SetRampToLinear()
-		self.lut.Build()
 		
 		# Map the image through the lookup table
 		self.color = vtk.vtkImageMapToColors()

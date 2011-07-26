@@ -44,6 +44,12 @@ class XYChart(object):
 
 		self.ai = vtkvtg.vtkAxisImageItem()
 		self.axisView.GetScene().AddItem(self.ai)
+		# Create a BrBg7 lookup table
+		self.lut = self.ds.GetDivergingLUT('BrBg')
+		self.ai.SetAxisImagesLookupTable(self.lut)
+		# Create a greyscale lookup table
+		self.lutBW = self.ds.GetGrayscaleLUT('gray')
+		self.ai.SetCenterImageLookupTable(self.lutBW)
 
 		self.highlight_link = None
 		if highlight_link is not None:

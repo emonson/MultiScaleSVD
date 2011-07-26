@@ -229,9 +229,28 @@ class DataSource(object):
 		# Flag to set whether generic routines should return Wavelet or Scaling Function
 		# coefficients / images -- "wav" or "scal"
 		self.SetCoeffSource("wavelet")
+		
+		# -- Wordle --
+		# Flag to indicate whether images should be generated directly
+		# or by passing terms through QtWordleView
+		self.WordleImages = False
+		if 'terms' in MatInput.keys():
+			self.WordleImages = True
+			mat_terms = MatInput['terms'].T[0]
+			self.Terms = vtk.vtkStringArray()
+			self.Terms.SetName('dictionary')
+			self.Terms.SetNumberOfComponents(1)
+			for term in mat_terms:
+				self.Terms.InsertNextValue(term[0])
+
+			self.qinit = vtk.vtkQtInitialization()
+			self.WordleView = vtkvtg.vtkQtWordleView()
+
 
 		self.data_loaded = True
 
+	# ---------------------------------------
+	# ---------------------------------------
 	def GetTree(self):
 		"""Returns a full vtkTree based on data loaded in LoadData()."""
 
@@ -282,6 +301,7 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get tree until data is loaded successfully"
 
+	# ---------------------------------------
 	def SetCoeffSource(self, source_name):
 		"""Set whether generic routines should return Wavelet or Scaling Function
 		coefficents. Use "wav" or "scal", but it will work with longer, capitalized versions.
@@ -305,6 +325,7 @@ class DataSource(object):
 		else:
 			print "Error: Unknown coefficient source. Use 'wavelet' or 'scaling'."
 
+	# ---------------------------------------
 	def GetCoeffSource(self):
 		"""Get whether generic routines will return Wavelet or Scaling Function
 		coefficents: 'wavelet' or 'scaling'
@@ -314,6 +335,7 @@ class DataSource(object):
 		else:
 			return 'scaling'
 
+	# ---------------------------------------
 	def GetCoeffRange(self):
 		"""Returns a tuple containing the range of values (min,max) of all the wavelet coefficients
 		or scaling coefficients depending on which has been set in SetCoeffSource. Default is Wavelet.
@@ -323,6 +345,7 @@ class DataSource(object):
 		else:
 			return (self.ScalCoeffMin,self.ScalCoeffMax)
 
+	# ---------------------------------------
 	def GetCategoryLabelRange(self, idx=0):
 		"""Returns a tuple containing the range of values (min,max) of
 		the category labels (which have been mapped above to sequential integers).
@@ -336,6 +359,7 @@ class DataSource(object):
 			# TODO: Should also probably put up an error...
 			return (0,0)
 
+	# ---------------------------------------
 	def GetCoeffImages(self, ice_leaf_ids=None, ice_leaf_xmins=None ):
 		"""Returns a list of vtkImageData 2D image with the wavelet or scaling function
 		coefficients at all dimensions for all nodes. 
@@ -419,6 +443,7 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
+	# ---------------------------------------
 	def GetIdsFractionalPosition(self, XOrderedLeafIds=None ):
 		"""Returns a vtkImageData 2D image with the wavelet coefficients at all dimensions
 		and scales. If you give an ordered list of the leaf node IDs, then the matrix will
@@ -444,6 +469,7 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
+	# ---------------------------------------
 	def GetNodeAllScaleCoeffTable(self, node_id, dim_limit=0):
 		"""Returns a table of all the wavelet coefficients for a single tree
 		icicle view) node at all scales for plotting on a parallel coodinates plot.
@@ -522,6 +548,7 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
+	# ---------------------------------------
 	def GetNodeAllScaleDDimCoeffTable(self, node_id, D):
 		"""Returns a table of all the wavelet coefficients for a single tree
 		icicle view) node at all scales for plotting on a parallel coodinates plot.
@@ -579,6 +606,7 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
+	# ---------------------------------------
 	def GetNodeOneScaleCoeffTable(self, node_id):
 		"""Returns a table of the wavelet coefficients at a single node at a single
 		scale for plotting on a scatter plot. Relying on icicle_view already having
@@ -632,139 +660,155 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
+	# ---------------------------------------
 	def GetNodeBasisImages(self, node_id):
 		"""Returns a vtkImageData of all wavelet or scaling function
 		basis images for a given node."""
 
 		if self.data_loaded:
-
-			# Scaling functions coeffs are defined wrt parent node scaling functions...
-			# TODO: Switch this back when back to computing CelScalCoeffs rather than
-			#   CelTangCoeffs...
-			if self.coeff_source == 'scal' and self.cp[node_id] >= 0:
-				node_id = self.cp[node_id]
-
-			# %% Display all detail coordinates for a given leaf node
-			#
-			# imagesc(reshape(V(:,1:D)*gW.ScalFuns{i}, self.imR,[]));
-			#
-			# Need to create separate images (Z) for each column of matrix result
-
-			if self.downsampled:
-				image_cols = self.WavBases_down[node_id]
-				imR = self.imR_down
-				imC = self.imC_down
+			if self.WordleImages:
+				pass
+				
 			else:
-				# V now already chopped to AmbientDimension
-				# Compute all detail images for that dimension
-				# print "DS Calculating center image"
-				# print node_id, self.Centers[node_id].shape, self.V.T.shape, self.cm.shape
-				image_cols = self.V*self.Bases[node_id]
-				imR = self.imR
-				imC = self.imC
-
-			# To make it linear, it is the correct order (one image after another) to .ravel()
-			images_linear = N.asarray(image_cols.T).ravel()
-
-			intensity = VN.numpy_to_vtk(images_linear, deep=True)
-			intensity.SetName('DiffIntensity')
-
-			imageData = vtk.vtkImageData()
-			imageData.SetOrigin(0,0,0)
-			imageData.SetSpacing(1,1,1)
-			imageData.SetDimensions(imR, imC, image_cols.shape[1])
-			imageData.GetPointData().AddArray(intensity)
-			imageData.GetPointData().SetActiveScalars('DiffIntensity')
-
-			return imageData
-
+				
+				# Scaling functions coeffs are defined wrt parent node scaling functions...
+				# TODO: Switch this back when back to computing CelScalCoeffs rather than
+				#   CelTangCoeffs...
+				if self.coeff_source == 'scal' and self.cp[node_id] >= 0:
+					node_id = self.cp[node_id]
+	
+				# %% Display all detail coordinates for a given leaf node
+				#
+				# imagesc(reshape(V(:,1:D)*gW.ScalFuns{i}, self.imR,[]));
+				#
+				# Need to create separate images (Z) for each column of matrix result
+	
+				if self.downsampled:
+					image_cols = self.WavBases_down[node_id]
+					imR = self.imR_down
+					imC = self.imC_down
+				else:
+					# V now already chopped to AmbientDimension
+					# Compute all detail images for that dimension
+					# print "DS Calculating center image"
+					# print node_id, self.Centers[node_id].shape, self.V.T.shape, self.cm.shape
+					image_cols = self.V*self.Bases[node_id]
+					imR = self.imR
+					imC = self.imC
+	
+				# To make it linear, it is the correct order (one image after another) to .ravel()
+				images_linear = N.asarray(image_cols.T).ravel()
+	
+				intensity = VN.numpy_to_vtk(images_linear, deep=True)
+				intensity.SetName('DiffIntensity')
+	
+				imageData = vtk.vtkImageData()
+				imageData.SetOrigin(0,0,0)
+				imageData.SetSpacing(1,1,1)
+				imageData.SetDimensions(imR, imC, image_cols.shape[1])
+				imageData.GetPointData().AddArray(intensity)
+				imageData.GetPointData().SetActiveScalars('DiffIntensity')
+	
+				return imageData
+	
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
+	# ---------------------------------------
 	def GetNodeCenterImage(self, node_id):
 		"""Returns a vtkImageData of the center image for a given node."""
 
 		if self.data_loaded:
-
-			# imagesc(reshape(gW.Centers{1}*V(:,1:D)'+cm,28,[]))
-
-			if self.downsampled:
-				image_col = self.Centers_down[node_id]
-				imR = self.imR_down
-				imC = self.imC_down
+			if self.WordleImages:
+				pass
+				
 			else:
-				# V now already chopped to AmbientDimension
-				# Compute all detail images for that dimension
-				# print "DS Calculating center image"
-				# print node_id, self.Centers[node_id].shape, self.V.T.shape, self.cm.shape
-				image_col = self.Centers[node_id]*self.V.T + self.cm
-				imR = self.imR
-				imC = self.imC
-
-			# print "DS done calculating center image"
-			# To make it linear, it is the correct order (one image after another) to .ravel()
-			image_linear = N.asarray(image_col.T).ravel()
-
-			intensity = VN.numpy_to_vtk(image_linear, deep=True)
-			intensity.SetName('Intensity')
-
-			imageData = vtk.vtkImageData()
-			imageData.SetOrigin(0,0,0)
-			imageData.SetSpacing(1,1,1)
-			imageData.SetDimensions(imR, imC, 1)
-			imageData.GetPointData().AddArray(intensity)
-			imageData.GetPointData().SetActiveScalars('Intensity')
-
-			return imageData
-
+				
+				# imagesc(reshape(gW.Centers{1}*V(:,1:D)'+cm,28,[]))
+	
+				if self.downsampled:
+					image_col = self.Centers_down[node_id]
+					imR = self.imR_down
+					imC = self.imC_down
+				else:
+					# V now already chopped to AmbientDimension
+					# Compute all detail images for that dimension
+					# print "DS Calculating center image"
+					# print node_id, self.Centers[node_id].shape, self.V.T.shape, self.cm.shape
+					image_col = self.Centers[node_id]*self.V.T + self.cm
+					imR = self.imR
+					imC = self.imC
+	
+				# print "DS done calculating center image"
+				# To make it linear, it is the correct order (one image after another) to .ravel()
+				image_linear = N.asarray(image_col.T).ravel()
+	
+				intensity = VN.numpy_to_vtk(image_linear, deep=True)
+				intensity.SetName('Intensity')
+	
+				imageData = vtk.vtkImageData()
+				imageData.SetOrigin(0,0,0)
+				imageData.SetSpacing(1,1,1)
+				imageData.SetDimensions(imR, imC, 1)
+				imageData.GetPointData().AddArray(intensity)
+				imageData.GetPointData().SetActiveScalars('Intensity')
+	
+				return imageData
+	
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
-
+	
+	# ---------------------------------------
 	def GetProjectedImages(self, IDlist):
 		"""Given a list of IDs selected from a parallel coordinates plot, returns
 		a vtkImageData with all of the projected (reduced dimensionality by SVD) images
 		for those IDs. (e.g. typically 120 dim rather than original 768 dim for MNIST digits)"""
 
 		if self.data_loaded:
-
-			# X_orig = X*V(:,1:GWTopts.AmbientDimension)'+repmat(cm, size(X,1),1);
-
-			if self.downsampled:
-				X_orig = self.X_down[IDlist,:]
-				imR = self.imR_down
-				imC = self.imC_down
+			if self.WordleImages:
+				pass
+				
 			else:
-				# V now already chopped to AmbientDimension
-				Xtmp = self.X[IDlist,:]*self.V.T
+				
+				# X_orig = X*V(:,1:GWTopts.AmbientDimension)'+repmat(cm, size(X,1),1);
 	
-				# numpy should automatically do tiling!!
-				X_orig = Xtmp + self.cm
-				# X_orig = Xtmp + N.tile(self.cm,(Xtmp.shape[0],1))	# tile ~ repmat
-				imR = self.imR
-				imC = self.imC
-
-			# To make it linear, it is the correct order (one image after another) to .ravel()
-			X_linear = N.asarray(X_orig).ravel()
-
-			# If we want to rearrange it into a stack of images in numpy
-			# X_im = N.asarray(X_orig).reshape(Xtmp.shape[0],self.imR,-1)
-
-			# Going ahead and using numpy_support here...  Much faster!!!
-			Xvtk = VN.numpy_to_vtk(X_linear, deep=True)	# even with the (necessary) deep copy
-			Xvtk.SetName('Intensity')
-
-			imageData = vtk.vtkImageData()
-			imageData.SetOrigin(0,0,0)
-			imageData.SetSpacing(1,1,1)
-			imageData.SetDimensions(imR, imC, X_orig.shape[0])
-			imageData.GetPointData().AddArray(Xvtk)
-			imageData.GetPointData().SetActiveScalars('Intensity')
-
-			return imageData
-
+				if self.downsampled:
+					X_orig = self.X_down[IDlist,:]
+					imR = self.imR_down
+					imC = self.imC_down
+				else:
+					# V now already chopped to AmbientDimension
+					Xtmp = self.X[IDlist,:]*self.V.T
+		
+					# numpy should automatically do tiling!!
+					X_orig = Xtmp + self.cm
+					# X_orig = Xtmp + N.tile(self.cm,(Xtmp.shape[0],1))	# tile ~ repmat
+					imR = self.imR
+					imC = self.imC
+	
+				# To make it linear, it is the correct order (one image after another) to .ravel()
+				X_linear = N.asarray(X_orig).ravel()
+	
+				# If we want to rearrange it into a stack of images in numpy
+				# X_im = N.asarray(X_orig).reshape(Xtmp.shape[0],self.imR,-1)
+	
+				# Going ahead and using numpy_support here...  Much faster!!!
+				Xvtk = VN.numpy_to_vtk(X_linear, deep=True)	# even with the (necessary) deep copy
+				Xvtk.SetName('Intensity')
+	
+				imageData = vtk.vtkImageData()
+				imageData.SetOrigin(0,0,0)
+				imageData.SetSpacing(1,1,1)
+				imageData.SetDimensions(imR, imC, X_orig.shape[0])
+				imageData.GetPointData().AddArray(Xvtk)
+				imageData.GetPointData().SetActiveScalars('Intensity')
+	
+				return imageData
+	
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
-
+	
+	# ---------------------------------------
 	def GetOriginalImages(self, IDlist):
 		"""Given a list of IDs selected from a parallel coordinates plot, returns
 		a vtkImageData with all of the original images for those IDs."""
@@ -786,6 +830,7 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
+	# ---------------------------------------
 	def GetMultiResolutionImages(self, ID):
 		"""Given a single ID selected from an image flow view, returns
 		a vtkImageData with all of the image approximations at all scales for
@@ -855,6 +900,7 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
+	# ---------------------------------------
 	def GetDetailImages(self, data_id):
 		"""Returns a vtkImageData of all detail images up the tree for a given data ID.
 		Right now this is the same as the Wavelet Basis Images for each node up the tree.
@@ -878,6 +924,7 @@ class DataSource(object):
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
+	# ---------------------------------------
 	def GetDetailWeights(self, data_id):
 		"""Returns a list of arrays corresponding to the weights associated with
 		the detail images for this particular data ID. (This is equivalent to the
@@ -903,6 +950,7 @@ class DataSource(object):
 			raise IOError, "Can't get image until data is loaded successfully"
 
 
+	# ---------------------------------------
 	def GetCategoryLUT(self, idx = 0):
 		"""Returns a LUT for category coloring. Result depends on number
 		of categories. Pass an index to get a proper label map (otherwise
@@ -988,6 +1036,75 @@ class DataSource(object):
 			lut.Build()
 			return lut
 	
+	# ---------------------------------------
+	def GetDivergingLUT(self, map_colors = 'BrBg'):
+		"""Returns a LUT for detail/axis images Default is ColorBrewer BrBg7
+		(map_colors = 'BrBg'). Other choice is 'BR', which is a cheat on a blue-red
+		binary map which isn't really diverging yet..."""
+
+		if self.data_loaded:
+
+			lut = vtk.vtkLookupTable()
+		
+			if map_colors == 'BR':
+				
+				lut.SetHueRange(0, 0.66)
+				lut.SetValueRange(0.7, 0.7)
+				lut.SetSaturationRange(1, 1)
+				lut.Build()
+				
+			else:
+			
+				lutNum = 256
+				lut.SetNumberOfTableValues(lutNum)
+				ctf = vtk.vtkColorTransferFunction()
+				ctf.SetColorSpaceToDiverging()
+	
+				cl = []
+				cl.append([float(cc)/255.0 for cc in [140, 81, 10]])	# Colorbrewer BrBG 7
+				cl.append([float(cc)/255.0 for cc in [216, 179, 101]])
+				cl.append([float(cc)/255.0 for cc in [246, 232, 195]])
+				cl.append([float(cc)/255.0 for cc in [245, 245, 245]])
+				cl.append([float(cc)/255.0 for cc in [199, 234, 229]])
+				cl.append([float(cc)/255.0 for cc in [90, 180, 172]])
+				cl.append([float(cc)/255.0 for cc in [1, 102, 94]])
+				vv = [float(xx)/float(len(cl)-1) for xx in range(len(cl))]
+				vv.reverse()
+				for pt,color in zip(vv,cl):
+					ctf.AddRGBPoint(pt, color[0], color[1], color[2])
+				
+				for ii,ss in enumerate([float(xx)/float(lutNum) for xx in range(lutNum)]):
+					cc = ctf.GetColor(ss)
+					lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
+				lut.SetRange(-1024,1024)
+			
+			return lut
+
+	# ---------------------------------------
+	def GetGrayscaleLUT(self, map_colors = 'gray'):
+		"""Returns a linear LUT center and projected images. Grayscale default."""
+
+		if self.data_loaded:
+
+			lut = vtk.vtkLookupTable()
+		
+			if map_colors == 'R':
+				
+				lut.SetHueRange(0,0)
+				lut.SetValueRange(0,1)
+				lut.SetSaturationRange(1,1)
+				lut.SetRampToLinear()
+				lut.Build()
+						
+			else:
+			
+				lut.SetHueRange(0,0)
+				lut.SetValueRange(0,1)
+				lut.SetSaturationRange(0,0)
+				lut.SetRampToLinear()
+				lut.Build()
+			
+			return lut
 
 # ==================
 # Internal utility methods

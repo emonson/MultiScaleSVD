@@ -8,7 +8,7 @@ import numpy as N
 
 data_dir = '/Users/emonson/Data/Fodava/EMoGWDataSets/'
 # data_file = data_dir + 'mnist123456_5c_1119.mat'
-data_file = data_dir + 'yaleB_pca200_0103_labels.mat'
+data_file = data_dir + 'sciNews_20110216.mat'
 
 
 print 'Trying to load data set from .mat file...'
