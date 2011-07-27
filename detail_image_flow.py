@@ -257,20 +257,23 @@ class DetailImageFlow(object):
 				# Only allowing single index [0]
 				# Returning a list of image stacks
 				self.imStackList = self.ds.GetDetailImages(idxArr.tolist()[0])
-				i_array_name = 'DiffIntensity'
 				
 				self.imWeightArrList = self.ds.GetDetailWeights(idxArr.tolist()[0])
 
 			else:
 								
 				self.imStackList = self.blank_image_list
-				i_array_name = 'PNGImage'
 				
 				self.imWeightArrList = self.blank_image_weights
 
 				# Comment this out if we don't want the view resetting on empty selections
 				# self.needToResetCamera = True
-										
+			
+			# Check whether images in stack are RGB already
+			self.RGB_images = False
+			if self.imStackList[0].GetPointData().GetScalars().GetNumberOfComponents() > 1:
+				self.RGB_images = True
+				
 			# Clear out scale ID map (I think this is just in case we need to reverse order...?)
 			self.scale_dict = {}
 			self.numScales = len(self.imStackList)		# Directly accessing member variable
@@ -297,7 +300,7 @@ class DetailImageFlow(object):
 								
 				# Adjust a blue-white-red lookup table
 				# NOTE: Only basing on single image stack for now...
-				i_range = N.array(imStack.GetPointData().GetArray(i_array_name).GetRange())
+				i_range = N.array(imStack.GetPointData().GetScalars().GetRange())
 				i_ext = abs(i_range.min()) if (abs(i_range.min()) > abs(i_range.max())) else abs(i_range.max())
 				if abs(i_range[1]-i_range[0]) < 1e-10: i_ext = 1024
 				self.lut.SetRange(-i_ext,i_ext)
@@ -305,7 +308,10 @@ class DetailImageFlow(object):
 				
 				# Map the image stack through the lookup table
 				color = vtk.vtkImageMapToColors()
-				color.SetLookupTable(self.lut)
+				if self.RGB_images:
+					color.SetLookupTable(None)
+				else:
+					color.SetLookupTable(self.lut)
 				color.SetInput(imStack)
 				color.UpdateWholeExtent()		# since extent of images might be changing
 				color.Update()
@@ -353,7 +359,7 @@ class DetailImageFlow(object):
 					actor.SetInput(self.resliceList[sum(self.numImagesList[:nn]) + ii].GetOutput())
 					
 					# NOTE: Fragile test for blank image
-					if i_array_name == 'PNGImage':
+					if imStack.GetPointData().GetScalars().GetName() == 'PNGImage':
 						actor.SetPickable(False)
 					else:
 						actor.SetPickable(True)
@@ -431,7 +437,7 @@ class DetailImageFlow(object):
 				# self.cam.Elevation(10)
 				self.renderer.ResetCameraClippingRange()
 				# NOTE: Fragile test for blank image
-				if i_array_name == 'PNGImage':
+				if imStack.GetPointData().GetScalars().GetName() == 'PNGImage':
 					self.needToResetCamera = False
 				else:
 					self.needToResetCamera = False
@@ -462,7 +468,6 @@ class DetailImageFlow(object):
 				# Only allowing single index [0]
 				# Returning a list of image stacks
 				self.imStackList = self.ds.GetDetailImages(idxArr.tolist()[0])
-				i_array_name = 'DiffIntensity'
 				
 				self.imWeightArrList = self.ds.GetDetailWeights(idxArr.tolist()[0])
 
@@ -472,7 +477,7 @@ class DetailImageFlow(object):
 				for nn, imStack in enumerate(self.imStackList):
 					# Adjust a blue-white-red lookup table
 					# NOTE: Only basing on single image stack for now...
-					i_range = N.array(imStack.GetPointData().GetArray(i_array_name).GetRange())
+					i_range = N.array(imStack.GetPointData().GetScalars().GetRange())
 					i_ext = abs(i_range.min()) if (abs(i_range.min()) > abs(i_range.max())) else abs(i_range.max())
 					if abs(i_range[1]-i_range[0]) < 1e-10: i_ext = 1024
 					self.lut.SetRange(-i_ext,i_ext)

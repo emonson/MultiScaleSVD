@@ -267,11 +267,7 @@ class DataSource(object):
 			self.WordleView = vtkvtg.vtkQtWordleView()
 
 			vt = vtk.vtkViewTheme()
-			lut = vtk.vtkLookupTable()
-			lut.SetHueRange(0, 0.66)
-			lut.SetValueRange(0.7, 0.7)
-			lut.SetSaturationRange(1, 1)
-			lut.Build()
+			lut = self.GetDivergingLUT()
 			# Set value for no color by array
 			vt.SetPointColor(0,0,0)
 			# Set LUT for color by array
@@ -731,6 +727,8 @@ class DataSource(object):
 				# Bases is D x N matrix
 				image_cols = self.Bases[node_id]
 				
+				self.WordleView.SetColorByArray(True)
+				
 				imgAppend = vtk.vtkImageAppend()
 				imgAppend.SetAppendAxis(2)	# Z
 
@@ -756,13 +754,7 @@ class DataSource(object):
 					imgAppend.AddInput(img)
 				
 				imgAppend.Update()
-				out_img = vtk.vtkImageData()
-				out_img.DeepCopy(imgAppend.GetOutput())
-				writer = vtk.vtkXMLImageDataWriter()
-				writer.SetFileName("out.vti")
-				writer.SetInput(out_img)
-				writer.Write()
-				return out_img
+				return imgAppend.GetOutput()
 				
 			else:
 				
@@ -815,8 +807,34 @@ class DataSource(object):
 
 		if self.data_loaded:
 			# if self.WordleImages:
-			if False:
-				pass
+			if self.WordleImages:
+
+				# Need to create separate images (Z) for each column of matrix result
+				# Bases is D x N matrix
+				image_cols = self.Centers[node_id]*self.V.T + self.cm
+				
+				self.WordleView.SetColorByArray(False)
+				self.WordleView.Update()
+				
+				coeffs = VN.numpy_to_vtk(image_cols.T*100, deep=True)
+				coeffs.SetName('coefficient')
+				c_sign = VN.numpy_to_vtk(N.sign(image_cols.T), deep=True)
+				c_sign.SetName('sign')
+				
+				self.WordleTable.RemoveColumn(2)
+				self.WordleTable.RemoveColumn(1)
+				self.WordleTable.AddColumn(coeffs)
+				self.WordleTable.AddColumn(c_sign)
+				self.WordleView.RemoveAllRepresentations()
+				self.WordleView.AddRepresentationFromInput(self.WordleTable)
+				
+				self.WordleTable.Modified()
+				
+				img = vtk.vtkImageData()
+				img.DeepCopy(self.WordleView.GetImageData())
+				img.GetPointData().GetScalars().SetName('Intensity')
+				
+				return img
 				
 			else:
 				
@@ -1139,69 +1157,65 @@ class DataSource(object):
 		(map_colors = 'BrBg'). Other choice is 'BR', which is a cheat on a blue-red
 		binary map which isn't really diverging yet..."""
 
-		if self.data_loaded:
-
-			lut = vtk.vtkLookupTable()
-		
-			if map_colors == 'BR':
-				
-				lut.SetHueRange(0, 0.66)
-				lut.SetValueRange(0.7, 0.7)
-				lut.SetSaturationRange(1, 1)
-				lut.Build()
-				
-			else:
-			
-				lutNum = 256
-				lut.SetNumberOfTableValues(lutNum)
-				ctf = vtk.vtkColorTransferFunction()
-				ctf.SetColorSpaceToDiverging()
+		lut = vtk.vtkLookupTable()
 	
-				cl = []
-				cl.append([float(cc)/255.0 for cc in [140, 81, 10]])	# Colorbrewer BrBG 7
-				cl.append([float(cc)/255.0 for cc in [216, 179, 101]])
-				cl.append([float(cc)/255.0 for cc in [246, 232, 195]])
-				cl.append([float(cc)/255.0 for cc in [245, 245, 245]])
-				cl.append([float(cc)/255.0 for cc in [199, 234, 229]])
-				cl.append([float(cc)/255.0 for cc in [90, 180, 172]])
-				cl.append([float(cc)/255.0 for cc in [1, 102, 94]])
-				vv = [float(xx)/float(len(cl)-1) for xx in range(len(cl))]
-				vv.reverse()
-				for pt,color in zip(vv,cl):
-					ctf.AddRGBPoint(pt, color[0], color[1], color[2])
-				
-				for ii,ss in enumerate([float(xx)/float(lutNum) for xx in range(lutNum)]):
-					cc = ctf.GetColor(ss)
-					lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
-				lut.SetRange(-1024,1024)
+		if map_colors == 'BR':
 			
-			return lut
+			lut.SetHueRange(0, 0.66)
+			lut.SetValueRange(0.7, 0.7)
+			lut.SetSaturationRange(1, 1)
+			lut.Build()
+			
+		else:
+		
+			lutNum = 256
+			lut.SetNumberOfTableValues(lutNum)
+			ctf = vtk.vtkColorTransferFunction()
+			ctf.SetColorSpaceToDiverging()
+
+			cl = []
+			cl.append([float(cc)/255.0 for cc in [140, 81, 10]])	# Colorbrewer BrBG 7
+			cl.append([float(cc)/255.0 for cc in [216, 179, 101]])
+			cl.append([float(cc)/255.0 for cc in [246, 232, 195]])
+			cl.append([float(cc)/255.0 for cc in [245, 245, 245]])
+			cl.append([float(cc)/255.0 for cc in [199, 234, 229]])
+			cl.append([float(cc)/255.0 for cc in [90, 180, 172]])
+			cl.append([float(cc)/255.0 for cc in [1, 102, 94]])
+			vv = [float(xx)/float(len(cl)-1) for xx in range(len(cl))]
+			vv.reverse()
+			for pt,color in zip(vv,cl):
+				ctf.AddRGBPoint(pt, color[0], color[1], color[2])
+			
+			for ii,ss in enumerate([float(xx)/float(lutNum) for xx in range(lutNum)]):
+				cc = ctf.GetColor(ss)
+				lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
+			lut.SetRange(-1024,1024)
+		
+		return lut
 
 	# ---------------------------------------
 	def GetGrayscaleLUT(self, map_colors = 'gray'):
 		"""Returns a linear LUT center and projected images. Grayscale default."""
 
-		if self.data_loaded:
-
-			lut = vtk.vtkLookupTable()
+		lut = vtk.vtkLookupTable()
+	
+		if map_colors == 'R':
+			
+			lut.SetHueRange(0,0)
+			lut.SetValueRange(0,1)
+			lut.SetSaturationRange(1,1)
+			lut.SetRampToLinear()
+			lut.Build()
+					
+		else:
 		
-			if map_colors == 'R':
-				
-				lut.SetHueRange(0,0)
-				lut.SetValueRange(0,1)
-				lut.SetSaturationRange(1,1)
-				lut.SetRampToLinear()
-				lut.Build()
-						
-			else:
-			
-				lut.SetHueRange(0,0)
-				lut.SetValueRange(0,1)
-				lut.SetSaturationRange(0,0)
-				lut.SetRampToLinear()
-				lut.Build()
-			
-			return lut
+			lut.SetHueRange(0,0)
+			lut.SetValueRange(0,1)
+			lut.SetSaturationRange(0,0)
+			lut.SetRampToLinear()
+			lut.Build()
+		
+		return lut
 
 # ==================
 # Internal utility methods
