@@ -880,8 +880,44 @@ class DataSource(object):
 
 		if self.data_loaded:
 			# if self.WordleImages:
-			if False:
-				pass
+			if self.WordleImages:
+
+				# Need to create separate images (Z) for each column of matrix result
+				# Bases is D x N matrix
+				Xtmp = self.X[IDlist,:]*self.V.T
+	
+				# numpy should automatically do tiling!!
+				X_orig = Xtmp + self.cm
+				
+				self.WordleView.SetColorByArray(False)
+				self.WordleView.Update()
+				
+				imgAppend = vtk.vtkImageAppend()
+				imgAppend.SetAppendAxis(2)	# Z
+
+				for ii in range(X_orig.shape[0]):
+					
+					coeffs = VN.numpy_to_vtk(X_orig[ii,:].T*100, deep=True)
+					coeffs.SetName('coefficient')
+					c_sign = VN.numpy_to_vtk(N.sign(X_orig[ii,:].T), deep=True)
+					c_sign.SetName('sign')
+					
+					self.WordleTable.RemoveColumn(2)
+					self.WordleTable.RemoveColumn(1)
+					self.WordleTable.AddColumn(coeffs)
+					self.WordleTable.AddColumn(c_sign)
+					self.WordleView.RemoveAllRepresentations()
+					self.WordleView.AddRepresentationFromInput(self.WordleTable)
+					
+					self.WordleTable.Modified()
+					
+					img = vtk.vtkImageData()
+					img.DeepCopy(self.WordleView.GetImageData())
+					img.GetPointData().GetScalars().SetName('Intensity')
+					imgAppend.AddInput(img)
+				
+				imgAppend.Update()
+				return imgAppend.GetOutput()
 				
 			else:
 				

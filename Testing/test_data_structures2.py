@@ -335,8 +335,8 @@ for ii in range(MatInput['PointsInNet'].shape[1]):
 J = Scales.max()
 
 
-qinit = vtk.vtkQtInitialization()
-WordleView = vtkvtg.vtkQtWordleView()
+# qinit = vtk.vtkQtInitialization()
+# WordleView = vtkvtg.vtkQtWordleView()
 
 
 
