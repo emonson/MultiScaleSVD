@@ -4,9 +4,6 @@ import numpy as N
 import math
 import time
 import os, sys
-# sys.path.append("/Users/emonson/Programming/VTK_git/vtkVTG/build/bin")
-# import libvtkvtgChartsPython as vtgCh
-import vtkvtg as vtgCh
 from constants import Direction
 
 class DetailImageFlow(object):

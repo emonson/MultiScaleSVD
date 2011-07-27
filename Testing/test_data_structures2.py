@@ -250,7 +250,7 @@ if cat_labels_exist:
 	if ('LabelNames' in MatInput) and (MatInput['LabelNames'].size == cat_labels.shape[0]):
 		names_array = MatInput['LabelNames']
 		for name_ar in names_array:
-			label_names.append(name_ar + '_ids')
+			label_names.append(name_ar[0][0] + '_ids')
 	# Else generate fake names
 	else:
 		for ii in range(cat_labels.shape[0]):
@@ -333,6 +333,12 @@ for ii in range(MatInput['PointsInNet'].shape[1]):
 
 # J = Total number of scales
 J = Scales.max()
+
+
+qinit = vtk.vtkQtInitialization()
+WordleView = vtkvtg.vtkQtWordleView()
+
+
 
 def get_offspring(cp, node_id):
 	"""Internal method finds all the offspring of (but not including)

@@ -6,6 +6,7 @@ import scipy.io
 import vtk.util.numpy_support as VN
 import numpy as N
 import os
+import vtkvtg
 
 
 class DataSource(object):
@@ -234,6 +235,11 @@ class DataSource(object):
 		# Flag to indicate whether images should be generated directly
 		# or by passing terms through QtWordleView
 		self.WordleImages = False
+		self.qinit = None
+		self.WordleView = None
+		self.WordleTable = None
+		self.Terms = None
+		
 		if 'terms' in MatInput.keys():
 			self.WordleImages = True
 			mat_terms = MatInput['terms'].T[0]
@@ -243,10 +249,58 @@ class DataSource(object):
 			for term in mat_terms:
 				self.Terms.InsertNextValue(term[0])
 
-			self.qinit = vtk.vtkQtInitialization()
+			# Init Table and put in some sample data that will be replaced later
+			basis_idx = 0
+			
+			coeffs = VN.numpy_to_vtk(self.WavBases[basis_idx][:,0]*100, deep=True)
+			coeffs.SetName('coefficient')
+			c_sign = VN.numpy_to_vtk(N.sign(self.WavBases[basis_idx][:,0]), deep=True)
+			c_sign.SetName('sign')
+			
+			# Create a table with some points in it...
+			self.WordleTable = vtk.vtkTable()
+			self.WordleTable.AddColumn(self.Terms)
+			self.WordleTable.AddColumn(coeffs)
+			self.WordleTable.AddColumn(c_sign)
+			
+			# self.qinit = vtk.vtkQtInitialization()
 			self.WordleView = vtkvtg.vtkQtWordleView()
 
-
+			vt = vtk.vtkViewTheme()
+			lut = vtk.vtkLookupTable()
+			lut.SetHueRange(0, 0.66)
+			lut.SetValueRange(0.7, 0.7)
+			lut.SetSaturationRange(1, 1)
+			lut.Build()
+			# Set value for no color by array
+			vt.SetPointColor(0,0,0)
+			# Set LUT for color by array
+			vt.SetPointLookupTable(lut)
+			# ViewTheme Background color is black by default
+			vt.SetBackgroundColor(1,1,1)
+			
+			self.WordleView.SetFieldType(vtkvtg.vtkQtWordleView.ROW_DATA)
+			self.WordleView.AddRepresentationFromInput(self.WordleTable)
+			self.WordleView.SetColorByArray(True)
+			self.WordleView.ApplyViewTheme(vt)
+			self.WordleView.SetColorArrayName('sign')
+			self.WordleView.SetTermsArrayName('dictionary')
+			self.WordleView.SetSizeArrayName('coefficient')
+			self.WordleView.SetOutputImageDataDimensions(200, 200)
+			self.WordleView.SetMaxNumberOfWords(100);
+			self.WordleView.SetFontFamily("Rockwell")
+			self.WordleView.SetFontStyle(vtkvtg.vtkQtWordleView.StyleNormal)
+			self.WordleView.SetFontWeight(99)
+			
+			# self.WordleView.SetOrientation(vtkvtg.vtkQtWordleView.HORIZONTAL)
+			self.WordleView.SetOrientation(vtkvtg.vtkQtWordleView.MOSTLY_HORIZONTAL)
+			# self.WordleView.SetOrientation(vtkvtg.vtkQtWordleView.HALF_AND_HALF)
+			# self.WordleView.SetOrientation(vtkvtg.vtkQtWordleView.MOSTLY_VERTICAL)
+			# self.WordleView.SetOrientation(vtkvtg.vtkQtWordleView.VERTICAL)
+	
+			# self.WordleView.SetLayoutPathShape(vtkvtg.vtkQtWordleView.CIRCULAR_PATH)
+			self.WordleView.SetLayoutPathShape(vtkvtg.vtkQtWordleView.SQUARE_PATH)
+			
 		self.data_loaded = True
 
 	# ---------------------------------------
@@ -667,7 +721,48 @@ class DataSource(object):
 
 		if self.data_loaded:
 			if self.WordleImages:
-				pass
+				# Scaling functions coeffs are defined wrt parent node scaling functions...
+				# TODO: Switch this back when back to computing CelScalCoeffs rather than
+				#   CelTangCoeffs...
+				if self.coeff_source == 'scal' and self.cp[node_id] >= 0:
+					node_id = self.cp[node_id]
+	
+				# Need to create separate images (Z) for each column of matrix result
+				# Bases is D x N matrix
+				image_cols = self.Bases[node_id]
+				
+				imgAppend = vtk.vtkImageAppend()
+				imgAppend.SetAppendAxis(2)	# Z
+
+				for ii in range(self.Bases[node_id].shape[1]):
+					
+					coeffs = VN.numpy_to_vtk(self.Bases[node_id][:,ii]*100, deep=True)
+					coeffs.SetName('coefficient')
+					c_sign = VN.numpy_to_vtk(N.sign(self.Bases[node_id][:,ii]), deep=True)
+					c_sign.SetName('sign')
+					
+					self.WordleTable.RemoveColumn(2)
+					self.WordleTable.RemoveColumn(1)
+					self.WordleTable.AddColumn(coeffs)
+					self.WordleTable.AddColumn(c_sign)
+					self.WordleView.RemoveAllRepresentations()
+					self.WordleView.AddRepresentationFromInput(self.WordleTable)
+					
+					self.WordleTable.Modified()
+					
+					img = vtk.vtkImageData()
+					img.DeepCopy(self.WordleView.GetImageData())
+					img.GetPointData().GetScalars().SetName('DiffIntensity')
+					imgAppend.AddInput(img)
+				
+				imgAppend.Update()
+				out_img = vtk.vtkImageData()
+				out_img.DeepCopy(imgAppend.GetOutput())
+				writer = vtk.vtkXMLImageDataWriter()
+				writer.SetFileName("out.vti")
+				writer.SetInput(out_img)
+				writer.Write()
+				return out_img
 				
 			else:
 				
@@ -719,7 +814,8 @@ class DataSource(object):
 		"""Returns a vtkImageData of the center image for a given node."""
 
 		if self.data_loaded:
-			if self.WordleImages:
+			# if self.WordleImages:
+			if False:
 				pass
 				
 			else:
@@ -765,7 +861,8 @@ class DataSource(object):
 		for those IDs. (e.g. typically 120 dim rather than original 768 dim for MNIST digits)"""
 
 		if self.data_loaded:
-			if self.WordleImages:
+			# if self.WordleImages:
+			if False:
 				pass
 				
 			else:
