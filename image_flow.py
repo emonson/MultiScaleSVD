@@ -244,7 +244,8 @@ class ImageFlow(object):
 				print "PC input to image flow ", idxArr
 				
 				print "Getting image stack"
-				self.imStack = self.ds.GetProjectedImages(idxArr.tolist())
+				# HACK: Setting wordle_on to true so will force wordle images if text data
+				self.imStack = self.ds.GetProjectedImages(idxArr.tolist(), True)
 				i_array_name = 'Intensity'
 				
 				print "Got image stack"

@@ -873,14 +873,14 @@ class DataSource(object):
 			raise IOError, "Can't get image until data is loaded successfully"
 	
 	# ---------------------------------------
-	def GetProjectedImages(self, IDlist):
+	def GetProjectedImages(self, IDlist, wordle_on = False):
 		"""Given a list of IDs selected from a parallel coordinates plot, returns
 		a vtkImageData with all of the projected (reduced dimensionality by SVD) images
 		for those IDs. (e.g. typically 120 dim rather than original 768 dim for MNIST digits)"""
 
 		if self.data_loaded:
 			# if self.WordleImages:
-			if self.WordleImages:
+			if self.WordleImages and wordle_on:
 
 				# Need to create separate images (Z) for each column of matrix result
 				# Bases is D x N matrix

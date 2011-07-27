@@ -130,7 +130,7 @@ class XYChart(object):
 
 	def SetColorByArray(self, array_name):
 
-		if (type(array_name).__name__ == 'str') and (array_name in self.ds.label_names):
+		if (type(array_name).__name__ == 'str') and hasattr(self.ds, 'label_names') and (array_name in self.ds.label_names):
 			self.color_by_array = True
 			self.color_array_name = array_name
 			self.lut = self.ds.GetCategoryLUT(self.ds.label_names.index(array_name))
