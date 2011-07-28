@@ -5,6 +5,7 @@ import sys
 # sys.path.append("/Users/emonson/Programming/VTK_git/vtkVTG/build/bin")
 # import libvtkvtgChartsPython as vtgCh
 import vtkvtg
+from threading import Thread, Lock
 
 class XYChart(object):
 
@@ -159,6 +160,12 @@ class XYChart(object):
 		# Right now just taking in selections, so not converting output_link to pedigree_ids
 		self.chartView.Render()
 
+	def SetWordleTooltipStack(self, lock, id_list):
+		lock.acquire()
+		print "XY Getting Projected Images"
+		self.image_stack = self.ds.GetProjectedImages(id_list, True)
+		lock.release()
+		
 	def InputSelectionCallback(self, caller, event):
 		"""This is the callback that tracks changes in the icicle view and
 		sets the input table for the parallel coordinates chart accordingly.
@@ -175,8 +182,13 @@ class XYChart(object):
 			node_id = idxArr[0]
 			self.table = self.ds.GetNodeOneScaleCoeffTable(node_id)
 			id_list = self.ds.PointsInNet[node_id]	# Directly accessing member variable
-			print "XY Getting Projected Images"
-			self.image_stack = self.ds.GetProjectedImages(id_list)
+			# print "XY Getting Projected Images"
+			# self.image_stack = self.ds.GetProjectedImages(id_list)
+			
+			lock = Lock()
+			t = Thread(target=self.SetWordleTooltipStack, args=(lock, id_list))
+			t.start()
+			
 			print "XY Getting Node Basis Images"
 			self.axis_images = self.ds.GetNodeBasisImages(node_id)
 			print "XY Getting Node Center Images"
@@ -235,13 +247,6 @@ class XYChart(object):
 			self.SetColorByArray(self.color_array_name)
 
 
-			# Need to set the image stack for the plot which will get resliced
-			self.chart.SetTooltipImageStack(self.image_stack)
-			self.chart.SetTooltipShowImage(True)
-			# self.chart.SetTooltipImageScalingFactor(2.0)
-			self.chart.SetTooltipImageTargetSize(64)
-			self.chart.Update()
-
 			# If this is the same icicle node as before, then reset to original XY indices
 			# before view is updated
 			if node_id == self.input_link_idx:
@@ -266,6 +271,18 @@ class XYChart(object):
 			self.input_link_idx = node_id
 			self.chartView.Render()
 			self.axisView.Render()
+			
+			t.join()
+			# Need to set the image stack for the plot which will get resliced
+			self.chart.SetTooltipImageStack(self.image_stack)
+			self.chart.SetTooltipShowImage(True)
+			# self.chart.SetTooltipImageScalingFactor(0.6)
+			if self.ds.WordleImages:
+				self.chart.SetTooltipImageTargetSize(100)
+			else:
+				self.chart.SetTooltipImageTargetSize(64)
+			self.chart.Update()
+			self.chartView.Render()
 
 		else:
 			self.chart.ClearPlots()
