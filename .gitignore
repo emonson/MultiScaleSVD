@@ -3,4 +3,5 @@
 
 # and anything in the build directory (where makeapplication.py puts it all)
 build/*
+DiffEmbedView/build/*
 
