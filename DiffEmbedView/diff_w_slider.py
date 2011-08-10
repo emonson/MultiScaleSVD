@@ -80,7 +80,7 @@ class SimpleView(QtGui.QMainWindow):
 	def __init__(self, parent = None):
 	
 		# Number of slider divisions per integer value
-		self.divs = 10
+		self.divs = 3
 
 		# self.rot_method = 'alt_axis'
 		self.rot_method = '111'
