@@ -1,0 +1,11 @@
+Instructions for generating App from python script
+
+To generate the setup.py file:
+> py2applet --make-setup main.py
+
+To generate an "aliased" App
+> python setup.py py2app -A
+
+To generate the real standalone App
+> python setup.py py2app
+
