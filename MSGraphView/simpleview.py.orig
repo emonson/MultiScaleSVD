@@ -1,0 +1,687 @@
+"""
+simpleview.py
+
+Example using PyQt4, Qt Designer & VTK Infovis
+Plus M Maggioni multiscale graph representation
+
+09 Jan 2009 -- E Monson
+
+"""
+
+from PyQt4 import QtCore, QtGui
+from ui_simpleview import Ui_MainWindow
+import vtk
+import vtk.util.numpy_support as VN
+import numpy as N
+import scipy.io
+import os
+
+class SimpleView(QtGui.QMainWindow):
+    
+    def __init__(self, parent = None):
+    
+        QtGui.QMainWindow.__init__(self, parent)
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        
+        self.view = vtk.vtkGraphLayoutView()
+        self.view.SetInteractor(self.ui.vtkWidget.GetRenderWindow().GetInteractor())
+        self.ui.vtkWidget.SetRenderWindow(self.view.GetRenderWindow())
+
+        self.level = 2
+        self.basisNum = 0
+        self.cutoff = 1.7e-5
+        self.basisCutoff = 1.0e-6
+        self.ebSumCutoff = 0.1
+        self.loadGraph()
+        
+        self.cutoffValid = QtGui.QDoubleValidator(0.0, 1.0, 12, self.ui.lineEdit_cutoff)
+        self.ui.lineEdit_cutoff.setValidator(self.cutoffValid)
+        self.basisCutoffValid = QtGui.QDoubleValidator(0.0, 1.0, 12, self.ui.lineEdit_basisCutoff)
+        self.ui.lineEdit_basisCutoff.setValidator(self.basisCutoffValid)
+
+        # Connect signals and slots
+        # QtCore.QObject.connect(self.ui.actionNew, QtCore.SIGNAL("triggered()"), self.fileOpen)
+        QtCore.QObject.connect(self.ui.actionExit, QtCore.SIGNAL("triggered()"), self.fileExit)
+        QtCore.QObject.connect(self.ui.hSlider_basisIndex, QtCore.SIGNAL("valueChanged(int)"), self.basisUpdate)
+        # QtCore.QObject.connect(self.ui.spinBox_basisIndex, QtCore.SIGNAL("valueChanged(int)"), self.basisUpdate)
+        QtCore.QObject.connect(self.ui.hSlider_level, QtCore.SIGNAL("valueChanged(int)"), self.levelUpdate)
+        # QtCore.QObject.connect(self.ui.spinBox_level, QtCore.SIGNAL("valueChanged(int)"), self.levelUpdate)
+        QtCore.QObject.connect(self.ui.listWidget, QtCore.SIGNAL("itemClicked(QListWidgetItem *)"), self.toggleVisibility)
+        QtCore.QObject.connect(self.ui.lineEdit_cutoff, QtCore.SIGNAL("editingFinished()"), self.changeCutoff)
+        QtCore.QObject.connect(self.ui.lineEdit_basisCutoff, QtCore.SIGNAL("editingFinished()"), self.changeBasisCutoff)
+
+        self.ui.hSlider_basisIndex.setValue(self.basisNum)
+        self.ui.spinBox_basisIndex.setValue(self.basisNum)
+        self.ui.hSlider_level.setValue(self.level)
+        self.ui.spinBox_level.setValue(self.level)
+        
+        # TODO: Problem with size of ExtBasis for levels below 2...
+        self.ui.hSlider_level.setMinimum(2)
+        self.ui.spinBox_level.setMinimum(2)
+        
+    def loadGraph(self):
+        
+        # ----------
+        # Load and construct whole graph and multi-resolution data from Matlab structure
+        dataDir = '/Users/emonson/Programming/Matlab/EMonson/Fodava/DocumentAnalysis/Analysis/'
+        filename = dataDir + 'X20_042709b.mat'
+        # filename = '/Users/emonson/Programming/Python/VTK/X20_040609b.mat'
+        X = scipy.io.loadmat(filename)
+        # Get graph structure G out of matlab variables
+        self.G = X['G']
+        
+        # ----------
+        # Set multi-resolution level bounds in GUI sliders
+        self.levelMax = self.G.Tree.shape[0]-1
+        self.ui.hSlider_level.setMinimum(1)
+        self.ui.hSlider_level.setMaximum(self.levelMax)
+        self.ui.spinBox_level.setMinimum(1)
+        self.ui.spinBox_level.setMaximum(self.levelMax)
+        
+        # Start setting up basis function for display as subgraph
+        self.ExtBasis = self.G.Tree[self.level,0].ExtBasis
+        self.basisMax = self.ExtBasis.shape[1]-1    # zero-based indices
+        
+        # Set particular level basis function bounds in GUI sliders
+        self.ui.hSlider_basisIndex.setMinimum(0)
+        self.ui.hSlider_basisIndex.setMaximum(self.basisMax)
+        self.ui.spinBox_basisIndex.setMinimum(0)
+        self.ui.spinBox_basisIndex.setMaximum(self.basisMax)
+        
+        # Build table which will become graph
+        table = vtk.vtkTable()
+        col0 = vtk.vtkIntArray()
+        col0.SetName('index1')
+        col1 = vtk.vtkIntArray()
+        col1.SetName('index2')
+        val = vtk.vtkDoubleArray()
+        val.SetName('weight')
+        
+        Tmat = self.G.T
+        # Tmat = self.G.W
+        
+        for ii in range(Tmat.nzmax):
+            col0.InsertNextValue(Tmat.rowcol(ii)[0])
+            col1.InsertNextValue(Tmat.rowcol(ii)[1])
+            val.InsertNextValue(abs(Tmat.getdata(ii)))
+        
+        table.AddColumn(col0)
+        table.AddColumn(col1)
+        table.AddColumn(val)
+        
+        # Vertex links need to be done with index2 first or indexing won't be right...
+        # TODO: Make this foolproof so that graph always ends up with correct ordering of indices...
+        tgraph = vtk.vtkTableToGraph()
+        tgraph.SetInput(table)
+        tgraph.AddLinkVertex('index2', 'stuff', False)
+        tgraph.AddLinkVertex('index1', 'stuff', False)
+        tgraph.AddLinkEdge('index2', 'index1')
+        
+        rawGraph = tgraph.GetOutput()
+        rawGraph.Update()
+        # print graph
+        
+        # Load and assign whole graph pre-layout coordinates
+        ptsFile = os.path.splitext(filename)[0] + '_pts.vtp'
+        if os.path.exists(ptsFile):
+            polyreader = vtk.vtkXMLPolyDataReader()
+            polyreader.SetFileName(ptsFile)
+            polyreader.Update()
+            self.pts = polyreader.GetOutput().GetPoints()
+            rawGraph.SetPoints(self.pts)
+            # print pts
+            
+        strategy = vtk.vtkPassThroughLayoutStrategy()
+        layout = vtk.vtkGraphLayout()
+        layout.SetInput(rawGraph)
+        layout.SetLayoutStrategy(strategy)
+        
+        edgeLayout = vtk.vtkEdgeLayout()
+        edgeStrategy = vtk.vtkArcParallelEdgeStrategy()
+        edgeStrategy.SetNumberOfSubdivisions(50)
+        edgeLayout.SetInputConnection(layout.GetOutputPort())
+        edgeLayout.SetLayoutStrategy(edgeStrategy)
+        
+        self.graph = edgeLayout.GetOutput()
+        self.graph.Update()
+        
+        # --------
+        # Add ExtBasis to graph data & Select particular basis function
+        
+        # print 'ExtBasis shape: ' + str(self.ExtBasis[:,self.basisNum].data.shape) + ' (level,basis) (' + str(self.level) + ',' + str(self.basisNum) + ')'
+        
+        # Indexing of ExtBasis is backwards from graph, so need to reverse with [::-1]
+        # and array not "contiguous" if don't do .copy()
+        self.Esub = self.ExtBasis[:,self.basisNum].data[::-1].copy()
+        self.EsubSq = self.Esub**2
+        # self.Esub = N.random.random(self.ExtBasis[:,self.basisNum].data.shape[0])
+        # SubIdxs = (self.Esub > 0.001).nonzero()
+        # SubIdxs = (self.Esub**2 > 0.8).nonzero()
+        
+        # Set ExtBasis vertex data from numpy array
+        self.basisFunc = VN.numpy_to_vtk(self.Esub)
+        self.basisFunc.SetName('ExtBasis')
+        self.basisFuncSq = VN.numpy_to_vtk(self.EsubSq)
+        self.basisFuncSq.SetName('ExtBasisSq')
+        
+        self.vertexData = self.graph.GetVertexData()
+        self.vertexData.AddArray(self.basisFunc)
+        self.vertexData.AddArray(self.basisFuncSq)
+        
+        self.selection = vtk.vtkSelectionSource()
+        self.selection.SetContentType(7) # vtkSelection::THRESHOLDS
+        # self.selection.SetContentType(2) # vtkSelection::PEDIGREE_IDS
+        self.selection.SetFieldType(3) # vtkSelection::VERTEX
+        self.selection.SetArrayName("ExtBasisSq")
+        self.selection.AddThreshold(self.basisCutoff, 10)
+        # TODO: There was something wrong with the indexing in the PEDIGREE_IDS selection...
+        # for ii in SubIdxs[0]:
+        #     self.selection.AddID(0,ii)
+        minmax = "(%3.2e, %3.2e)" % (self.EsubSq.min(), self.EsubSq.max())
+        self.ui.label_basisCutoff_minmax.setText(minmax)
+        self.selection.Update()
+        
+        # ----------
+        # Back to pipeline
+        self.degree = vtk.vtkVertexDegree()
+        self.degree.SetInput(self.graph)
+        
+        subgraph = vtk.vtkExtractSelectedGraph()
+        subgraph.SetRemoveIsolatedVertices(False)
+        subgraph.SetInputConnection(self.degree.GetOutputPort())
+        subgraph.SetSelectionConnection(self.selection.GetOutputPort())
+        
+        # +++++++++++++
+        graphToPoly = vtk.vtkGraphToPolyData()
+        graphToPoly.SetInputConnection(subgraph.GetOutputPort())
+        edgeMapper = vtk.vtkPolyDataMapper()
+        edgeMapper.SetInputConnection(graphToPoly.GetOutputPort())
+        edgeMapper.SetScalarModeToUseCellData()
+        edgeMapper.SetScalarVisibility(False)
+        edgeMapper.SetImmediateModeRendering(True)
+        edgeActor = vtk.vtkActor()
+        edgeActor.SetMapper(edgeMapper)
+        edgeActor.SetPosition(0, 0, -0.003);
+        
+        lut = vtk.vtkLookupTable()
+        lutNum = 256
+        lut.SetNumberOfTableValues(lutNum)
+        ctf = vtk.vtkColorTransferFunction()
+        ctf.SetColorSpaceToDiverging()
+        ctf.AddRGBPoint(0.0, 0, 0, 1.0)
+        ctf.AddRGBPoint(1.0, 1.0, 0, 0)
+        for ii,ss in enumerate([float(xx)/float(lutNum) for xx in range(lutNum)]):
+            cc = ctf.GetColor(ss)
+            lut.SetTableValue(ii,cc[0],cc[1],cc[2],1.0)
+        
+        vertGlyph = vtk.vtkVertexGlyphFilter()
+        vertGlyph.SetInputConnection(subgraph.GetOutputPort())
+        self.vertMapper = vtk.vtkPolyDataMapper()
+        self.vertMapper.SetInputConnection(vertGlyph.GetOutputPort())
+        self.vertMapper.SetImmediateModeRendering(True)
+        self.vertMapper.SetScalarModeToUsePointFieldData()
+        self.vertMapper.SetLookupTable(lut)
+        self.vertMapper.SelectColorArray('ExtBasis')
+        self.vertMapper.Update()
+        vertRange = self.vertMapper.GetInput().GetPointData().GetArray(self.vertMapper.GetArrayName()).GetRange()
+        self.vertMapper.SetScalarRange(-1.0*vertRange[1], vertRange[1])
+        vertActor = vtk.vtkActor()
+        vertActor.SetMapper(self.vertMapper)
+        
+        outlineMapper = vtk.vtkPolyDataMapper()
+        outlineMapper.SetScalarVisibility(False)
+        outlineMapper.SetImmediateModeRendering(True)
+        outlineMapper.SetInputConnection(vertGlyph.GetOutputPort())
+        outlineActor = vtk.vtkActor()
+        outlineActor.PickableOff()
+        outlineActor.SetPosition(0, 0, -0.001)
+        outlineActor.GetProperty().SetRepresentationToWireframe()
+        outlineActor.SetMapper(outlineMapper)
+        
+        # Create an Actor Collection for applying visibility to group
+        basisActorCollection = vtk.vtkActorCollection()
+        basisActorCollection.AddItem(vertActor)
+        # basisActorCollection.AddItem(edgeActor)
+        basisActorCollection.AddItem(outlineActor)
+        
+        
+        # Apply a theme to the views
+        theme = vtk.vtkViewTheme.CreateMellowTheme()
+        theme.SetLineWidth(3)
+        theme.SetPointSize(5)
+        theme.SetSelectedCellColor(1,1,1)
+        theme.SetSelectedPointColor(1,1,1)
+        theme.SetOutlineColor(0.8, 0.8, 0.8)
+        # theme.SetPointColor(0.9, 0.7, 0.3)
+        theme.SetCellColor(0.9, 0.7, 0.3)
+        # theme.SetPointOpacity(0.5)
+        # theme.SetPointHueRange(0.0, 0.15)
+        # theme.SetPointSaturationRange(0.6, 0.8)
+        # theme.SetPointValueRange(0.4,0.8)
+        # theme.SetPointAlphaRange(0.2,0.8)
+        # theme.SetPointAlphaRange(1.0,1.0)
+
+        
+        # Apply theme
+        # vertActor.GetProperty().SetColor(theme.GetPointColor())
+        # vertActor.GetProperty().SetOpacity(theme.GetPointOpacity())
+        vertActor.GetProperty().SetPointSize(theme.GetPointSize())
+        outlineActor.GetProperty().SetPointSize(vertActor.GetProperty().GetPointSize()+2)
+        outlineActor.GetProperty().SetColor(theme.GetOutlineColor())
+        outlineActor.GetProperty().SetOpacity(theme.GetPointOpacity())
+        edgeActor.GetProperty().SetColor(theme.GetCellColor())
+        edgeActor.GetProperty().SetOpacity(theme.GetCellOpacity())
+        edgeActor.GetProperty().SetLineWidth(theme.GetLineWidth())
+        
+        
+        # ----------
+        # Background graph skeleton
+        graphMapper = vtk.vtkGraphMapper()
+        graphMapper.SetInputConnection(0, self.degree.GetOutputPort(0))
+        
+        # Apply a theme to the background graph
+        gtheme = vtk.vtkViewTheme()
+        gtheme.SetLineWidth(1)
+        gtheme.SetPointSize(0)
+        gtheme.SetCellColor(0.8, 0.8, 0.8)
+        gtheme.SetCellOpacity(0.2)
+        gtheme.SetOutlineColor(0.8, 0.8, 0.8)
+        gtheme.SetPointColor(0.8, 0.8, 0.8)
+        gtheme.SetPointOpacity(0.0)
+        graphMapper.ApplyViewTheme(gtheme)
+
+        graphActor = vtk.vtkActor()
+        graphActor.SetMapper(graphMapper)
+        graphActor.SetPosition(0,0,-0.005)
+        
+        # ----------
+        # Background vertices
+        graphPoly = vtk.vtkGraphToPolyData()
+        graphPoly.SetInputConnection(0, tgraph.GetOutputPort(0))
+        
+        vertGlyph = vtk.vtkGlyph3D()
+        vertGlyph.SetInputConnection(0, graphPoly.GetOutputPort())
+        glyphSource = vtk.vtkGlyphSource2D()
+        glyphSource.SetGlyphTypeToVertex()
+        # glyphSource.SetGlyphTypeToCircle()
+        # glyphSource.SetScale(0.025)
+        vertGlyph.SetInputConnection(1, glyphSource.GetOutputPort())
+        
+        vertexMapper = vtk.vtkPolyDataMapper()
+        vertexMapper.SetInputConnection(vertGlyph.GetOutputPort())
+        vertexActor = vtk.vtkActor()
+        vertexActor.SetMapper(vertexMapper)
+        vertexActor.GetProperty().SetPointSize(4)
+        vertexActor.GetProperty().SetOpacity(0.5)
+        vertexActor.GetProperty().SetColor(0.6, 0.6, 0.6)
+        vertexActor.SetPosition(0, 0, -0.004)
+        
+        # ----------
+        # Vertex index labels
+        labelMapper = vtk.vtkDynamic2DLabelMapper()
+        labelMapper.SetInputConnection(0, graphPoly.GetOutputPort(0))
+        labelMapper.SetLabelModeToLabelFieldData()
+        labelMapper.SetFieldDataName("label")
+        labelMapper.SetLabelFormat("%s")
+        labelMapper.GetLabelTextProperty().SetColor(0.0, 0.0, 0.0)
+        
+        labelActor = vtk.vtkActor2D()
+        labelActor.SetMapper(labelMapper)
+        
+        # ----------
+        # MultiScale Graph
+        msGraph = self.buildSubGraph(self.level) 
+        
+        self.msMapper = vtk.vtkGraphMapper()
+        self.msMapper.SetInput(msGraph)
+        self.msMapper.SetColorEdges(True)
+        self.msMapper.SetEdgeColorArrayName('weight')
+        
+        # Apply a theme to the background graph
+        mtheme = vtk.vtkViewTheme()
+        mtheme.SetLineWidth(3)
+        mtheme.SetPointSize(11)
+        # mtheme.SetCellColor(0.5, 0.5, 0.7)
+        # mtheme.SetCellOpacity(0.5)
+        mtheme.SetOutlineColor(0.8, 0.8, 0.8)
+        mtheme.SetPointColor(0.3, 0.3, 0.6)
+        mtheme.SetPointOpacity(1.0)
+        mtheme.SetCellHueRange(0.67, 0.67)
+        mtheme.SetCellSaturationRange(0.6, 0.1)
+        mtheme.SetCellValueRange(0.5,1.0)
+        mtheme.SetCellAlphaRange(0.2,0.8)
+        self.msMapper.ApplyViewTheme(mtheme)
+
+        msActor = vtk.vtkActor()
+        msActor.SetMapper(self.msMapper)
+        msActor.SetPosition(0,0,-0.002)
+        
+        # ----------
+        # Set up window and add actors        
+        self.view.SetLayoutStrategyToPassThrough()
+        # self.view.ApplyViewTheme(theme)                
+        # self.view.SetupRenderWindow(self.win)
+        self.view.GetRenderer().SetBackground(theme.GetBackgroundColor())
+        self.view.GetRenderer().SetBackground2(theme.GetBackgroundColor2())
+        self.view.GetRenderer().SetGradientBackground(True)
+        self.view.GetRenderer().AddActor(vertActor)
+        self.view.GetRenderer().AddActor(outlineActor)
+        self.view.GetRenderer().AddActor(edgeActor)
+        self.view.GetRenderer().AddActor(graphActor)
+        self.view.GetRenderer().AddActor(vertexActor)
+        self.view.GetRenderer().AddActor(labelActor)
+        self.view.GetRenderer().AddActor(msActor)
+        
+        # ----------
+        # General interactor
+        isty = vtk.vtkInteractorStyleRubberBand2D()
+        # RubberBand2D assumes/needs parallel projection ON
+        self.view.GetRenderer().GetActiveCamera().ParallelProjectionOn()
+        iren = self.view.GetRenderWindow().GetInteractor()
+        iren.SetInteractorStyle(isty)        
+        # Interactor style must be set before scalar bar can be shown
+        # self.view.SetVertexScalarBarVisibility(True)
+
+        sbActor = vtk.vtkScalarBarActor()
+        sbActor.SetLookupTable(self.vertMapper.GetLookupTable())
+        sbActor.SetTitle(self.vertMapper.GetArrayName())
+        sbActor.SetNumberOfLabels(3)
+        vertexScalarBar = vtk.vtkScalarBarWidget()
+        vertexScalarBar.SetScalarBarActor(sbActor)
+        vertexScalarBar.SetInteractor(iren)
+        vertexScalarBar.SetDefaultRenderer(self.view.GetRenderer())
+        vertexScalarBar.SetCurrentRenderer(self.view.GetRenderer())
+        vertexScalarBar.SetEnabled(True)
+        scalarBarRep = vertexScalarBar.GetRepresentation()
+        scalarBarRep.SetOrientation(1)  # 0 = Horizontal, 1 = Vertical
+        scalarBarRep.GetPositionCoordinate().SetValue(0.05,0.05)
+        scalarBarRep.GetPosition2Coordinate().SetValue(0.15,0.25)
+        
+        # Adding it this way gets it to show up, but it's not interactive
+        self.view.GetRenderer().AddActor(sbActor)
+        self.view.ResetCamera()
+        self.view.Render()
+        
+        # ----------
+        # Add Actors to QListWidget to allow check and uncheck for visibility
+        listItem0 = QtGui.QListWidgetItem()
+        listItem0.setText('Index Labels')
+        listItem0.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+        labelActor.SetVisibility(0)
+        listItem0.setCheckState(QtCore.Qt.Unchecked)
+        # Put actor itself in as data in the list widget item
+        listItem0.setData(QtCore.Qt.UserRole, QtCore.QVariant(labelActor))
+        self.ui.listWidget.insertItem(0,listItem0)
+        
+        # Test retrieval of actor from list widget item
+        # tmpItem = self.ui.listWidget.item(0)
+        # tmpQtActor = tmpItem.data(QtCore.Qt.UserRole)
+        # tmpActor = tmpQtActor.toPyObject()
+        # tmpActor.SetVisibility(0)
+        
+        # Shorter way to add item to list widget
+        listItem1 = QtGui.QListWidgetItem('Vertices (background)', self.ui.listWidget)
+        listItem1.setData(QtCore.Qt.UserRole, QtCore.QVariant(vertexActor))
+        listItem1.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+        listItem1.setCheckState(QtCore.Qt.Checked)
+
+        listItem2 = QtGui.QListWidgetItem('Graph (background)', self.ui.listWidget)
+        listItem2.setData(QtCore.Qt.UserRole, QtCore.QVariant(graphActor))
+        listItem2.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+        listItem2.setCheckState(QtCore.Qt.Checked)
+
+        listItem3 = QtGui.QListWidgetItem()
+        listItem3.setText('Basis Function Vertices')
+        listItem3.setData(QtCore.Qt.UserRole, QtCore.QVariant(basisActorCollection))
+        listItem3.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+        listItem3.setCheckState(QtCore.Qt.Checked)
+        self.ui.listWidget.insertItem(1,listItem3)
+        
+        listItem6 = QtGui.QListWidgetItem()
+        listItem6.setText('Basis Function Edges')
+        listItem6.setData(QtCore.Qt.UserRole, QtCore.QVariant(edgeActor))
+        listItem6.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+        listItem6.setCheckState(QtCore.Qt.Checked)
+        self.ui.listWidget.insertItem(2,listItem6)
+        
+        listItem4 = QtGui.QListWidgetItem()
+        listItem4.setText('MultiScale Graph')
+        listItem4.setData(QtCore.Qt.UserRole, QtCore.QVariant(msActor))
+        listItem4.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+        listItem4.setCheckState(QtCore.Qt.Checked)
+        self.ui.listWidget.insertItem(3,listItem4)
+                
+        listItem5 = QtGui.QListWidgetItem()
+        listItem5.setText('Basis Function Scale Bar')
+        listItem5.setData(QtCore.Qt.UserRole, QtCore.QVariant(sbActor))
+        listItem5.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+        listItem5.setCheckState(QtCore.Qt.Checked)
+        self.ui.listWidget.insertItem(3,listItem5)
+        
+        iren.Initialize()
+        iren.Start()
+
+    def changeCutoff(self):
+        
+        tmpCutoffTxt = self.ui.lineEdit_cutoff.text()
+        tmpCutoff = tmpCutoffTxt.toDouble()
+        if tmpCutoff[1]:
+            self.cutoff = tmpCutoff[0]
+            # Update multi-resolution graph
+            msGraph = self.buildSubGraph(self.level) 
+            self.msMapper.SetInput(msGraph)
+            self.msMapper.Modified()
+            # self.view.Update()
+            self.view.Render()
+            
+    def changeBasisCutoff(self):
+        
+        tmpCutoffTxt = self.ui.lineEdit_basisCutoff.text()
+        tmpCutoff = tmpCutoffTxt.toDouble()
+        if tmpCutoff[1]:
+            self.basisCutoff = tmpCutoff[0]
+            # Update multi-resolution graph
+            self.selection.RemoveAllThresholds()
+            self.selection.AddThreshold(self.basisCutoff, 10)
+            self.selection.Modified()
+            # self.view.Update()
+            self.view.Render()
+            
+    
+    def buildSubGraph(self, level):
+        
+        table = vtk.vtkTable()
+        col0 = vtk.vtkIntArray()
+        col0.SetName('index1')
+        col1 = vtk.vtkIntArray()
+        col1.SetName('index2')
+        val = vtk.vtkDoubleArray()
+        val.SetName('weight')
+        
+        Tmat = self.G.Tree[level,0].T
+        minmax = "(%3.2e, %3.2e)" % (abs(Tmat.data).min(), abs(Tmat.data).max())
+        self.ui.label_cutoff_minmax.setText(minmax)
+        
+        ebSum = self.ExtBasis.sum(0)
+        idxs = []
+        
+        for ii in range(Tmat.nzmax):
+            xx = Tmat.rowcol(ii)[0]
+            yy = Tmat.rowcol(ii)[1]
+            if ((ebSum[0,xx] > self.ebSumCutoff) and (ebSum[0,yy] > self.ebSumCutoff)):
+                # print ebSum[0,xx], ebSum[0,yy]
+                # Always include diagonal elements (no matter what cutoff) so all vertices are created
+                if ((abs(Tmat.getdata(ii)) > self.cutoff) | (Tmat.rowcol(ii)[0]==Tmat.rowcol(ii)[1])):
+                    col0.InsertNextValue(xx)
+                    col1.InsertNextValue(yy)
+                    # But, take out self-loops for edge color scale
+                    if (xx == yy):
+                        val.InsertNextValue(0.0)        
+                        idxs.append(self.G.Tree[level,0].ExtIdxs[xx]-1)
+                    else:
+                        val.InsertNextValue(abs(Tmat.getdata(ii)))        
+        
+        table.AddColumn(col0)
+        table.AddColumn(col1)
+        table.AddColumn(val)
+        
+        tgraph = vtk.vtkTableToGraph()
+        tgraph.SetInput(table)
+        tgraph.AddLinkVertex('index2', 'stuff', False)
+        tgraph.AddLinkVertex('index1', 'stuff', False)
+        tgraph.AddLinkEdge('index2', 'index1')
+        
+        rawGraph = tgraph.GetOutput()
+        rawGraph.Update()
+        # print graph
+        
+        # Grab points from original set with ExtIdxs
+        ptsArray = VN.vtk_to_numpy(self.pts.GetData())
+        # Remember Matlab uses one-based indices (ExtIdxs-1 for Numpy)
+        # print (self.G.Tree[level,0].ExtIdxs-1)
+        # print ptsArray[self.G.Tree[level,0].ExtIdxs-1,:]
+        ptsMatrix = N.matrix(ptsArray)
+        ptsSubMatrix = ptsMatrix[idxs,:]
+        ptsSub = VN.numpy_to_vtk(ptsSubMatrix)
+        # print VN.vtk_to_numpy(ptsSub)
+        pts = vtk.vtkPoints()
+        pts.SetData(ptsSub)
+        rawGraph.SetPoints(pts)
+        # print pts
+            
+        strategy = vtk.vtkPassThroughLayoutStrategy()
+        layout = vtk.vtkGraphLayout()
+        layout.SetInput(rawGraph)
+        layout.SetLayoutStrategy(strategy)
+        
+        edgeLayout = vtk.vtkEdgeLayout()
+        edgeStrategy = vtk.vtkArcParallelEdgeStrategy()
+        edgeStrategy.SetNumberOfSubdivisions(50)
+        edgeLayout.SetInputConnection(layout.GetOutputPort())
+        edgeLayout.SetLayoutStrategy(edgeStrategy)
+        edgeLayout.Update()
+        
+        return edgeLayout.GetOutput()
+         
+    def basisUpdate(self, index):
+        
+        QtCore.QObject.disconnect(self.ui.hSlider_basisIndex, QtCore.SIGNAL("valueChanged(int)"), self.basisUpdate)
+        QtCore.QObject.disconnect(self.ui.hSlider_level, QtCore.SIGNAL("valueChanged(int)"), self.levelUpdate)
+        
+        self.basisNum = index
+        self.ui.spinBox_basisIndex.setValue(index)
+        self.ui.hSlider_basisIndex.setValue(index)
+        self.selection.RemoveAllIDs()
+        
+        # Try to directly swap ExtBasis vertex data
+        # print 'ExtBasis shape: ' + str(self.ExtBasis[:,self.basisNum].data.shape) + ' (level,basis) (' + str(self.level) + ',' + str(self.basisNum) + ')'
+        
+        # Indexing of ExtBasis is backwards from graph, so need to reverse with [::-1]
+        # and array not "contiguous" if don't do .copy()
+        self.Esub[:] = self.ExtBasis[:,self.basisNum].data[::-1].copy()
+        self.EsubSq[:] = self.Esub**2
+        # self.Esub[:] = N.random.random(self.ExtBasis[:,self.basisNum].data.shape[0])
+        # SubIdxs = (self.Esub > 0.001).nonzero()
+        # SubIdxs = (self.Esub**2 > 0.8).nonzero()
+        self.vertexData.Modified()
+        self.degree.Update()
+                
+        # for ii in SubIdxs[0]:
+        #     self.selection.AddID(0,ii)
+        vertRange = self.vertMapper.GetInput().GetPointData().GetArray(self.vertMapper.GetArrayName()).GetRange()
+        self.vertMapper.SetScalarRange(-1.0*vertRange[1], vertRange[1])
+        self.selection.Modified()
+        # tmpMin = self.EsubSq.min()
+        # tmpMax = self.EsubSq.max()
+        # self.map0.SetScalarRange(-100.0*tmpMax, 100.0*tmpMax)
+        minmax = "(%3.2e, %3.2e)" % (self.EsubSq.min(), self.EsubSq.max())
+        self.ui.label_basisCutoff_minmax.setText(minmax)
+        # self.view.Update()
+        self.view.Render()
+        
+        QtCore.QObject.connect(self.ui.hSlider_basisIndex, QtCore.SIGNAL("valueChanged(int)"), self.basisUpdate)
+        QtCore.QObject.connect(self.ui.hSlider_level, QtCore.SIGNAL("valueChanged(int)"), self.levelUpdate)
+        
+    def levelUpdate(self, index):
+        
+        QtCore.QObject.disconnect(self.ui.hSlider_basisIndex, QtCore.SIGNAL("valueChanged(int)"), self.basisUpdate)
+        QtCore.QObject.disconnect(self.ui.hSlider_level, QtCore.SIGNAL("valueChanged(int)"), self.levelUpdate)
+        
+        self.level = index
+        self.ui.spinBox_level.setValue(index)
+        self.ui.hSlider_level.setValue(index)
+        # Start setting up basis function subgraph
+        self.ExtBasis = self.G.Tree[self.level,0].ExtBasis
+        self.basisMax = self.ExtBasis.shape[1]-1    # zero-based indices
+        if self.basisNum > self.basisMax:
+            self.basisNum = self.basisMax
+            self.ui.hSlider_basisIndex.setValue(self.basisMax)
+            self.ui.spinBox_basisIndex.setValue(self.basisMax)
+        self.ui.hSlider_basisIndex.setMinimum(0)
+        self.ui.hSlider_basisIndex.setMaximum(self.basisMax)
+        self.ui.spinBox_basisIndex.setMinimum(0)
+        self.ui.spinBox_basisIndex.setMaximum(self.basisMax)
+
+        # self.selection.RemoveAllIDs()
+        # print 'ExtBasis shape: ' + str(self.ExtBasis[:,self.basisNum].data.shape) + ' (level,basis) (' + str(self.level) + ',' + str(self.basisNum) + ')'
+        
+        # Indexing of ExtBasis is backwards from graph, so need to reverse with [::-1]
+        # and array not "contiguous" if don't do .copy()
+#         self.Esub[:] = self.ExtBasis[:,self.basisNum].data[::-1].copy()
+#         self.EsubSq[:] = self.Esub**2
+#         # self.Esub[:] = N.random.random(self.ExtBasis[:,self.basisNum].data.shape[0])
+#         # SubIdxs = (self.Esub > 0.001).nonzero()
+#         # SubIdxs = (self.Esub**2 > 0.8).nonzero()
+#         self.vertexData.Modified()
+#         self.degree.Update()
+        
+        # Update multi-resolution graph
+        msGraph = self.buildSubGraph(index) 
+        self.msMapper.SetInput(msGraph)
+        self.msMapper.Modified()
+
+        # for ii in SubIdxs[0]:
+        #     self.selection.AddID(0,ii)
+        self.selection.Modified()
+        # tmpMin = self.Esub.min()
+        # tmpMax = self.Esub.max()
+        # self.map0.SetScalarRange(-100.0*tmpMax, 100.0*tmpMax)
+        self.basisUpdate(self.ui.hSlider_basisIndex.value())
+        
+        QtCore.QObject.connect(self.ui.hSlider_basisIndex, QtCore.SIGNAL("valueChanged(int)"), self.basisUpdate)
+        QtCore.QObject.connect(self.ui.hSlider_level, QtCore.SIGNAL("valueChanged(int)"), self.levelUpdate)
+        
+    def toggleVisibility(self, item):
+        
+        tmpQtActor = item.data(QtCore.Qt.UserRole)
+        tmpActor = tmpQtActor.toPyObject()
+        if tmpActor.GetClassName() == 'vtkActorCollection':
+            # Loop through actor collection
+            tmpActor.InitTraversal()
+            singleActor = tmpActor.GetNextActor()
+            while singleActor is not None:
+                self.toggleActorVisibility(item,singleActor)
+                singleActor = tmpActor.GetNextActor()
+        else:
+            # Single actor
+            self.toggleActorVisibility(item,tmpActor)
+            
+    def toggleActorVisibility(self, item, tmpActor):
+        actorVis = tmpActor.GetVisibility()
+        itemCheck = item.checkState()   # QtCore.Qt.Checked = 2, QtCore.Qt.Unchecked = 0
+        if (actorVis == 0) and (itemCheck == QtCore.Qt.Checked):
+            tmpActor.SetVisibility(1)
+            # self.view.Update()
+            self.view.Render()
+        elif (actorVis == 1) and (itemCheck == QtCore.Qt.Unchecked):
+            tmpActor.SetVisibility(0)
+            # self.view.Update()
+            self.view.Render()
+        
+        
+    def fileExit(self):
+        
+        # Usually would use the qApp global variable qApp.quit(), but wasn't working...
+        QtGui.QApplication.instance().quit()
+        
