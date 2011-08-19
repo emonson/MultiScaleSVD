@@ -68,7 +68,6 @@ class DataSource(object):
 		# Get variables out of Matlab structure
 		print 'Transferring variables from Matlab structures'
 
-		# GWTopts structure giving problems on loadmat when running in standalone app...
 		# self.GWTopts = MatInput['GWTopts']
 
 		# Test if original images are downsampled in this data
