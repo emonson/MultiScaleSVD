@@ -245,7 +245,7 @@ class ImageFlow(object):
 				
 				print "Getting image stack"
 				# HACK: Setting wordle_on to true so will force wordle images if text data
-				self.imStack = self.ds.GetProjectedImages(idxArr.tolist(), True)
+				self.imStack = self.ds.GetProjectedImages(idxArr.tolist(), True, False)
 				i_array_name = 'Intensity'
 				
 				print "Got image stack"

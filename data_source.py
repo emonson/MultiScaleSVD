@@ -710,12 +710,15 @@ class DataSource(object):
 			raise IOError, "Can't get image until data is loaded successfully"
 
 	# ---------------------------------------
-	def GetNodeBasisImages(self, node_id):
+	def GetNodeBasisImages(self, node_id, antialias = False):
 		"""Returns a vtkImageData of all wavelet or scaling function
 		basis images for a given node."""
 
 		if self.data_loaded:
 			if self.WordleImages:
+
+				self.WordleView.SetRandomSeed(0);
+
 				# Scaling functions coeffs are defined wrt parent node scaling functions...
 				# TODO: Switch this back when back to computing CelScalCoeffs rather than
 				#   CelTangCoeffs...
@@ -748,7 +751,7 @@ class DataSource(object):
 					self.WordleTable.Modified()
 					
 					img = vtk.vtkImageData()
-					img.DeepCopy(self.WordleView.GetImageData())
+					img.DeepCopy(self.WordleView.GetImageData(antialias))
 					img.GetPointData().GetScalars().SetName('DiffIntensity')
 					imgAppend.AddInput(img)
 				
@@ -801,12 +804,14 @@ class DataSource(object):
 			raise IOError, "Can't get image until data is loaded successfully"
 
 	# ---------------------------------------
-	def GetNodeCenterImage(self, node_id):
+	def GetNodeCenterImage(self, node_id, antialias = False):
 		"""Returns a vtkImageData of the center image for a given node."""
 
 		if self.data_loaded:
 			# if self.WordleImages:
 			if self.WordleImages:
+			
+				self.WordleView.SetRandomSeed(0);
 
 				# Need to create separate images (Z) for each column of matrix result
 				# Bases is D x N matrix
@@ -830,7 +835,7 @@ class DataSource(object):
 				self.WordleTable.Modified()
 				
 				img = vtk.vtkImageData()
-				img.DeepCopy(self.WordleView.GetImageData())
+				img.DeepCopy(self.WordleView.GetImageData(antialias))
 				img.GetPointData().GetScalars().SetName('Intensity')
 				
 				return img
@@ -872,7 +877,7 @@ class DataSource(object):
 			raise IOError, "Can't get image until data is loaded successfully"
 	
 	# ---------------------------------------
-	def GetProjectedImages(self, IDlist, wordle_on = False):
+	def GetProjectedImages(self, IDlist, wordle_on = False, antialias = False):
 		"""Given a list of IDs selected from a parallel coordinates plot, returns
 		a vtkImageData with all of the projected (reduced dimensionality by SVD) images
 		for those IDs. (e.g. typically 120 dim rather than original 768 dim for MNIST digits)"""
@@ -880,6 +885,8 @@ class DataSource(object):
 		if self.data_loaded:
 			# if self.WordleImages:
 			if self.WordleImages and wordle_on:
+
+				self.WordleView.SetRandomSeed(0);
 
 				# Need to create separate images (Z) for each column of matrix result
 				# Bases is D x N matrix
@@ -911,7 +918,7 @@ class DataSource(object):
 					self.WordleTable.Modified()
 					
 					img = vtk.vtkImageData()
-					img.DeepCopy(self.WordleView.GetImageData())
+					img.DeepCopy(self.WordleView.GetImageData(antialias))
 					img.GetPointData().GetScalars().SetName('Intensity')
 					imgAppend.AddInput(img)
 				

@@ -176,11 +176,11 @@ class XYChart(object):
 			self.table = self.ds.GetNodeOneScaleCoeffTable(node_id)
 			id_list = self.ds.PointsInNet[node_id]	# Directly accessing member variable
 			print "XY Getting Projected Images"
-			self.image_stack = self.ds.GetProjectedImages(id_list)
+			self.image_stack = self.ds.GetProjectedImages(id_list, True, True)
 			print "XY Getting Node Basis Images"
-			self.axis_images = self.ds.GetNodeBasisImages(node_id)
+			self.axis_images = self.ds.GetNodeBasisImages(node_id, True)
 			print "XY Getting Node Center Images"
-			self.center_image = self.ds.GetNodeCenterImage(node_id)
+			self.center_image = self.ds.GetNodeCenterImage(node_id, True)
 			print "XY Finished getting images"
 
 			# Get the axis image XY indices in case resetting to those values
