@@ -565,6 +565,10 @@ class IcicleNoView(object):
 		somePropPicked = propPicker.PickProp(x,y,self.renderer)
 		pickedProp = propPicker.GetViewProp()
 		navigated = False
+		# NOTE: For some reason, sometimes on switching data sets
+		#   we're getting to the print statement with scale_list undefined
+		#   so I added this initialization...
+		scale_list = []
 		
 		# Navigate with buttons
 		if somePropPicked and (pickedProp != self.icicle_actor):
@@ -770,6 +774,9 @@ class IcicleNoView(object):
 	
 	def GetRenderWindow(self):
 		return self.renWin
+		
+	def GetInteractor(self):
+		return self.interactor
 		
 	def SetInteractorStyle(self, style):
 		self.interactor = self.renWin.GetInteractor()

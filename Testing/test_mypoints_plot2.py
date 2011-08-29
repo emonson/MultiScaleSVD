@@ -9,7 +9,7 @@ import math
 import vtkvtg
 from data_source import DataSource
 
-data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist1_5c_20100324.mat'
+data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20101119.mat'
 
 # DataSource loads .mat file and can generate data from it for other views
 ds = DataSource(data_file)
@@ -20,6 +20,9 @@ view.GetRenderWindow().SetSize(400, 300)
 
 # Testing my custom chart class which has image hover tooltips
 chart = vtkvtg.vtkMyChartXY()
+chart.SetActionToButton(vtk.vtkChart.PAN, 2)
+chart.SetActionToButton(vtk.vtkChart.ZOOM, 4)
+chart.SetActionToButton(vtk.vtkChart.SELECT, 1)
 view.GetScene().AddItem(chart)
 
 # Create a annotation link to access selection in parallel coordinates view
@@ -31,8 +34,10 @@ annotationLink.GetCurrentSelection().GetNode(0).SetContentType(4)   # Indices
 # Connect the annotation link to the parallel coordinates representation
 chart.SetAnnotationLink(annotationLink)
 
-test_id = 68
+test_id = 3
 table = ds.GetNodeOneScaleCoeffTable(test_id)
+
+chart.ClearPlots()
 
 line1 = vtkvtg.vtkMyPlotPoints()
 chart.AddPlot(line1)		# POINTS
@@ -41,8 +46,15 @@ line1.SetMarkerStyle(2)
 line1.SetColor(0, 0, 0, 255)
 
 # Tooltip image stack will now be owned by the tooltip, so need to do that differently... 
-id_list = ds.PIN[test_id]
+id_list = ds.PointsInNet[test_id]
 image_stack = ds.GetProjectedImages(id_list)
+
+# DEBUG
+writer = vtk.vtkXMLImageDataWriter()
+writer.SetFileName('out.vti')
+writer.SetInput(image_stack)
+writer.Write()
+
 chart.SetTooltipImageStack(image_stack)
 chart.SetTooltipShowImage(True)
 # chart.SetTooltipImageScalingFactor(2.0)

@@ -175,13 +175,9 @@ class XYChart(object):
 			node_id = idxArr[0]
 			self.table = self.ds.GetNodeOneScaleCoeffTable(node_id)
 			id_list = self.ds.PointsInNet[node_id]	# Directly accessing member variable
-			print "XY Getting Projected Images"
 			self.image_stack = self.ds.GetProjectedImages(id_list, True, True)
-			print "XY Getting Node Basis Images"
 			self.axis_images = self.ds.GetNodeBasisImages(node_id, True)
-			print "XY Getting Node Center Images"
 			self.center_image = self.ds.GetNodeCenterImage(node_id, True)
-			print "XY Finished getting images"
 
 			# Get the axis image XY indices in case resetting to those values
 			# and the number of dimensions has changed, and xI or yI are over the limit
@@ -214,14 +210,13 @@ class XYChart(object):
 				yI = 1
 			
 			# DEBUG
-			print "__ Axis image max_dim, xI, yI: ", max_dim, xI, yI
+			# print "__ Axis image max_dim, xI, yI: ", max_dim, xI, yI
 
 			self.chart.ClearPlots()
 			self.ai.ClearAxisImages()
 
 			line1 = vtkvtg.vtkMyPlotPoints()
-			self.chart.AddPlot(line1)		# POINTS
-
+			
 			# Count number of non-_ids column names
 			num_real_cols = len([self.table.GetColumnName(ii) 
 			                    for ii in range(self.table.GetNumberOfColumns()) 
@@ -232,6 +227,8 @@ class XYChart(object):
 				line1.SetInput(self.table, 0, 0)
 			line1.SetMarkerStyle(vtkvtg.vtkMyPlotPoints.CIRCLE)
 
+			# Adding plot must happen after plot.SetInput or rendering crashes...
+			self.chart.AddPlot(line1)		# POINTS
 			self.SetColorByArray(self.color_array_name)
 
 
@@ -245,7 +242,6 @@ class XYChart(object):
 			# If this is the same icicle node as before, then reset to original XY indices
 			# before view is updated
 			if node_id == self.input_link_idx:
-				print "__ Axis image setting PlotColumns"
 				self.chart.SetPlotColumnIndices(xI,yI)
 
 			self.ai.SetAxisImagesHorizontal()
@@ -255,7 +251,6 @@ class XYChart(object):
 			# If this is the same icicle node as before, then reset to original XY indices
 			# before view is updated
 			if node_id == self.input_link_idx:
-				print "__ Axis image setting AxisIndices"
 				self.ai.SetAxisIndices(xI,yI)
 
 			self.ai.Update()

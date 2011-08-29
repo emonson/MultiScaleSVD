@@ -29,10 +29,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		QtGui.QMainWindow.__init__(self, parent)
 		self.ui = Ui_MainWindow()
 
-		self.renWinList = []
-
-		# data_file = askopenfilename()
-# 		data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/yaleB_pca200_1207_labels.mat'
 		if os.path.exists('/Users/emonson/Data/Fodava/EMoGWDataSets'):
 			self.openFilesDefaultPath = '/Users/emonson/Data/Fodava/EMoGWDataSets'
 		else:
@@ -60,8 +56,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.ice_class.GetRenderWindow().SetSize(630,470)
 		self.ice_al_out = self.ice_class.GetOutputAnnotationLink()
 
-		self.renWinList.append(self.ice_class.GetRenderWindow())
-
 		# Note: With the way I've implemented the output annotation link in PCoords chart,
 		#	it will always have a selection node, but the selection list may have no tuples if
 		#	it's an empty selection (and event gets fired on every empty selection
@@ -72,21 +66,15 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.pc_al_out = self.pc_class.GetOutputAnnotationLink()
 		self.pc_al = self.pc_class.GetAnnotationLink()
 
-		self.renWinList.append(self.pc_class.GetView().GetRenderWindow())
-
 		# View #2 -- Image Flow View
 		self.if_class = ImageFlow(self.ds, self.pc_al_out)
 		self.if_al_out = self.if_class.GetOutputAnnotationLink()
 		self.pc_class.SetHighlightAnnotationLink(self.if_al_out)
 
-		self.renWinList.append(self.if_class.GetRenderWindow())
-
 		# View #3 -- Detail View
 		self.nf_class = DetailImageFlow(self.ds, self.if_al_out)
 		self.nf_class.SetFlowDirection(Direction.Vertical)
 		self.nf_al_out = self.nf_class.GetOutputAnnotationLink()
-
-		self.renWinList.append(self.nf_class.GetRenderWindow())
 
 		# View #4 -- XY Chart View
 		self.xy_class = XYChart(self.ds)
@@ -98,13 +86,48 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.ice_class.SetHighlightAnnotationLink(self.if_al_out)
 		self.ice_class.SetScaleAnnotationLink(self.nf_al_out)
 
-		self.renWinList.append(self.xy_class.GetChartView().GetRenderWindow())
-
 		# View #5 -- Axis Images (xy control) View
-		self.renWinList.append(self.xy_class.GetAxisView().GetRenderWindow())
 
 		# Set up all the render windows in the GUI
-		self.ui.setupUi(self, self.renWinList)
+		self.ui.setupUi(self)
+
+		self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Wavelets", None, QtGui.QApplication.UnicodeUTF8))
+
+		# Now need to get all the interactors working properly
+		# Icicle
+		self.ui.qvtkWidget_0.SetRenderWindow(self.ice_class.GetRenderWindow())
+		self.ice_class.GetInteractor().Initialize()
+		# self.ui.qvtkWidget_0.show()
+		# PCoords
+		self.pc_class.GetView().SetInteractor(self.ui.qvtkWidget_1.GetInteractor())
+		self.ui.qvtkWidget_1.SetRenderWindow(self.pc_class.GetView().GetRenderWindow())
+		# self.ui.qvtkWidget_1.show()
+		# Image Flow
+		self.ui.qvtkWidget_2.SetRenderWindow(self.if_class.GetRenderWindow())
+		self.if_class.GetInteractor().Initialize()
+		# self.ui.qvtkWidget_2.show()
+		# Detail Flow
+		self.ui.qvtkWidget_3.SetRenderWindow(self.nf_class.GetRenderWindow())
+		self.nf_class.GetInteractor().Initialize()
+		# self.ui.qvtkWidget_3.show()
+		# XYChart
+		self.xy_class.GetChartView().SetInteractor(self.ui.qvtkWidget_4.GetInteractor())
+		self.ui.qvtkWidget_4.SetRenderWindow(self.xy_class.GetChartView().GetRenderWindow())
+		# self.ui.qvtkWidget_4.show()
+		# AxisImages
+		self.xy_class.GetAxisView().SetInteractor(self.ui.qvtkWidget_5.GetInteractor())
+		self.ui.qvtkWidget_5.SetRenderWindow(self.xy_class.GetAxisView().GetRenderWindow())
+		# self.ui.qvtkWidget_5.show()
+
+		# Set sizes for veritcal splitters (left,right or top,bottom)
+		self.ui.splitter_0.setSizes([280,220])
+		self.ui.splitter_1.setSizes([260,240])
+		self.ui.splitter_2.setSizes([130,370])
+		self.ui.splitter_3.setSizes([490,280])
+		self.ui.splitter_4.setSizes([330,770])
+
+
+
 
 		# Deal with color_by_array menu items
 		self.color_array_actions_list = []
@@ -131,38 +154,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# TODO: Need to call menu actions to set color and coeff defaults rather than
 		#   hard-coding them here...
 		
-		self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Wavelets", None, QtGui.QApplication.UnicodeUTF8))
-
-		# Now need to get all the interactors working properly
-		# Icicle
-		self.style0 = vtk.vtkInteractorStyleImage()
-		self.ice_class.SetInteractorStyle(self.style0)
-		# PCoords
-		style1 = vtk.vtkInteractorStyleRubberBand2D()
-		self.pc_class.GetView().GetInteractor().SetInteractorStyle(style1)
-		self.pc_class.GetView().GetScene().SetInteractorStyle(style1)
-		# Image Flow
-		self.style2 = vtk.vtkInteractorStyleImage()
-		self.if_class.SetInteractorStyle(self.style2)
-		# Detail Flow
-		self.style3 = vtk.vtkInteractorStyleImage()
-		self.nf_class.SetInteractorStyle(self.style3)
-		# XYChart
-		self.style4 = vtk.vtkInteractorStyleRubberBand2D()
-		self.xy_class.GetChartView().GetInteractor().SetInteractorStyle(self.style4)
-		self.xy_class.GetChartView().GetScene().SetInteractorStyle(self.style4)
-		# AxisImages
-		style5 = vtk.vtkInteractorStyleRubberBand2D()
-		self.xy_class.GetAxisView().GetInteractor().SetInteractorStyle(style5)
-		self.xy_class.GetAxisView().GetScene().SetInteractorStyle(style5)
-
-		# Set sizes for veritcal splitters (left,right or top,bottom)
-		self.ui.splitter_0.setSizes([280,220])
-		self.ui.splitter_1.setSizes([260,240])
-		self.ui.splitter_2.setSizes([130,370])
-		self.ui.splitter_3.setSizes([490,280])
-		self.ui.splitter_4.setSizes([330,770])
-
 		# Only want one type of coefficient to be set at a time
 		basisActionGroup = QtGui.QActionGroup(self)
 		self.ui.actionWavelet.setChecked(True)
@@ -187,11 +178,12 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		QtCore.QObject.connect(self.ui.actionPC_Coarsest_to_Current, QtCore.SIGNAL("triggered()"), self.switchToPCCoarsestToCurrent)
 		QtCore.QObject.connect(self.ui.actionPC_Current_to_Finest, QtCore.SIGNAL("triggered()"), self.switchToPCCurrentToFinest)
 		QtCore.QObject.connect(self.ui.actionColorNone, QtCore.SIGNAL("triggered()"), self.setColorByArray)
-			
+		
+		# NOTE: These are broken for now with QVTKWidget...
 		# Trying to see whether I can pass selection bounds from xy chart to pcoords
-		self.xy_class.GetChartView().GetInteractor().AddObserver("LeftButtonReleaseEvent", self.XYSelectionReleaseCallback)
+		# self.xy_class.GetChartView().GetInteractor().AddObserver("LeftButtonReleaseEvent", self.XYSelectionReleaseCallback)
 		# Trying to see whether I can pass selection bounds from xy chart to pcoords
-		self.xy_class.GetChartView().GetInteractor().AddObserver("LeftButtonPressEvent", self.XYSelectionPressCallback)
+		# self.xy_class.GetChartView().GetInteractor().AddObserver("LeftButtonPressEvent", self.XYSelectionPressCallback)
 
 		# Testing out events for axis image modification so can have callback here
 		self.xy_class.GetAxisImageItem().AddObserver("PropertyModifiedEvent", self.AIxyChangedCallback)
@@ -199,8 +191,8 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# Only need to Start() interactor for one view
 		# self.pc_class.GetView().GetInteractor().Start()
 		# Shouldn't have to do this render...
-		for rw in self.renWinList:
-			rw.Render()
+		# for rw in self.renWinList:
+		# 	rw.Render()
 
 	def XYSelectionReleaseCallback(self, caller, event):
 		x0,y0 = caller.GetEventPosition()
@@ -334,6 +326,16 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 				"All Files (*);;Matlab Files (*.mat)")
 
 		if file:
+			# Clear out selections
+			empty_arr = N.array([],dtype='int64')
+			empty_vtk = VN.numpy_to_vtkIdTypeArray(empty_arr, deep=True)
+			self.pc_class.GetAnnotationLink().GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
+			self.pc_class.GetAnnotationLink().InvokeEvent("AnnotationChangedEvent")
+			self.if_class.GetOutputAnnotationLink().GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
+			self.if_class.GetOutputAnnotationLink().InvokeEvent("AnnotationChangedEvent")
+			self.nf_class.GetOutputAnnotationLink().GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
+			self.nf_class.GetOutputAnnotationLink().InvokeEvent("AnnotationChangedEvent")
+
 			self.ds.SetFileName(str(file))
 			self.ds.LoadData()
 			
@@ -347,6 +349,8 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			self.generate_color_array_actions()
 			
 			self.ice_class.LoadData()
+			self.ui.qvtkWidget_0.update()
+			self.ui.qvtkWidget_1.update()
 
 	def fileExit(self):
 

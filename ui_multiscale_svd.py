@@ -8,6 +8,7 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt4 import QtCore, QtGui
+from vtk import QVTKWidget
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -15,7 +16,7 @@ except AttributeError:
     _fromUtf8 = lambda s: s
 
 class Ui_MainWindow(object):
-    def setupUi(self, MainWindow, renWinList):
+    def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
         MainWindow.resize(1100, 500)
         self.centralwidget = QtGui.QWidget(MainWindow)
@@ -28,9 +29,9 @@ class Ui_MainWindow(object):
         self.splitter_2 = QtGui.QSplitter(self.splitter_4)
         self.splitter_2.setOrientation(QtCore.Qt.Vertical)
         self.splitter_2.setObjectName(_fromUtf8("splitter_2"))
-        self.qvtkWidget_5 = QVTKRenderWindowInteractor(self.splitter_2, rw=renWinList[5])
+        self.qvtkWidget_5 = QVTKWidget(self.splitter_2)
         self.qvtkWidget_5.setObjectName(_fromUtf8("qvtkWidget_5"))
-        self.qvtkWidget_4 = QVTKRenderWindowInteractor(self.splitter_2, rw=renWinList[4])
+        self.qvtkWidget_4 = QVTKWidget(self.splitter_2)
         self.qvtkWidget_4.setObjectName(_fromUtf8("qvtkWidget_4"))
         self.splitter_3 = QtGui.QSplitter(self.splitter_4)
         self.splitter_3.setOrientation(QtCore.Qt.Horizontal)
@@ -38,16 +39,16 @@ class Ui_MainWindow(object):
         self.splitter_1 = QtGui.QSplitter(self.splitter_3)
         self.splitter_1.setOrientation(QtCore.Qt.Vertical)
         self.splitter_1.setObjectName(_fromUtf8("splitter_1"))
-        self.qvtkWidget_0 = QVTKRenderWindowInteractor(self.splitter_1, rw=renWinList[0])
+        self.qvtkWidget_0 = QVTKWidget(self.splitter_1)
         self.qvtkWidget_0.setObjectName(_fromUtf8("qvtkWidget_0"))
-        self.qvtkWidget_1 = QVTKRenderWindowInteractor(self.splitter_1, rw=renWinList[1])
+        self.qvtkWidget_1 = QVTKWidget(self.splitter_1)
         self.qvtkWidget_1.setObjectName(_fromUtf8("qvtkWidget_1"))
         self.splitter_0 = QtGui.QSplitter(self.splitter_3)
         self.splitter_0.setOrientation(QtCore.Qt.Vertical)
         self.splitter_0.setObjectName(_fromUtf8("splitter_0"))
-        self.qvtkWidget_3 = QVTKRenderWindowInteractor(self.splitter_0, rw=renWinList[3])
+        self.qvtkWidget_3 = QVTKWidget(self.splitter_0)
         self.qvtkWidget_3.setObjectName(_fromUtf8("qvtkWidget_3"))
-        self.qvtkWidget_2 = QVTKRenderWindowInteractor(self.splitter_0, rw=renWinList[2])
+        self.qvtkWidget_2 = QVTKWidget(self.splitter_0)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -139,4 +140,3 @@ class Ui_MainWindow(object):
         self.actionPC_Current_to_Finest.setShortcut(QtGui.QApplication.translate("MainWindow", "Ctrl+Alt+4", None, QtGui.QApplication.UnicodeUTF8))
         self.actionColorNone.setText(QtGui.QApplication.translate("MainWindow", "None", None, QtGui.QApplication.UnicodeUTF8))
 
-from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor

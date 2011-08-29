@@ -692,6 +692,9 @@ class DetailImageFlow(object):
 	def GetRenderWindow(self):
 		return self.window
 		
+	def GetInteractor(self):
+		return self.interactor
+		
 	# def SetAnnotationLink(self, externalLink):
 	# 	self.link = externalLink
 	# 	self.view.GetRepresentation(0).SetAnnotationLink(self.link)
