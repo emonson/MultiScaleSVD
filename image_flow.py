@@ -243,13 +243,10 @@ class ImageFlow(object):
 				idxArr = VN.vtk_to_numpy(idxVtk)
 				print "PC input to image flow ", idxArr
 				
-				print "Getting image stack"
 				# HACK: Setting wordle_on to true so will force wordle images if text data
 				self.imStack = self.ds.GetProjectedImages(idxArr.tolist(), True, False)
 				i_array_name = 'Intensity'
-				
-				print "Got image stack"
-				
+								
 				# Need to manually generate a map of index to Pedigree ID since
 				# vtkImageData returned doesn't contain Pedigree ID tag for each slice
 				self.pedigree_id_dict = {}

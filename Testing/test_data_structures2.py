@@ -5,10 +5,11 @@ import vtk
 import scipy.io
 import vtk.util.numpy_support as VN
 import numpy as N
+import sys
 
-data_dir = '/Users/emonson/Data/Fodava/EMoDocMatlabData/'
+data_dir = '/Users/emonson/Data/Fodava/EMoGWDataSets/'
 # data_file = data_dir + 'mnist123456_5c_1119.mat'
-data_file = data_dir + 'junk_mnist_test.mat'
+data_file = data_dir + 'test_sn.mat'
 
 
 print 'Trying to load data set from .mat file...'
@@ -20,7 +21,45 @@ try:
 	MatInput = scipy.io.loadmat(data_file, struct_as_record=True, chars_as_strings=True)
 except:
 	raise IOError, "Can't load supplied matlab file"
-	# return
+
+def s_2Darray(name): 
+	return S[name].flat[0]
+	
+def s_listOf2Darrays(name):
+	return S[name].flat[0].flatten().tolist()
+
+def s_1Darray(name): 
+	return S[name].flat[0].flatten()
+
+def s_scalar(name): 
+	return S[name].flat[0].flatten()[0]
+
+def s_logical(name): 
+	return (S[name].flat[0].flatten()[0] != 0)
+
+def s_listOf1Darrays(name):
+	tmp = S[name].flat[0].flatten().tolist()
+	if tmp[0].shape[1] == 1:
+		tmp2 = [xx.T[0] for xx in tmp]
+	else:
+		tmp2 = [xx[0] for xx in tmp]
+	return tmp2
+
+def s_listOf1DarraysOffset(name):
+	tmp = S[name].flat[0].flatten().tolist()
+	if tmp[0].shape[1] == 1:
+		tmp2 = [xx.T[0]-1 for xx in tmp]
+	else:
+		tmp2 = [xx[0]-1 for xx in tmp]
+	return tmp2
+
+def s_listOfStrings(name):
+	return [xx[0] for xx in S[name].flat[0].flatten().tolist()]
+
+S = MatInput['S']
+
+sys.exit()
+
 
 # Get variables out of Matlab structure
 print 'Transferring variables from Matlab structures'

@@ -136,7 +136,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# TODO: Switch this for different default
 		self.ui.actionColorNone.setChecked(True)
 		self.colorActionGroup.addAction(self.ui.actionColorNone)
-		if self.ds.cat_labels_exist:
+		if self.ds.hasLabels:
 			for ii,label in enumerate(self.ds.label_names):
 				actionTmp = QtGui.QAction(self)
 				actionTmp.setCheckable(True)
@@ -301,7 +301,7 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		# TODO: Switch this for different default
 		self.ui.actionColorNone.setChecked(True)
 		self.colorActionGroup.addAction(self.ui.actionColorNone)
-		if self.ds.cat_labels_exist:
+		if self.ds.hasLabels:
 			for ii,label in enumerate(self.ds.label_names):
 				actionTmp = QtGui.QAction(self)
 				actionTmp.setCheckable(True)
@@ -338,6 +338,9 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 
 			self.ds.SetFileName(str(file))
 			self.ds.LoadData()
+			
+			self.setWindowTitle(QtGui.QApplication.translate("MainWindow", "Multi-scale SVD :: Wavelets", None, QtGui.QApplication.UnicodeUTF8))
+			self.ui.actionWavelet.setChecked(True)
 			
 			# Remove old color_by_array menu items
 			for action in self.color_array_actions_list:

@@ -68,39 +68,83 @@ class DataSource(object):
 		# Get variables out of Matlab structure
 		print 'Transferring variables from Matlab structures'
 
-		# self.GWTopts = MatInput['GWTopts']
-
-		# Test if original images are downsampled in this data
-		if MatInput.has_key('X_down'):
-			self.X_down = N.mat(MatInput['X_down'])
-			self.downsampled = True
+		# Now using single structure, S, to save important variables from Matlab
+		S = None
+		if MatInput.has_key('S'):
+			S = MatInput['S']
 		else:
-			# X has already been projected to D dim by PCA
-			self.X = N.mat(MatInput['X'])
-			self.downsampled = False
-			# V = SVD result (X = (X0-mean)*V[:,:D])
-			# This V already is only V(:,1:D) so we can use it whole
-			self.V = N.mat(MatInput['V'])
-			self.cm = N.mat(MatInput['cm'])	# not sure if should be matrix or array...
+			raise IOError, "Matlab file doesn't have S structure. Must be from old gen file..."
+		
+		# NOTE: Accessing data from S to a convenient numpy array / value
+		# 	2D arrays: xx = S['xx'].flat[0]
+		# 	1D arrays: xx = S['xx'].flat[0].flatten()
+		# 	Scalars:   xx = S['xx'].flat[0].flatten()[0]
+		def s_2Darray(name): return S[name].flat[0]
+		def s_1Darray(name): return S[name].flat[0].flatten()
+		def s_listOf1Darrays(name):
+			tmp = S[name].flat[0].flatten().tolist()
+			if tmp[0].shape[1] == 1:
+				return [xx.T[0] for xx in tmp]
+			else:
+				return [xx[0] for xx in tmp]
+		def s_listOf2Darrays(name): return S[name].flat[0].flatten().tolist()
+		def s_listOfStrings(name): return [xx[0] for xx in S[name].flat[0].flatten().tolist()]
+		def s_listOf1DarraysOffset(name):
+			tmp = S[name].flat[0].flatten().tolist()
+			if tmp[0].shape[1] == 1:
+				return [xx.T[0]-1 for xx in tmp]
+			else:
+				return [xx[0]-1 for xx in tmp]
+		def s_scalar(name): return S[name].flat[0].flatten()[0]
+		def s_logical(name): return (S[name].flat[0].flatten()[0] != 0)
+		
+		# Flags
+		self.isImageData = s_logical('isImageData')
+		self.isTextData = s_logical('isTextData')
+		self.isCompressed = s_logical('isCompressed')
+		self.hasLabels = s_logical('hasLabels')
+		self.hasLabelMeanings = s_logical('hasLabelMeanings')
+		self.hasLabelSetNames = s_logical('hasLabelSetNames')
+		self.hasDocTitles = s_logical('hasDocTitles')
+		self.hasDocFileNames = s_logical('hasDocFileNames')
+		
+		self.X = N.mat(s_2Darray('X'))
+		# Test if original images are downsampled in this data
+		if self.isCompressed:
+			self.V = N.mat(s_2Darray('V'))
+			self.cm = N.mat(s_1Darray('cm'))	# not sure if should be matrix or array...
 
 		# Various plain matrices
 		# NOTE: Have to be careful of anything that can have a 0 value in Matlab
 		# because it might be naturally imported as an unsigned int, and then
 		# when you subtract 1 from it you don't get a negative number as you'd expect
-		self.cp = (MatInput['cp'][0].astype('int16') - 1)	# change here to zero-based indexing
-		self.IniLabels = (MatInput['IniLabels'][0] - 1)		# change here to zero-based indexing
-		self.NumberInNet = MatInput['NumberInNet'][0]
-		self.Scales = (MatInput['Scales'][0] - 1)					# zero-based
-		self.IsALeaf = MatInput['IsALeaf'][0].astype('bool')
-		self.LeafNodes = (MatInput['LeafNodes'][0] - 1)		# zero-based
-		self.LeafNodesImap = (MatInput['LeafNodesImap'][0].astype('int16') - 1)		# zero-based
-		self.EigenVecs = MatInput['EigenVecs'][0]
-		self.CelWavCoeffs = MatInput['CelWavCoeffs']
-		self.CelScalCoeffs = MatInput['CelScalCoeffs']
+		self.cp = (s_1Darray('cp').astype('int16') - 1)	# change here to zero-based indexing
+		self.IniLabels = (s_1Darray('IniLabels') - 1)		# change here to zero-based indexing
+		self.NumberInNet = s_1Darray('NumberInNet')
+		self.Scales = (s_1Darray('Scales') - 1)					# zero-based
+		self.IsALeaf = s_1Darray('IsALeaf').astype('bool')
+		self.LeafNodes = (s_1Darray('LeafNodes') - 1)		# zero-based
+		self.LeafNodesImap = (s_1Darray('LeafNodesImap').astype('int16') - 1)		# zero-based
+		self.EigenVecs = s_2Darray('EigenVecs')
+		self.EigenVals = s_1Darray('EigenVals')
+		self.CelWavCoeffs = s_2Darray('CelWavCoeffs')
+		self.CelScalCoeffs = s_2Darray('CelScalCoeffs')
+		
+		if self.isImageData:
+			self.imR = s_scalar('imR')
+			self.imC = s_scalar('imC')
+		else:
+			# Not sure whether will set this in Matlab or here...
+			self.imR = 200
+			self.imC = 200
+		
+# 		print "======>>>>>> self variables"
+# 		for k,v in self.__dict__.items():
+# 			print k, N.shape(v)
 
 		# Load in category labels, but map them to sequential integers starting at 0
-		if 'Labels' in MatInput:
-			labels_array = MatInput['Labels'] # ncats x npoints 2d array
+		if self.hasLabels:
+			labels_array = s_2Darray('Labels') # ncats x npoints 2d array
 			self.cat_labels = N.zeros_like(labels_array)
 			for ii in range(labels_array.shape[0]):
 				cl_unique = set(labels_array[ii,:])
@@ -108,22 +152,23 @@ class DataSource(object):
 				for jj,vv in enumerate(cl_unique):
 					cl_map[vv] = jj
 				self.cat_labels[ii,:] = N.array([cl_map[vv] for vv in labels_array[ii,:]])
-			self.cat_labels_exist = True
-		else:
-			self.cat_labels_exist = False
 		
-		if self.cat_labels_exist:
+		if self.hasLabels:
 			self.label_names = []
 			# Check whether there are labels names and if there are the right number
-			if ('LabelNames' in MatInput) and (MatInput['LabelNames'][0].size == self.cat_labels.shape[0]):
-				names_array = MatInput['LabelNames'][0]
-				for name_ar in names_array:
-					self.label_names.append(name_ar[0] + '_ids')
+			if self.hasLabelSetNames:
+				names_array = s_1Darray('LabelSetNames')
+				if names_array.size == self.cat_labels.shape[0]:
+					for name_ar in names_array:
+						self.label_names.append(name_ar[0] + '_ids')
 			# Else generate fake names
 			else:
 				for ii in range(self.cat_labels.shape[0]):
 					self.label_names.append('label_' + str(ii) + '_ids')
 
+		if self.hasLabelMeanings:
+			self.LabelMeanings = s_listOfStrings('LabelMeanings')
+		
 		# Need the max number of dims at each scale to fill in zeros for pcoords plot
 		# Create copies for both wavelet coeffs and scaling functions since these often
 		#  have different dimensionalities
@@ -157,63 +202,19 @@ class DataSource(object):
 					if (smax > self.ScalCoeffMax): self.ScalCoeffMax = smax
 					if (smin < self.ScalCoeffMin): self.ScalCoeffMin = smin
 
-		# NOTE: gW and Data are class numpy.ndarray
-		#		MatInput is just a dict, so can directly look for variables there
-
-		if MatInput.has_key('imR') and MatInput.has_key('imC'):
-			print 'Grabbing image dimensions from matlab file'
-			self.imR = MatInput['imR'][0,0]
-			self.imC = MatInput['imC'][0,0]
-		else:
-			# Right now Matlab data doesn't have any record of original image dimensions
-			# NOTE: Hard coding shape for now!
-			print 'Hacking image dimensions from file name'
-			if (self.data_file.find('mnist') >= 0):
-				self.imR = 28	# rows
-				self.imC = 28	# cols
-			elif (self.data_file.find('frey') >= 0):
-				self.imR = 20	# rows
-				self.imC = 28	# cols
-			elif (self.data_file.find('olivetti') >= 0):
-				self.imR = 64	# rows
-				self.imC = 64	# cols
-			else:
-				self.imR = 20
-				self.imC = 20
-				print 'Could not find matching file name -- probably wrong image dimensions!!!!'
-		if self.downsampled:
-			self.imR_down = MatInput['imR_down'][0,0]
-			self.imC_down = MatInput['imC_down'][0,0]
-
 		# NumPts = Number of data points (here number of individual images)
 		self.NumPts = self.IniLabels.shape[0]
-		self.AmbientDimension = MatInput['AmbientDimension'][0,0]	# used to call this D
+		self.AmbientDimension = s_scalar('AmbientDimension')	# used to call this D
 
 		# Manifold dimensionality variable now, not fixed...
 		# self.ManifoldDim = self.gW['ManifoldDimension'][0,0][0,0]
 
 		# Converting cell arrays to lists of numpy arrays
-		self.PointsInNet = []	# Points In Net
-		for ii in range(MatInput['PointsInNet'].shape[1]):
-			self.PointsInNet.append(MatInput['PointsInNet'][0,ii][0]-1)	# 0-based indices
+		self.PointsInNet = s_listOf1DarraysOffset('PointsInNet')	# Points In Net, 0-based indices
 
-		if self.downsampled:
-			self.Centers_down = []
-			self.WavBases_down = []
-			self.ScalFuns_down = []
-			for ii in range(MatInput['PointsInNet'].shape[1]):
-				self.Centers_down.append(N.mat(MatInput['Centers_down'][0,ii]))			# matrix
-				self.WavBases_down.append(N.mat(MatInput['WavBases_down'][0,ii]))			# matrix
-				self.ScalFuns_down.append(N.mat(MatInput['ScalFuns_down'][0,ii]))			# matrix
-		else:
-			self.ScalFuns = []	# Scaling functions
-			self.WavBases = []	# Wavelet bases
-			self.Centers = []	# Center of each node
-			for ii in range(MatInput['PointsInNet'].shape[1]):
-				self.ScalFuns.append(N.mat(MatInput['ScalFuns'][0,ii]))			# matrix
-				self.WavBases.append(N.mat(MatInput['WavBases'][0,ii]))			# matrix
-				self.Centers.append(N.mat(MatInput['Centers'][0,ii][0])) 		# matrix
-
+		self.ScalFuns = s_listOf2Darrays('ScalFuns')	# Scaling functions
+		self.WavBases = s_listOf2Darrays('WavBases')	# Wavelet bases
+		self.Centers = s_listOf1Darrays('Centers')	# Center of each node
 
 		# J = Total number of scales
 		# self.J = self.Scales.max()
@@ -239,15 +240,20 @@ class DataSource(object):
 		self.WordleTable = None
 		self.Terms = None
 		
-		if 'terms' in MatInput.keys():
+		if self.isTextData:
+			print "Starting text data area"
 			self.WordleImages = True
-			mat_terms = MatInput['terms'].T[0]
+			mat_terms = s_listOfStrings('Terms')
 			self.Terms = vtk.vtkStringArray()
 			self.Terms.SetName('dictionary')
 			self.Terms.SetNumberOfComponents(1)
 			for term in mat_terms:
-				self.Terms.InsertNextValue(term[0])
+				self.Terms.InsertNextValue(term)
+			
+			if self.hasDocTitles:
+				self.DocTitles = s_listOfStrings('DocTitles')
 
+			print "Creating initial table"
 			# Init Table and put in some sample data that will be replaced later
 			basis_idx = 0
 			
@@ -359,18 +365,12 @@ class DataSource(object):
 			self.coeff_source = 'wav'
 			self.ScaleMaxDim = self.WavMaxDim
 			self.CelCoeffs = self.CelWavCoeffs
-			if self.downsampled:
-				self.Bases_down = self.WavBases_down
-			else:
-				self.Bases = self.WavBases
+			self.Bases = self.WavBases
 		elif source_name.lower().startswith('sca'):
 			self.coeff_source = 'scal'
 			self.ScaleMaxDim = self.ScalMaxDim
 			self.CelCoeffs = self.CelScalCoeffs
-			if self.downsampled:
-				self.Bases_down = self.ScalFuns_down
-			else:
-				self.Bases = self.ScalFuns
+			self.Bases = self.ScalFuns
 		else:
 			print "Error: Unknown coefficient source. Use 'wavelet' or 'scaling'."
 
@@ -401,7 +401,7 @@ class DataSource(object):
 		For multiple category labels you can pass an index value (0-based), which
 		defaults to zero.
 		"""
-		if self.cat_labels_exist and (idx < self.cat_labels.shape[0]):
+		if self.hasLabels and (idx < self.cat_labels.shape[0]):
 			return (N.min(self.cat_labels[idx,:]), N.max(self.cat_labels[idx,:]))
 		else:
 			# TODO: Should think about what to return here...
@@ -586,7 +586,7 @@ class DataSource(object):
 
 			# Adding in category labels
 			# Name needs to end in _ids so plots will ignore it
-			if self.cat_labels_exist:
+			if self.hasLabels:
 				for ii in range(self.cat_labels.shape[0]):
 					CATvtk = VN.numpy_to_vtk(self.cat_labels[ii,IDarray], deep=True)
 					CATvtk.SetName(self.label_names[ii])
@@ -697,7 +697,7 @@ class DataSource(object):
 
 			# Adding in category labels
 			# Name needs to end in _ids so plots will ignore it
-			if self.cat_labels_exist:
+			if self.hasLabels:
 				for ii in range(self.cat_labels.shape[0]):
 					CATvtk = VN.numpy_to_vtk(self.cat_labels[ii,IDarray], deep=True)
 					CATvtk.SetName(self.label_names[ii])
@@ -722,8 +722,8 @@ class DataSource(object):
 				# Scaling functions coeffs are defined wrt parent node scaling functions...
 				# TODO: Switch this back when back to computing CelScalCoeffs rather than
 				#   CelTangCoeffs...
-				if self.coeff_source == 'scal' and self.cp[node_id] >= 0:
-					node_id = self.cp[node_id]
+				# if self.coeff_source == 'scal' and self.cp[node_id] >= 0:
+				# 	node_id = self.cp[node_id]
 	
 				# Need to create separate images (Z) for each column of matrix result
 				# Bases is D x N matrix
@@ -763,8 +763,8 @@ class DataSource(object):
 				# Scaling functions coeffs are defined wrt parent node scaling functions...
 				# TODO: Switch this back when back to computing CelScalCoeffs rather than
 				#   CelTangCoeffs...
-				if self.coeff_source == 'scal' and self.cp[node_id] >= 0:
-					node_id = self.cp[node_id]
+				# if self.coeff_source == 'scal' and self.cp[node_id] >= 0:
+				# 	node_id = self.cp[node_id]
 	
 				# %% Display all detail coordinates for a given leaf node
 				#
@@ -772,11 +772,7 @@ class DataSource(object):
 				#
 				# Need to create separate images (Z) for each column of matrix result
 	
-				if self.downsampled:
-					image_cols = self.WavBases_down[node_id]
-					imR = self.imR_down
-					imC = self.imC_down
-				else:
+				if self.isCompressed:
 					# V now already chopped to AmbientDimension
 					# Compute all detail images for that dimension
 					# print "DS Calculating center image"
@@ -784,6 +780,10 @@ class DataSource(object):
 					image_cols = self.V*self.Bases[node_id]
 					imR = self.imR
 					imC = self.imC
+				else:
+					image_cols = self.Bases[node_id]
+					imR = self.imR
+					imC = self.imC					
 	
 				# To make it linear, it is the correct order (one image after another) to .ravel()
 				images_linear = N.asarray(image_cols.T).ravel()
@@ -815,7 +815,10 @@ class DataSource(object):
 
 				# Need to create separate images (Z) for each column of matrix result
 				# Bases is D x N matrix
-				image_cols = self.Centers[node_id]*self.V.T + self.cm
+				if self.isCompressed:
+					image_cols = self.Centers[node_id]*self.V.T + self.cm
+				else:
+					image_cols = self.Centers[node_id]
 				
 				self.WordleView.SetColorByArray(False)
 				self.WordleView.Update()
@@ -843,12 +846,8 @@ class DataSource(object):
 			else:
 				
 				# imagesc(reshape(gW.Centers{1}*V(:,1:D)'+cm,28,[]))
-	
-				if self.downsampled:
-					image_col = self.Centers_down[node_id]
-					imR = self.imR_down
-					imC = self.imC_down
-				else:
+				
+				if self.isCompressed:
 					# V now already chopped to AmbientDimension
 					# Compute all detail images for that dimension
 					# print "DS Calculating center image"
@@ -856,10 +855,14 @@ class DataSource(object):
 					image_col = self.Centers[node_id]*self.V.T + self.cm
 					imR = self.imR
 					imC = self.imC
+				else:
+					image_col = self.Centers[node_id]
+					imR = self.imR
+					imC = self.imC
 	
 				# print "DS done calculating center image"
 				# To make it linear, it is the correct order (one image after another) to .ravel()
-				image_linear = N.asarray(image_col.T).ravel()
+				image_linear = N.asarray(image_col).ravel()
 	
 				intensity = VN.numpy_to_vtk(image_linear, deep=True)
 				intensity.SetName('Intensity')
@@ -870,14 +873,14 @@ class DataSource(object):
 				imageData.SetDimensions(imR, imC, 1)
 				imageData.GetPointData().AddArray(intensity)
 				imageData.GetPointData().SetActiveScalars('Intensity')
-	
+				
 				return imageData
 	
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 	
 	# ---------------------------------------
-	def GetProjectedImages(self, IDlist, wordle_on = False, antialias = False):
+	def GetProjectedImages(self, IDlist, wordle_on = True, antialias = False):
 		"""Given a list of IDs selected from a parallel coordinates plot, returns
 		a vtkImageData with all of the projected (reduced dimensionality by SVD) images
 		for those IDs. (e.g. typically 120 dim rather than original 768 dim for MNIST digits)"""
@@ -890,10 +893,12 @@ class DataSource(object):
 
 				# Need to create separate images (Z) for each column of matrix result
 				# Bases is D x N matrix
-				Xtmp = self.X[IDlist,:]*self.V.T
-	
-				# numpy should automatically do tiling!!
-				X_orig = Xtmp + self.cm
+				if self.isCompressed:
+					Xtmp = self.X[:,IDlist]*self.V
+					# numpy should automatically do tiling!!
+					X_orig = Xtmp + self.cm
+				else:
+					X_orig = self.X[:,IDlist]
 				
 				self.WordleView.SetColorByArray(False)
 				self.WordleView.Update()
@@ -901,11 +906,11 @@ class DataSource(object):
 				imgAppend = vtk.vtkImageAppend()
 				imgAppend.SetAppendAxis(2)	# Z
 
-				for ii in range(X_orig.shape[0]):
+				for ii in range(X_orig.shape[1]):
 					
-					coeffs = VN.numpy_to_vtk(X_orig[ii,:].T*100, deep=True)
+					coeffs = VN.numpy_to_vtk(X_orig[:,ii]*100, deep=True)
 					coeffs.SetName('coefficient')
-					c_sign = VN.numpy_to_vtk(N.sign(X_orig[ii,:].T), deep=True)
+					c_sign = VN.numpy_to_vtk(N.sign(X_orig[:,ii]), deep=True)
 					c_sign.SetName('sign')
 					
 					self.WordleTable.RemoveColumn(2)
@@ -929,13 +934,9 @@ class DataSource(object):
 				
 				# X_orig = X*V(:,1:GWTopts.AmbientDimension)'+repmat(cm, size(X,1),1);
 	
-				if self.downsampled:
-					X_orig = self.X_down[IDlist,:]
-					imR = self.imR_down
-					imC = self.imC_down
-				else:
+				if self.isCompressed:
 					# V now already chopped to AmbientDimension
-					Xtmp = self.X[IDlist,:]*self.V.T
+					Xtmp = (self.V*self.X[:,IDlist]).T
 		
 					# numpy should automatically do tiling!!
 					X_orig = Xtmp + self.cm
@@ -943,8 +944,13 @@ class DataSource(object):
 					imR = self.imR
 					imC = self.imC
 	
+				else:
+					X_orig = self.X[:,IDlist]
+					imR = self.imR
+					imC = self.imC
+
 				# To make it linear, it is the correct order (one image after another) to .ravel()
-				X_linear = N.asarray(X_orig).ravel()
+				X_linear = N.asarray(X_orig.T).ravel()
 	
 				# If we want to rearrange it into a stack of images in numpy
 				# X_im = N.asarray(X_orig).reshape(Xtmp.shape[0],self.imR,-1)
@@ -956,7 +962,7 @@ class DataSource(object):
 				imageData = vtk.vtkImageData()
 				imageData.SetOrigin(0,0,0)
 				imageData.SetSpacing(1,1,1)
-				imageData.SetDimensions(imR, imC, X_orig.shape[0])
+				imageData.SetDimensions(imR, imC, X_orig.shape[1])
 				imageData.GetPointData().AddArray(Xvtk)
 				imageData.GetPointData().SetActiveScalars('Intensity')
 	
@@ -1118,7 +1124,7 @@ class DataSource(object):
 			cl = []
 			lut = vtk.vtkLookupTable()
 			
-			if self.cat_labels_exist:
+			if self.hasLabels:
 				num_labels = len(N.unique(self.cat_labels[idx,:]))
 				
 				if num_labels > 8 and num_labels <= 13:

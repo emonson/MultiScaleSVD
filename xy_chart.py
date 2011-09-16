@@ -173,11 +173,18 @@ class XYChart(object):
 
 			# Here is where I'm limiting the selection to _one_ nodeID for now...
 			node_id = idxArr[0]
+
+			# If this is the same icicle node as before
+			same_ice_node = False
+			if node_id == self.input_link_idx:
+				same_ice_node = True
+
 			self.table = self.ds.GetNodeOneScaleCoeffTable(node_id)
 			id_list = self.ds.PointsInNet[node_id]	# Directly accessing member variable
-			self.image_stack = self.ds.GetProjectedImages(id_list, True, True)
 			self.axis_images = self.ds.GetNodeBasisImages(node_id, True)
-			self.center_image = self.ds.GetNodeCenterImage(node_id, True)
+			if not same_ice_node:
+				self.image_stack = self.ds.GetProjectedImages(id_list, True, True)
+				self.center_image = self.ds.GetNodeCenterImage(node_id, True)
 
 			# Get the axis image XY indices in case resetting to those values
 			# and the number of dimensions has changed, and xI or yI are over the limit
@@ -233,7 +240,8 @@ class XYChart(object):
 
 
 			# Need to set the image stack for the plot which will get resliced
-			self.chart.SetTooltipImageStack(self.image_stack)
+			if not same_ice_node:
+				self.chart.SetTooltipImageStack(self.image_stack)
 			self.chart.SetTooltipShowImage(True)
 			# self.chart.SetTooltipImageScalingFactor(2.0)
 			self.chart.SetTooltipImageTargetSize(64)
@@ -241,16 +249,17 @@ class XYChart(object):
 
 			# If this is the same icicle node as before, then reset to original XY indices
 			# before view is updated
-			if node_id == self.input_link_idx:
+			if same_ice_node:
 				self.chart.SetPlotColumnIndices(xI,yI)
 
 			self.ai.SetAxisImagesHorizontal()
 			self.ai.SetAxisImageStack(self.axis_images)
-			self.ai.SetCenterImage(self.center_image)
+			if not same_ice_node:
+				self.ai.SetCenterImage(self.center_image)
 
 			# If this is the same icicle node as before, then reset to original XY indices
 			# before view is updated
-			if node_id == self.input_link_idx:
+			if same_ice_node:
 				self.ai.SetAxisIndices(xI,yI)
 
 			self.ai.Update()
