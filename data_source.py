@@ -288,7 +288,7 @@ class DataSource(object):
 			self.WordleView.SetTermsArrayName('dictionary')
 			self.WordleView.SetSizeArrayName('coefficient')
 			self.WordleView.SetOutputImageDataDimensions(200, 200)
-			self.WordleView.SetMaxNumberOfWords(100);
+			self.WordleView.SetMaxNumberOfWords(50);
 			self.WordleView.SetFontFamily("Rockwell")
 			self.WordleView.SetFontStyle(vtkvtg.vtkQtWordleView.StyleNormal)
 			self.WordleView.SetFontWeight(99)
