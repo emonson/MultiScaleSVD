@@ -283,25 +283,21 @@ class IcicleNoView(object):
 		self.LeafXmins = poly_bounds[isleaf>0,0]
 		self.XOrderedLeafIds = self.LeafIds[self.LeafXmins.argsort()]
 					
+
+
 		# And then grab the Wavelet Coefficients images sorted according to this
 		self.WCimageDataList = self.ds.GetCoeffImages(self.LeafIds,self.LeafXmins)
 				
 		# Calculate extreme abs value for all images
-# 		WCext = 0.0
-# 		for ii in range(len(self.WCimageDataList)):
-# 			WCrange = N.array(self.WCimageDataList[ii].GetPointData().GetScalars().GetRange())
-# 			WCnew = abs(WCrange.min()) if (abs(WCrange.min()) > abs(WCrange.max())) else abs(WCrange.max())
-# 			if (WCnew > WCext):
-# 				WCext = WCnew
 		WCrange = self.ds.GetCoeffRange()
 		WCext = abs(WCrange[0]) if (abs(WCrange[0]) > abs(WCrange[1])) else abs(WCrange[1])
-		
-		# print WCext
 		
 		# Create a BrBg7 lookup table
 		self.lut = self.ds.GetDivergingLUT('BrBg')
 		self.lut.SetRange(-WCext,WCext)
 		
+
+
 		# For each node and corresponding image data in self.WCimageDataList, need to create a texture,
 		# then pull out the correct rectangle from areapoly0 (using vtkExtractSelectedPolyDataIds
 		# and create a mapper and actor and apply the texture. 

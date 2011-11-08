@@ -183,7 +183,10 @@ class XYChart(object):
 			id_list = self.ds.PointsInNet[node_id]	# Directly accessing member variable
 			self.axis_images = self.ds.GetNodeBasisImages(node_id, True)
 			if not same_ice_node:
-				self.image_stack = self.ds.GetProjectedImages(id_list, True, True)
+				if self.ds.hasDocTitles:
+					self.text_stack = self.ds.GetDocTitles(id_list)
+				else:
+					self.image_stack = self.ds.GetProjectedImages(id_list, True, True)
 				self.center_image = self.ds.GetNodeCenterImage(node_id, True)
 
 			# Get the axis image XY indices in case resetting to those values
@@ -241,10 +244,13 @@ class XYChart(object):
 
 			# Need to set the image stack for the plot which will get resliced
 			if not same_ice_node:
-				self.chart.SetTooltipImageStack(self.image_stack)
-			self.chart.SetTooltipShowImage(True)
-			# self.chart.SetTooltipImageScalingFactor(2.0)
-			self.chart.SetTooltipImageTargetSize(100)
+				if self.ds.hasDocTitles:
+					self.chart.GetTooltip().SetTextStack(self.text_stack)
+				else:
+					self.chart.SetTooltipImageStack(self.image_stack)
+			# self.chart.SetTooltipShowImage(True)
+			# self.chart.SetTooltipImageScalingFactor(0.5)
+			self.chart.SetTooltipImageTargetSize(60)
 			self.chart.Update()
 
 			# If this is the same icicle node as before, then reset to original XY indices

@@ -880,6 +880,25 @@ class DataSource(object):
 			raise IOError, "Can't get image until data is loaded successfully"
 	
 	# ---------------------------------------
+	def GetDocTitles(self, IDlist):
+		"""Given a list of IDs selected from a parallel coordinates plot, returns
+		a vtkImageData with all of the projected (reduced dimensionality by SVD) images
+		for those IDs. (e.g. typically 120 dim rather than original 768 dim for MNIST digits)"""
+
+		if self.data_loaded:
+
+			titles = vtk.vtkUnicodeStringArray()
+			titles.SetName('doc_titles')
+
+			if self.hasDocTitles:
+				print self.DocTitles
+				for id in IDlist:
+					print id
+					titles.InsertNextValue(self.DocTitles[id])
+
+			return titles
+
+	# ---------------------------------------
 	def GetProjectedImages(self, IDlist, wordle_on = True, antialias = False):
 		"""Given a list of IDs selected from a parallel coordinates plot, returns
 		a vtkImageData with all of the projected (reduced dimensionality by SVD) images
