@@ -3,7 +3,7 @@ from bundlebuilder import buildapp
 import glob, os
 
 package_root = '/Users/emonson/Programming/Python/VTK/MultiScaleSVD'
-qt_root = '/usr/local/Trolltech/Qt-4.7.0/lib'
+qt_root = '/usr/local/Trolltech/Qt-4.7.3/lib'
 
 lib_list = []
 lib_list.append(os.path.join(qt_root,'QtCore.framework'))
@@ -28,14 +28,14 @@ resource_list.append(os.path.join(package_root,'BlankImage.png'))
 # liblist.append('/Users/emonson/Programming/VTK_git/vtkVTG/build/bin/libvtkvtgChartsPythonD.dylib')
 
 buildapp(
-    name='MS_SVD_vis_color_0725.app', # what to build
+    name='MS_SVD_vis_wordle_1205.app', # what to build
     mainprogram='main.py', # your app's main()
     # argv_emulation=1, # drag&dropped filenames show up in sys.argv
     # iconfile='myapp.icns', # file containing your app's icons
     standalone=1, # make this app self contained.
     # encodings.utf_8 is necessary for loading cell arrays of strings
-    includeModules=['encodings.ascii','encodings.utf_8','sip'], # list of additional Modules to force in
-    includePackages=['vtk','vtkvtg','PyQt4'], # list of additional Packages to force in
+    includeModules=['sip'], # list of additional Modules to force in
+    includePackages=['vtk','vtkvtg','PyQt4','encodings'], # list of additional Packages to force in
     resources=resource_list,
     libs=lib_list, # list of shared libs or Frameworks to include
 )

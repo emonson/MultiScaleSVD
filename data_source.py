@@ -567,7 +567,9 @@ class DataSource(object):
 					sz_limit = min([scale_max_dim[zz], len(wav_row_tuple[zz])])
 					zero_row_tuple[zz][:sz_limit] = wav_row_tuple[zz][:sz_limit]
 
-				wav_coeffs[ii,:] = N.concatenate(zero_row_tuple, axis=1)
+				# NOTE: axis=1 line not working with numpy 2.0...
+				# wav_coeffs[ii,:] = N.concatenate(zero_row_tuple, axis=1)
+				wav_coeffs[ii,:] = N.concatenate(zero_row_tuple, axis=0)
 
 			table = vtk.vtkTable()
 			col_idx = 0
@@ -1121,7 +1123,9 @@ class DataSource(object):
 
 			# Skip any empty arrays
 			wav_row_tuple = tuple(arr[row,:] for arr in self.CelCoeffs[mapped_node_idx,:] if arr.size != 0)
-			wav_row = N.concatenate(wav_row_tuple, axis=1)
+			# NOTE: axis=1 line not working with numpy 2.0...
+			# wav_row = N.concatenate(wav_row_tuple, axis=1)
+			wav_row = N.concatenate(wav_row_tuple, axis=0)
 
 			# Right now doing fractional magnitudes only relative to this row's (data point's) values
 			rel_mag_row_list = [N.abs(arr)/N.max(N.abs(wav_row)) for arr in wav_row_tuple]

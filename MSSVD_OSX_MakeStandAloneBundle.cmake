@@ -22,7 +22,7 @@ endif(COMMAND CMAKE_POLICY)
 #   list (APPEND PluginList "/Users/emonson/Programming/ParaView_git/ParaView/serial/bin/lib${pluginname}.dylib")
 # endforeach()
 
-# list(APPEND PluginList "/usr/local/Trolltech/Qt-4.7.0/plugins/sqldrivers/libqsqlite.dylib")
+# list(APPEND PluginList "/usr/local/Trolltech/Qt-4.7.3/plugins/sqldrivers/libqsqlite.dylib")
  
  
 # gp_item_default_embedded_path_override item default_embedded_path_var
@@ -105,7 +105,7 @@ execute_process(WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 COMMAND python2.6 makeapplication.py build
                 )
 
-set(bundle "${InstallPrefix}/MS_SVD_vis_color_0725.app")
+set(bundle "${InstallPrefix}/MS_SVD_vis_wordle_1205.app")
  
 if(NOT EXISTS "${bundle}")
   message(FATAL_ERROR "error: have to generate bundle with bundlebuilder first: ${bundle}")

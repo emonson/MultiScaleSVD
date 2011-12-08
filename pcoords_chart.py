@@ -416,7 +416,7 @@ if __name__ == "__main__":
 	from data_source import DataSource
 
 	# data_file = askopenfilename()
-	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/yaleB_pca200_1207_labels.mat'
+	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/test_yaleBFaces.mat'
 
 	# DataSource loads .mat file and can generate data from it for other views
 	ds = DataSource(data_file)
