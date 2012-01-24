@@ -9,7 +9,7 @@ import sys
 
 data_dir = '/Users/emonson/Data/Fodava/EMoGWDataSets/'
 # data_file = data_dir + 'mnist123456_5c_1119.mat'
-data_file = data_dir + 'test_sn.mat'
+data_file = data_dir + 'test_SciNews.mat'
 
 
 print 'Trying to load data set from .mat file...'

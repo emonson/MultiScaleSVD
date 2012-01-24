@@ -161,7 +161,7 @@ class IcicleNoView(object):
 		# Connect the annotation link to the icicle representation
 		# rep = self.view.GetRepresentation(0)
 		
-		# Create Navigation Menu
+# Create Navigation Menu
 		self.menu = NavMenu()
 		menu_actor_list = self.menu.GetActorList()
 		for m_actor in menu_actor_list:
@@ -177,7 +177,11 @@ class IcicleNoView(object):
 		self.menu_functions.append(self.OnNavLDown)
 		self.menu_functions.append(self.OnNavRDown)
 		
-		# Load Data
+		# Define color by array variables
+		self.color_by_array = False
+		self.color_array_name = ''
+
+# Load Data
 		self.LoadData()
 
 		# self.renWin.Render()
@@ -284,19 +288,9 @@ class IcicleNoView(object):
 		self.XOrderedLeafIds = self.LeafIds[self.LeafXmins.argsort()]
 					
 
-
-		# And then grab the Wavelet Coefficients images sorted according to this
-		self.WCimageDataList = self.ds.GetCoeffImages(self.LeafIds,self.LeafXmins)
-				
-		# Calculate extreme abs value for all images
-		WCrange = self.ds.GetCoeffRange()
-		WCext = abs(WCrange[0]) if (abs(WCrange[0]) > abs(WCrange[1])) else abs(WCrange[1])
+		# Grab texture images and color map
+		self.GrabTextureImagesAndLUT()
 		
-		# Create a BrBg7 lookup table
-		self.lut = self.ds.GetDivergingLUT('BrBg')
-		self.lut.SetRange(-WCext,WCext)
-		
-
 
 		# For each node and corresponding image data in self.WCimageDataList, need to create a texture,
 		# then pull out the correct rectangle from areapoly0 (using vtkExtractSelectedPolyDataIds
@@ -453,20 +447,62 @@ class IcicleNoView(object):
 		self.renderer.ResetCamera(self.icicle_actor.GetBounds())
 
 	#---------------------------------------------------------
+	def GrabTextureImagesAndLUT(self):
+
+		if self.color_by_array:
+			self.WCimageDataList = self.ds.GetLabelImages(self.color_array_name, self.LeafIds, self.LeafXmins)
+			self.lut = self.ds.GetCategoryLUT(self.color_array_name)
+			self.lut.SetAlpha(0.75)
+			self.renderer.SetBackground(0.95, 0.95, 0.95)
+			# Set color of nav shapes
+			menu_actor_list = self.menu.GetActorList()
+			for m_actor in menu_actor_list:
+				m_actor.GetProperty().SetColor(0.85, 0.85, 0.85)
+		else:
+			self.WCimageDataList = self.ds.GetCoeffImages(self.LeafIds, self.LeafXmins)
+				
+			# Calculate extreme abs value for all images
+			WCrange = self.ds.GetCoeffRange()
+			WCext = abs(WCrange[0]) if (abs(WCrange[0]) > abs(WCrange[1])) else abs(WCrange[1])
+		
+			# Create a BrBg7 lookup table
+			self.lut = self.ds.GetDivergingLUT('BrBg')
+			self.lut.SetRange(-WCext,WCext)
+			self.lut.SetAlpha(1.0)
+			cc0,cc1,cc2 = [float(ccVal)/255.0 for ccVal in [60, 60, 60]]
+			self.renderer.SetBackground(cc0,cc1,cc2)
+			# Set color of nav shapes
+			menu_actor_list = self.menu.GetActorList()
+			for m_actor in menu_actor_list:
+				m_actor.GetProperty().SetColor(0.4, 0.4, 0.4)
+
+
+
+	#---------------------------------------------------------
 	def ReloadTextureImages(self):
 	
-		# And then grab the Wavelet Coefficients images sorted according to this
-		self.WCimageDataList = self.ds.GetCoeffImages(self.LeafIds,self.LeafXmins)
-				
-		WCrange = self.ds.GetCoeffRange()
-		WCext = abs(WCrange[0]) if (abs(WCrange[0]) > abs(WCrange[1])) else abs(WCrange[1])
-		self.lut.SetRange(-WCext,WCext)
+		self.GrabTextureImagesAndLUT()
 		
 		for ii in range(len(self.WCimageDataList)):			
 			self.texture_list[ii].SetInput(self.WCimageDataList[ii])
+			self.texture_list[ii].SetLookupTable(self.lut)
 
 		self.output_link.InvokeEvent("AnnotationChangedEvent")
 		self.renWin.Render()
+
+	def SetColorByArray(self, array_name):
+
+		if (type(array_name).__name__ == 'str') and hasattr(self.ds, 'label_names') and (array_name in self.ds.label_names):
+			self.color_by_array = True
+			self.color_array_name = array_name
+		else:
+			self.color_by_array = False
+			self.color_array_name = ''
+		
+	def SetColorByArrayOff(self):
+
+		self.color_by_array = False
+		self.color_array_name = ''
 
 	#---------------------------------------------------------
 	# Navigation "buttons" callbacks

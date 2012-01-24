@@ -288,11 +288,15 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			self.pc_class.GetView().Render()
 			self.xy_class.SetColorByArray(str(sender.text()))
 			self.xy_class.GetChartView().Render()
+			self.ice_class.SetColorByArray(str(sender.text()))
+			self.ice_class.ReloadTextureImages()
 		else:
 			self.pc_class.SetColorByArrayOff()
 			self.pc_class.GetView().Render()
 			self.xy_class.SetColorByArrayOff()
 			self.xy_class.GetChartView().Render()
+			self.ice_class.SetColorByArrayOff()
+			self.ice_class.ReloadTextureImages()
 		
 	def generate_color_array_actions(self):
 		self.color_array_actions_list = []
@@ -351,6 +355,9 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# Add new color_by_array menu items
 			self.generate_color_array_actions()
 			
+			self.pc_class.SetColorByArrayOff()
+			self.xy_class.SetColorByArrayOff()
+			self.ice_class.SetColorByArrayOff()
 			self.ice_class.LoadData()
 			self.ui.qvtkWidget_0.update()
 			self.ui.qvtkWidget_1.update()

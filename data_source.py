@@ -124,6 +124,8 @@ class DataSource(object):
 		self.Scales = (s_1Darray('Scales') - 1)					# zero-based
 		self.IsALeaf = s_1Darray('IsALeaf').astype('bool')
 		self.LeafNodes = (s_1Darray('LeafNodes') - 1)		# zero-based
+		# LeafNodesImap maps LeafNode entries, which are node indices, to indices of
+		#   arrays like CelWavCoeffs and CelScalCoeffs (in the non-scale, first dimension)
 		self.LeafNodesImap = (s_1Darray('LeafNodesImap').astype('int16') - 1)		# zero-based
 		self.EigenVecs = s_2Darray('EigenVecs')
 		self.EigenVals = s_1Darray('EigenVals')
@@ -482,6 +484,103 @@ class DataSource(object):
 					WCimageData.SetOrigin(0,0,0)
 					WCimageData.SetSpacing(1,1,1)
 					WCimageData.SetDimensions(img.shape[1],img.shape[0],1)
+					WCimageData.GetPointData().AddArray(WCvtk)
+					WCimageData.GetPointData().SetActiveScalars('Coeffs')
+
+					WC_imagedata_list.append(WCimageData)
+
+				return WC_imagedata_list
+
+		else:
+			raise IOError, "Can't get image until data is loaded successfully"
+
+	# ---------------------------------------
+	def GetLabelImages(self, label_name, ice_leaf_ids=None, ice_leaf_xmins=None ):
+		"""Returns a list of vtkImageData 2D images with the label values
+		at all dimensions for all nodes. 
+		If you give the positions and IDs of the leaf nodes, as laid out by
+		the icicle view, then the matrix will be sorted accordingly
+		so the image should be correct for the icicle view."""
+
+		if self.data_loaded:
+
+			if (ice_leaf_ids is not None) and (len(ice_leaf_ids) != len(self.LeafNodes)):
+
+				raise ValueError, "Number of leaves in icicle view doesn't match leaf nodes in tree"
+				
+			elif (label_name not in self.label_names):
+			
+				raise ValueError, "Label name not in list"
+
+			else:
+
+				# Matlab method for appending wavelet coeffients together
+				# Need to use this if the icicle view layout may have reordered the nodes
+				#
+				# num_nodes = length(gW.cp);
+				# LeafNodesImap(gW.LeafNodes) = 1:length(gW.LeafNodes);
+				# NodeWavCoeffs = cell(1,num_nodes);
+				#
+				# for node_idx = 1:num_nodes,
+				# 	offspring = [node_idx get_offspring(gW.cp, node_idx)];
+				# 	relevantLeafNodes = offspring(logical(gW.isaleaf(offspring)));
+				# 	NodeWavCoeffs{node_idx} = cat(1, Data.CelWavCoeffs{LeafNodesImap(relevantLeafNodes), gW.Scales(node_idx)});
+				# end
+
+				# NOTE: The complication with this version is that we need to be able to handle
+				# cases where the icicle view has arranged the tree & leaf nodes in a different
+				# order than Matlab stored the leaf nodes (and indexed the wavelet coeffs)
+
+				# If the caller wants the wavelet coeffs returned in a certain order, then
+				# they need to supply positions with LeafIds, otherwise just use the
+				# original order of the leaf nodes
+				if ice_leaf_ids is None:
+					ice_leaf_ids = self.LeafNodes
+					ice_leaf_xmins = N.arange(ice_leaf_ids.size)
+
+				# Create an array with correct assignments of ice_pos for LeafNodes index
+				# and store for use by other routines
+				ice_ids_mapped = self.LeafNodesImap[ice_leaf_ids]
+				self.mapped_leaf_pos = N.zeros_like(ice_leaf_xmins)
+				self.mapped_leaf_pos[ice_ids_mapped] = ice_leaf_xmins
+				
+				# Need to build a data structure shaped just like CelCoeffs but with label
+				# data inserted. Easiest to just run through the leaf nodes since we can use the
+				# data indices from PointsInNet to grab the label array data
+				CelLabels = N.empty(self.LeafNodes.shape, self.CelCoeffs.dtype)
+				label_idx = self.label_names.index(label_name)
+				for node_id in self.LeafNodes:
+					coeff_idx = self.LeafNodesImap[node_id]
+					CelLabels[coeff_idx] = self.cat_labels[label_idx, self.PointsInNet[node_id]]
+
+				WC_imagedata_list = []
+
+				# Looping through by node_id in tree
+				for node_id in range(self.cp.size):
+					leaf_offspring = N.array(list(self.get_leaf_children(self.cp, node_id)))
+					offspring_idxs = self.LeafNodesImap[leaf_offspring]
+					offspring_pos = self.mapped_leaf_pos[offspring_idxs]
+					sorted_offspring_pos_idxs = N.argsort(offspring_pos)
+					sorted_offspring_idxs = offspring_idxs[sorted_offspring_pos_idxs]
+					# Need to reverse the order up-down of wav coeffs
+					img_list = list(pp[::-1] for pp in CelLabels[sorted_offspring_idxs])
+					# Need to reverse the list to get in the right order
+					img_list.reverse()
+					# Need to transpose the concatenated matrices
+					img = N.concatenate(tuple(img_list), axis=0).T
+
+					# Create vtkImageData out of WavCoeffs for texturing icicle view tree
+					# .copy() is to force the array to be contiguous for numpy_to_vtk
+					# deep=True should keep reference around even after numpy array is destroyed
+
+					# Need to reverse the order again
+					WCvtk = VN.numpy_to_vtk(img.ravel()[::-1].copy().astype('f'), deep=True)
+					WCvtk.SetName('Coeffs')
+
+					WCimageData = vtk.vtkImageData()
+					WCimageData.SetOrigin(0,0,0)
+					WCimageData.SetSpacing(1,1,1)
+					WCimageData.SetDimensions(img.shape[0],1,1)
 					WCimageData.GetPointData().AddArray(WCvtk)
 					WCimageData.GetPointData().SetActiveScalars('Coeffs')
 
@@ -1137,17 +1236,23 @@ class DataSource(object):
 
 
 	# ---------------------------------------
-	def GetCategoryLUT(self, idx = 0):
+	def GetCategoryLUT(self, array_name = ''):
 		"""Returns a LUT for category coloring. Result depends on number
-		of categories. Pass an index to get a proper label map (otherwise
+		of categories. Pass an array label name (otherwise
 		it defaults to the first (zeroth) label."""
 
 		if self.data_loaded:
 
 			cl = []
 			lut = vtk.vtkLookupTable()
+			idx = 0
 			
 			if self.hasLabels:
+				if (array_name == '') or (array_name not in self.label_names):
+					idx = 0
+				else:
+					idx = self.label_names.index(array_name)
+				
 				num_labels = len(N.unique(self.cat_labels[idx,:]))
 				
 				if num_labels > 8 and num_labels <= 13:
