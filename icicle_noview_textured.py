@@ -104,6 +104,9 @@ class IcicleNoView(object):
 		self.interactor.SetInteractorStyle(self.istyle)
 		self.renderer.GetActiveCamera().ParallelProjectionOn()
 
+		# TEST
+		# self.renderer.GetActiveCamera().SetViewUp(1,0,0)
+
 		# Create callbacks for mouse events
 		self.mouseActions = {}
 		self.mouseActions["LeftButtonDown"] = 0
