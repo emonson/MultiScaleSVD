@@ -240,7 +240,7 @@ class PCoordsChart(object):
 		# and much is based on chart visible columns, trying to clear out visibility
 		# and reload new before change data. Column visibility is just based on names
 		# in a vtkStringArray
-		self.chart.SetAllColumnsInvisible()
+		self.chart.SetColumnVisibilityAll(False)
 
 		# Set up list of allowed scale values based on scale_range setting
 		allowed_scales = []
@@ -250,6 +250,9 @@ class PCoordsChart(object):
 				 (self.scale_range == 'coarse' and ii <= self.currentScale) or \
 				 (self.scale_range == 'fine' and ii >= self.currentScale):
 				allowed_scales.append(ii)
+
+		self.chart.GetPlot(0).SetInput(self.table)
+		self.chart.GetPlot(0).Modified()
 
 		# By default only 10 axes (columns). Set these before try to change data
 		#   since plot update depends on column visibility numbers
@@ -262,8 +265,6 @@ class PCoordsChart(object):
 				self.chart.SetColumnVisibility(col_name, True)
 				valid_names.append(col_name)
 
-		self.chart.GetPlot(0).SetInput(self.table)
-		self.chart.GetPlot(0).Modified()
 		self.chart.SetDrawSets(True)
 		self.chart.SetXYcurrentX(self.XYcurrentX)
 		self.chart.SetXYcurrentY(self.XYcurrentY)
