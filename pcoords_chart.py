@@ -25,7 +25,11 @@ class PCoordsChart(object):
 		self.view.GetRenderWindow().SetSize(600,300)
 
 		self.chart = vtkvtg.vtkMyChartParallelCoordinates()
-
+		
+		#DEBUG
+		print "# DEBUG PC CHART"
+		print self.chart.GetAxis(0)
+		
 		self.highlight_link = None
 		if highlight_link is not None:
 			self.SetHighlightAnnotationLink(highlight_link)

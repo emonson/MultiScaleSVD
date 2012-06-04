@@ -71,11 +71,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.if_al_out = self.if_class.GetOutputAnnotationLink()
 		self.pc_class.SetHighlightAnnotationLink(self.if_al_out)
 
-		# View #3 -- Detail View
-		self.nf_class = DetailImageFlow(self.ds, self.if_al_out)
-		self.nf_class.SetFlowDirection(Direction.Vertical)
-		self.nf_al_out = self.nf_class.GetOutputAnnotationLink()
-
 		# View #4 -- XY Chart View
 		self.xy_class = XYChart(self.ds)
 		self.xy_class.SetInputAnnotationLink(self.ice_al_out)
@@ -84,7 +79,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 
 		self.ice_class.SetGroupAnnotationLink(self.pc_al_out)
 		self.ice_class.SetHighlightAnnotationLink(self.if_al_out)
-		self.ice_class.SetScaleAnnotationLink(self.nf_al_out)
 
 		# View #5 -- Axis Images (xy control) View
 
@@ -106,10 +100,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 		self.ui.qvtkWidget_2.SetRenderWindow(self.if_class.GetRenderWindow())
 		self.if_class.GetInteractor().Initialize()
 		# self.ui.qvtkWidget_2.show()
-		# Detail Flow
-		self.ui.qvtkWidget_3.SetRenderWindow(self.nf_class.GetRenderWindow())
-		self.nf_class.GetInteractor().Initialize()
-		# self.ui.qvtkWidget_3.show()
 		# XYChart
 		self.xy_class.GetChartView().SetInteractor(self.ui.qvtkWidget_4.GetInteractor())
 		self.ui.qvtkWidget_4.SetRenderWindow(self.xy_class.GetChartView().GetRenderWindow())
@@ -234,7 +224,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# Force other classes to reload their image and table data from new source
 			# while keeping all selections...
 			self.ice_class.ReloadTextureImages()
-			# self.nf_class.ReloadBasisImages()
 			# Instead of reloading basis images in detail view, try just firing event from image flow...
 			self.if_al_out.InvokeEvent("AnnotationChangedEvent")
 			# Axis images seems to reset properly on switchover, so follow that...
@@ -252,7 +241,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			# Force other classes to reload their image and table data from new source
 			# while keeping all selections...
 			self.ice_class.ReloadTextureImages()
-			# self.nf_class.ReloadBasisImages()
 			# Instead of reloading basis images in detail view, try just firing event from image flow...
 			self.if_al_out.InvokeEvent("AnnotationChangedEvent")
 			# Axis images seems to reset properly on switchover, so follow that...
@@ -337,8 +325,6 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 			self.pc_class.GetAnnotationLink().InvokeEvent("AnnotationChangedEvent")
 			self.if_class.GetOutputAnnotationLink().GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
 			self.if_class.GetOutputAnnotationLink().InvokeEvent("AnnotationChangedEvent")
-			self.nf_class.GetOutputAnnotationLink().GetCurrentSelection().GetNode(0).SetSelectionList(empty_vtk)
-			self.nf_class.GetOutputAnnotationLink().InvokeEvent("AnnotationChangedEvent")
 
 			self.ds.SetFileName(str(file))
 			self.ds.LoadData()
