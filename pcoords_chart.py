@@ -240,7 +240,7 @@ class PCoordsChart(object):
 		# and much is based on chart visible columns, trying to clear out visibility
 		# and reload new before change data. Column visibility is just based on names
 		# in a vtkStringArray
-		self.chart.SetColumnVisibilityAll(False)
+		# self.chart.SetColumnVisibilityAll(False)
 
 		# Set up list of allowed scale values based on scale_range setting
 		allowed_scales = []
@@ -253,6 +253,9 @@ class PCoordsChart(object):
 
 		self.chart.GetPlot(0).SetInput(self.table)
 		self.chart.GetPlot(0).Modified()
+		# If we don't reset column visibility here, first 10 are automatically set visible
+		# after data change
+		self.chart.SetColumnVisibilityAll(False)
 
 		# By default only 10 axes (columns). Set these before try to change data
 		#   since plot update depends on column visibility numbers
@@ -418,7 +421,7 @@ if __name__ == "__main__":
 	from data_source import DataSource
 
 	# data_file = askopenfilename()
-	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/test_yaleBFaces.mat'
+	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/test_mnist12.mat'
 
 	# DataSource loads .mat file and can generate data from it for other views
 	ds = DataSource(data_file)
@@ -433,7 +436,7 @@ if __name__ == "__main__":
 	pc_class = PCoordsChart(ds)
 	pc_class.SetInputAnnotationLink(ice_output_link)
 	pc_class.GetView().GetRenderWindow().SetSize(600,300)
-	pc_class.SetColorByArray('pose_ids')
+	pc_class.SetColorByArray('label_0_ids')
 
 	# Set up an annotation link as if selections were coming from another class
 	dummy_link2 = vtk.vtkAnnotationLink()
