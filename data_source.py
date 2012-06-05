@@ -1,6 +1,3 @@
-# With this version trying to set a separate actor in front of the icicle view which
-# contains a "non-pickable" version of the textured icicle polys
-
 import vtk
 import scipy.io
 import vtk.util.numpy_support as VN
@@ -140,10 +137,6 @@ class DataSource(object):
 			self.imR = 200
 			self.imC = 200
 		
-# 		print "======>>>>>> self variables"
-# 		for k,v in self.__dict__.items():
-# 			print k, N.shape(v)
-
 		# Load in category labels, but map them to sequential integers starting at 0
 		if self.hasLabels:
 			labels_array = s_2Darray('Labels') # ncats x npoints 2d array
@@ -208,18 +201,12 @@ class DataSource(object):
 		self.NumPts = self.IniLabels.shape[0]
 		self.AmbientDimension = s_scalar('AmbientDimension')	# used to call this D
 
-		# Manifold dimensionality variable now, not fixed...
-		# self.ManifoldDim = self.gW['ManifoldDimension'][0,0][0,0]
-
 		# Converting cell arrays to lists of numpy arrays
 		self.PointsInNet = s_listOf1DarraysOffset('PointsInNet')	# Points In Net, 0-based indices
 
 		self.ScalFuns = s_listOf2Darrays('ScalFuns')	# Scaling functions
 		self.WavBases = s_listOf2Darrays('WavBases')	# Wavelet bases
 		self.Centers = s_listOf1Darrays('Centers')	# Center of each node
-
-		# J = Total number of scales
-		# self.J = self.Scales.max()
 
 		# Creating a storage space for ordering of leaf nodes in icicle view with
 		# default values of ordering according to Matlab-saved LeafNodes
@@ -426,19 +413,6 @@ class DataSource(object):
 
 			else:
 
-				# Matlab method for appending wavelet coeffients together
-				# Need to use this if the icicle view layout may have reordered the nodes
-				#
-				# num_nodes = length(gW.cp);
-				# LeafNodesImap(gW.LeafNodes) = 1:length(gW.LeafNodes);
-				# NodeWavCoeffs = cell(1,num_nodes);
-				#
-				# for node_idx = 1:num_nodes,
-				# 	offspring = [node_idx get_offspring(gW.cp, node_idx)];
-				# 	relevantLeafNodes = offspring(logical(gW.isaleaf(offspring)));
-				# 	NodeWavCoeffs{node_idx} = cat(1, Data.CelWavCoeffs{LeafNodesImap(relevantLeafNodes), gW.Scales(node_idx)});
-				# end
-
 				# NOTE: The complication with this version is that we need to be able to handle
 				# cases where the icicle view has arranged the tree & leaf nodes in a different
 				# order than Matlab stored the leaf nodes (and indexed the wavelet coeffs)
@@ -513,19 +487,6 @@ class DataSource(object):
 				raise ValueError, "Label name not in list"
 
 			else:
-
-				# Matlab method for appending wavelet coeffients together
-				# Need to use this if the icicle view layout may have reordered the nodes
-				#
-				# num_nodes = length(gW.cp);
-				# LeafNodesImap(gW.LeafNodes) = 1:length(gW.LeafNodes);
-				# NodeWavCoeffs = cell(1,num_nodes);
-				#
-				# for node_idx = 1:num_nodes,
-				# 	offspring = [node_idx get_offspring(gW.cp, node_idx)];
-				# 	relevantLeafNodes = offspring(logical(gW.isaleaf(offspring)));
-				# 	NodeWavCoeffs{node_idx} = cat(1, Data.CelWavCoeffs{LeafNodesImap(relevantLeafNodes), gW.Scales(node_idx)});
-				# end
 
 				# NOTE: The complication with this version is that we need to be able to handle
 				# cases where the icicle view has arranged the tree & leaf nodes in a different
@@ -666,8 +627,6 @@ class DataSource(object):
 					sz_limit = min([scale_max_dim[zz], len(wav_row_tuple[zz])])
 					zero_row_tuple[zz][:sz_limit] = wav_row_tuple[zz][:sz_limit]
 
-				# NOTE: axis=1 line not working with numpy 2.0...
-				# wav_coeffs[ii,:] = N.concatenate(zero_row_tuple, axis=1)
 				wav_coeffs[ii,:] = N.concatenate(zero_row_tuple, axis=0)
 
 			table = vtk.vtkTable()
@@ -694,64 +653,6 @@ class DataSource(object):
 					table.AddColumn(CATvtk)
 
 			return table, scale_max_dim.tolist()
-
-		else:
-			raise IOError, "Can't get image until data is loaded successfully"
-
-	# ---------------------------------------
-	def GetNodeAllScaleDDimCoeffTable(self, node_id, D):
-		"""Returns a table of all the wavelet coefficients for a single tree
-		icicle view) node at all scales for plotting on a parallel coodinates plot.
-		* * This version used for testing PCoords with each scale abbreviated to first
-		D dimensions... * *"""
-
-		# NOTE: Right now filling with zeros to max scale even if chosen IDs don't
-		# include leaf nodes which run to the max scale...
-
-		if self.data_loaded:
-
-			# For a given node_id, get PIN and then extract all coeffs at every scale
-			# Columns of table will be rows of the WavCoeffsOrig matrix
-
-			IDarray = self.PointsInNet[node_id]
-
-			wav_coeffs = N.zeros((len(IDarray),D*len(self.ScaleMaxDim)))
-			# Append all zero-padded rows gathered from CelWavCoeffs
-			for ii,data_id in enumerate(IDarray):
-				leaf_node = self.IniLabels[data_id]
-				row = N.nonzero(self.PointsInNet[leaf_node]==data_id)[0][0]	# final zero turns array->scalar
-				mapped_node_idx = self.LeafNodesImap[leaf_node]
-
-				# Skip any empty arrays
-				wav_row_tuple = tuple(arr[row,:] for arr in self.CelCoeffs[mapped_node_idx,:] if arr.size != 0)
-				# Create zero-padded arrays
-				zero_row_tuple = tuple(N.zeros(D) for sc in self.ScaleMaxDim)
-				# And transfer over values
-				for zz in range(len(wav_row_tuple)):
-					if len(wav_row_tuple[zz]) >= D:
-						zero_row_tuple[zz][:] = wav_row_tuple[zz][:D]
-					else:
-						d = len(wav_row_tuple[zz])
-						zero_row_tuple[zz][:d] = wav_row_tuple[zz][:]
-
-				wav_coeffs[ii,:] = N.concatenate(zero_row_tuple, axis=1)
-
-			table = vtk.vtkTable()
-			col_idx = 0
-			for scale,maxdim in enumerate(self.ScaleMaxDim):
-				for ii in range(D):
-					column = VN.numpy_to_vtk(wav_coeffs[:,col_idx].copy(), deep=True)
-					column.SetName(str(scale) + '.' + str(ii))
-					table.AddColumn(column)
-					col_idx += 1
-
-			# Trying to set PedigreeIds to that parallel coords selections have correct IDs
-			IDvtk = VN.numpy_to_vtk(IDarray, deep=True)
-			IDvtk.SetName('pedigree_ids')
-			table.AddColumn(IDvtk)
-			table.GetRowData().SetActivePedigreeIds('pedigree_ids')
-
-			return table
 
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
@@ -821,10 +722,6 @@ class DataSource(object):
 				self.WordleView.SetRandomSeed(0);
 
 				# Scaling functions coeffs are defined wrt parent node scaling functions...
-				# TODO: Switch this back when back to computing CelScalCoeffs rather than
-				#   CelTangCoeffs...
-				# if self.coeff_source == 'scal' and self.cp[node_id] >= 0:
-				# 	node_id = self.cp[node_id]
 	
 				# Need to create separate images (Z) for each column of matrix result
 				# Bases is D x N matrix
@@ -862,15 +759,7 @@ class DataSource(object):
 			else:
 				
 				# Scaling functions coeffs are defined wrt parent node scaling functions...
-				# TODO: Switch this back when back to computing CelScalCoeffs rather than
-				#   CelTangCoeffs...
-				# if self.coeff_source == 'scal' and self.cp[node_id] >= 0:
-				# 	node_id = self.cp[node_id]
-	
-				# %% Display all detail coordinates for a given leaf node
-				#
-				# imagesc(reshape(V(:,1:D)*gW.ScalFuns{i}, self.imR,[]));
-				#
+				# Display all detail coordinates for a given leaf node
 				# Need to create separate images (Z) for each column of matrix result
 	
 				if self.isCompressed:
@@ -945,14 +834,10 @@ class DataSource(object):
 				return img
 				
 			else:
-				
-				# imagesc(reshape(gW.Centers{1}*V(:,1:D)'+cm,28,[]))
-				
+								
 				if self.isCompressed:
 					# V now already chopped to AmbientDimension
 					# Compute all detail images for that dimension
-					# print "DS Calculating center image"
-					# print node_id, self.Centers[node_id].shape, self.V.T.shape, self.cm.shape
 					image_col = self.Centers[node_id]*self.V.T + self.cm
 					imR = self.imR
 					imC = self.imC
@@ -961,7 +846,6 @@ class DataSource(object):
 					imR = self.imR
 					imC = self.imC
 	
-				# print "DS done calculating center image"
 				# To make it linear, it is the correct order (one image after another) to .ravel()
 				image_linear = N.asarray(image_col).ravel()
 	
@@ -1006,7 +890,6 @@ class DataSource(object):
 		for those IDs. (e.g. typically 120 dim rather than original 768 dim for MNIST digits)"""
 
 		if self.data_loaded:
-			# if self.WordleImages:
 			if self.WordleImages and wordle_on:
 
 				self.WordleView.SetRandomSeed(0);
@@ -1052,15 +935,12 @@ class DataSource(object):
 				
 			else:
 				
-				# X_orig = X*V(:,1:GWTopts.AmbientDimension)'+repmat(cm, size(X,1),1);
-	
 				if self.isCompressed:
 					# V now already chopped to AmbientDimension
 					Xtmp = (self.V*self.X[:,IDlist]).T
 		
 					# numpy should automatically do tiling!!
 					X_orig = Xtmp + self.cm
-					# X_orig = Xtmp + N.tile(self.cm,(Xtmp.shape[0],1))	# tile ~ repmat
 					imR = self.imR
 					imC = self.imC
 	
@@ -1071,9 +951,6 @@ class DataSource(object):
 
 				# To make it linear, it is the correct order (one image after another) to .ravel()
 				X_linear = N.asarray(X_orig.T).ravel()
-	
-				# If we want to rearrange it into a stack of images in numpy
-				# X_im = N.asarray(X_orig).reshape(Xtmp.shape[0],self.imR,-1)
 	
 				# Going ahead and using numpy_support here...  Much faster!!!
 				Xvtk = VN.numpy_to_vtk(X_linear, deep=True)	# even with the (necessary) deep copy
@@ -1088,98 +965,6 @@ class DataSource(object):
 	
 				return imageData
 	
-		else:
-			raise IOError, "Can't get image until data is loaded successfully"
-	
-	# ---------------------------------------
-	def GetOriginalImages(self, IDlist):
-		"""Given a list of IDs selected from a parallel coordinates plot, returns
-		a vtkImageData with all of the original images for those IDs."""
-
-		# * * * OLD FIXED-DIM VERSION * * *
-
-		if self.data_loaded:
-
-			for ii in IDlist:
-				pass
-				# i = sample; % 39 when digit =1
-				#
-				# %% Add original image
-				#
-				# imagesc(reshape(X0(i,:), self.imR,[]));
-
-			return
-
-		else:
-			raise IOError, "Can't get image until data is loaded successfully"
-
-	# ---------------------------------------
-	def GetMultiResolutionImages(self, ID):
-		"""Given a single ID selected from an image flow view, returns
-		a vtkImageData with all of the image approximations at all scales for
-		that ID."""
-
-		# * * * OLD FIXED-DIM VERSION * * *
-
-		if self.data_loaded:
-
-
-			# NEW Matlab version of how projections are calculated
-			#
-			# for i = 1:nLeafNodes
-			#
-			# 	net = leafNodes(i);
-			# 	netPts = find(gW.IniLabels == net);
-			# 	nPts = length(netPts);
-			# 	j_max = gW.Scales(net);
-			# 	gWCentersnet = repmat(gW.Centers{net},nPts,1);
-			#
-			# 	Data.Projections(netPts,:,j_max) = Data.CelScalCoeffs{i,j_max}*gW.ScalFuns{net}' + gWCentersnet;
-
-			# OLD % Calculate and display approximations at all scales
-			#
-			# i = sample; % 39 when digit =1
-			#
-			# for j = J:-1:1
-			# 	X_approx = Data.Projections(:,:,j);
-			# 	X_img = X_approx*V(:,1:D)'+repmat(cm, size(X_approx,1),1);
-			# 	imagesc(reshape(X_img(i,:), self.imR,[]));
-			# end
-			#
-
-			# TODO: Not saving Projections now (for space and loading) so need to calculate
-			# 	them from scaling functions and coefficients as in NEW calc above...
-
-			# In principle, can calculate projection at scale which doesn't exist for a particular
-			# image, so I'm testing which scales are in the chain of nodes for that image
-			# and only calulating multires for those scales so the multi-res and detail images
-			# will match up...
-
-			leafNode = self.IniLabels[ID]
-			chain = self.find_path_down_the_tree(leafNode)
-			scales = self.Scales[chain]
-
-			# PROJ[ID][:,scale]
-
-			Xtmp = N.mat(self.PROJ[ID][:,scales]).T*self.V[:,:self.D].T		# Xtmp.shape = (scales,imR*imC)
-			X_img = Xtmp + N.tile(self.cm,(Xtmp.shape[0],1))	# tile ~ repmat
-
-			# To make it linear, it is the correct order (one image after another) to .ravel()
-			X_linear = N.asarray(X_img).ravel()
-
-			# Going ahead and using numpy_support here...  Much faster!!!
-			Xvtk = VN.numpy_to_vtk(X_linear, deep=True)	# even with the (necessary) deep copy
-			Xvtk.SetName('Intensity')
-
-			imageData = vtk.vtkImageData()
-			imageData.SetOrigin(0,0,0)
-			imageData.SetSpacing(1,1,1)
-			imageData.SetDimensions(self.imR, self.imC, Xtmp.shape[0])
-			imageData.GetPointData().AddArray(Xvtk)
-			imageData.GetPointData().SetActiveScalars('Intensity')
-
-			return imageData
-
 		else:
 			raise IOError, "Can't get image until data is loaded successfully"
 
@@ -1222,8 +1007,6 @@ class DataSource(object):
 
 			# Skip any empty arrays
 			wav_row_tuple = tuple(arr[row,:] for arr in self.CelCoeffs[mapped_node_idx,:] if arr.size != 0)
-			# NOTE: axis=1 line not working with numpy 2.0...
-			# wav_row = N.concatenate(wav_row_tuple, axis=1)
 			wav_row = N.concatenate(wav_row_tuple, axis=0)
 
 			# Right now doing fractional magnitudes only relative to this row's (data point's) values
@@ -1401,12 +1184,6 @@ class DataSource(object):
 		the first element of chain is the root and the last element of chain
 		is the current node n"""
 
-		# chain = [];
-		# while n>0
-		#    chain = [chain n];
-		#    n = cp(n);
-		# end
-
 		n = leafNodeID
 		chain = []
 
@@ -1419,18 +1196,6 @@ class DataSource(object):
 	def get_offspring(self, cp, node_id):
 		"""Internal method finds all the offspring of (but not including)
 		the given node in the tree cp."""
-
-		# function offspring = get_offspring(cp, node)
-		# offspring = [];
-		# currentNodes = node;
-		#
-		# while ~isempty(currentNodes)
-		#     newNodes = []; % collects all the children of currentNodes
-		#     for i = 1:length(currentNodes)
-		#         children = find(cp == currentNodes(i));
-		#         newNodes = [newNodes children];
-		#     offspring = [offspring newNodes];
-		#     currentNodes = newNodes;
 
 		offspring = N.array([],dtype='int32')
 		current_nodes = N.array([node_id],dtype='int32')
