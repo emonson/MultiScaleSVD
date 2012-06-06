@@ -161,6 +161,9 @@ class IcicleNoView(object):
 		# TEST: Set up callback to test icicle view selection IDs
 		self.output_link.AddObserver("AnnotationChangedEvent", self.IcicleSelectionCallback)
 		
+		# Flag for whether scale selection is internal or external
+		self.scale_internal_call = False
+		
 		# Connect the annotation link to the icicle representation
 		# rep = self.view.GetRepresentation(0)
 		
@@ -677,6 +680,13 @@ class IcicleNoView(object):
 		self.scale_link.InvokeEvent("AnnotationChangedEvent")
 			
 	#---------------------------------------------------------
+	def SetDataSource(self, ds):
+		
+		self.ds = ds
+		
+		# NOTE: May want to automatically do other things after this...
+		
+	#---------------------------------------------------------
 	def SetGroupAnnotationLink(self, link):
 		
 		self.group_link = link
@@ -758,6 +768,11 @@ class IcicleNoView(object):
 		# Here combine those two pieces of information to select the correct tree
 		# node corresponding to that pedigree_id highlight and scale value
 		
+		# This call doesn't make sense if there isn't a highlight link
+		# since it follows that highlighted individual to the selected scale
+		if self.highlight_link is None:
+			return
+		
 		# Don't want to update if this is an internal call
 		if self.scale_internal_call:
 			self.scale_internal_call = False
@@ -830,42 +845,77 @@ class IcicleNoView(object):
 if __name__ == "__main__":
 
 	from data_source import DataSource
+	import os
 
 	# from tkFileDialog import askopenfilename
 	# data_file = askopenfilename()
-	data_file = '/Users/emonson/Data/Fodava/EMoGWDataSets/mnist12_1k_20100825.mat'
+	data_dir = '/Users/emonson/Data/Fodava/EMoGWDataSets'
+	data_file_list = ['test_mnist12.mat', 'test_mnist3569.mat', 'test_NatImPatches.mat']
 	
-	# DataSource loads .mat file and can generate data from it for other views
-	ds = DataSource(data_file)
+	data_source_list = []
+	for file_name in data_file_list:
+		# DataSource loads .mat file and can generate data from it for other views
+		data_source = DataSource(os.path.join(data_dir, file_name))
+		data_source_list.append(data_source)
+	
+	print "* * Data sources loaded * *"
 	
 	# All view classes have access to an instance of that data source for internal queries
 	# Note that the only view which will pull and display data right away is the icicle view
 	#  the other views need to be able to initialize without any data and only pull and show
 	#  upon the first AnnotationChanged event...
-	ice_class = IcicleNoView(ds)
+	ice_class = IcicleNoView(data_source_list[0])
 	ice_class.GetRenderWindow().SetPosition(50,500)
 	ice_class.GetRenderWindow().SetSize(630,470)
 	ice_al_out = ice_class.GetOutputAnnotationLink()
+
+	print "Looping..."
 	
-	# Set up an annotation link as if selections were coming from another class
-	dummy_link = vtk.vtkAnnotationLink()
-	dummy_link.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
-	dummy_link.GetCurrentSelection().GetNode(0).SetContentType(2)   # 2 = PedigreeIds, 4 = Indices
+	for index in [0, 1, 2, 0, 1, 2, 0, 1, 2]:
+		
+		ice_class.SetDataSource(data_source_list[index])
+		ice_class.LoadData()
+		
+		# Set up an xy or PC plot annotation link as if selections were coming from another class
+		group_link = vtk.vtkAnnotationLink()
+		group_link.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+		group_link.GetCurrentSelection().GetNode(0).SetContentType(2)   # 2 = PedigreeIds, 4 = Indices
+		
+		ice_class.SetGroupAnnotationLink(group_link)
+		
+		# Fill selection link with individual data point IDs
+		group_id_array = N.array([3,5,10,200,103,54],dtype='int64')
+		group_id_list = VN.numpy_to_vtkIdTypeArray(group_id_array)
+		group_link.GetCurrentSelection().GetNode(0).SetSelectionList(group_id_list)
+		group_link.InvokeEvent("AnnotationChangedEvent")
 	
-	ice_class.SetGroupAnnotationLink(dummy_link)
 	
-	# Set up an annotation link as if selections were coming from another class
-	dummy_link2 = vtk.vtkAnnotationLink()
-	dummy_link2.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
-	dummy_link2.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
+		# Set up highlight annotation link as if selections were coming from another class
+		highlight_link = vtk.vtkAnnotationLink()
+		highlight_link.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+		highlight_link.GetCurrentSelection().GetNode(0).SetContentType(2)   # 2 = PedigreeIds, 4 = Indices
+		
+		ice_class.SetHighlightAnnotationLink(highlight_link)
+		
+		# Fill selection link with individual data point IDs
+		highlight_id_array = N.array([54],dtype='int64')
+		highlight_id_list = VN.numpy_to_vtkIdTypeArray(highlight_id_array)
+		highlight_link.GetCurrentSelection().GetNode(0).SetSelectionList(highlight_id_list)
+		highlight_link.InvokeEvent("AnnotationChangedEvent")
 	
-	ice_class.SetScaleAnnotationLink(dummy_link2)
 	
-	# Fill selection link with dummy IDs
-	id_array = N.array([3,5,10,200,103,54],dtype='int64')
-	id_list = VN.numpy_to_vtkIdTypeArray(id_array)
-	dummy_link.GetCurrentSelection().GetNode(0).SetSelectionList(id_list)
-	dummy_link.InvokeEvent("AnnotationChangedEvent")
+		# Set up a scale annotation link as if selections were coming from another class
+		scale_link = vtk.vtkAnnotationLink()
+		scale_link.GetCurrentSelection().GetNode(0).SetFieldType(1)     # Point
+		scale_link.GetCurrentSelection().GetNode(0).SetContentType(4)   # 2 = PedigreeIds, 4 = Indices
+		
+		ice_class.SetScaleAnnotationLink(scale_link)
+		
+		# Fill selection link with a single scale value
+		scale_id_array = N.array([2],dtype='int64')
+		scale_id_list = VN.numpy_to_vtkIdTypeArray(scale_id_array)
+		scale_link.GetCurrentSelection().GetNode(0).SetSelectionList(scale_id_list)
+		scale_link.InvokeEvent("AnnotationChangedEvent")
 	
 	# Only need to Start() interactor for one view
 	ice_class.GetRenderWindow().GetInteractor().Start()
