@@ -835,7 +835,16 @@ class IcicleNoView(object):
 		# self.istyle.AddObserver("MouseMoveEvent", self.MouseMoveCallback)
 		self.istyle.AddObserver("LeftButtonPressEvent", self.LeftButtonPressCallback)
 		self.istyle.AddObserver("LeftButtonReleaseEvent", self.LeftButtonReleaseCallback)
-		
+
+	def SetInteractorStyleToImage(self):
+		self.interactor = self.renWin.GetInteractor()
+		self.istyle = vtk.vtkInteractorStyleImage()
+		self.renWin.GetInteractor().SetInteractorStyle(self.istyle)
+		self.renderer.GetActiveCamera().ParallelProjectionOn()
+		# self.istyle.AddObserver("MouseMoveEvent", self.MouseMoveCallback)
+		self.istyle.AddObserver("LeftButtonPressEvent", self.LeftButtonPressCallback)
+		self.istyle.AddObserver("LeftButtonReleaseEvent", self.LeftButtonReleaseCallback)
+
 	# def SetAnnotationLink(self, externalLink):
 	#	self.output_link = externalLink
 	#	self.view.GetRepresentation(0).SetAnnotationLink(self.output_link)

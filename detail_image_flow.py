@@ -675,15 +675,32 @@ class DetailImageFlow(object):
 		self.interactorStyle.AddObserver("MouseMoveEvent", self.MouseMoveCallback)
 		self.interactorStyle.AddObserver("LeftButtonPressEvent", self.LeftButtonPressCallback)
 		self.interactorStyle.AddObserver("LeftButtonReleaseEvent", self.LeftButtonReleaseCallback)
-		
+
 		self.sliderWidget.SetInteractor(self.interactor)
 		self.sliderWidget.SetRepresentation(self.sliderRep)
 		self.sliderWidget.SetAnimationModeToAnimate()
 		self.sliderWidget.EnabledOn()
-		
+
 		self.sliderWidget.AddObserver("InteractionEvent", self.sliderCallback)
 		self.sliderWidget.AddObserver("EndInteractionEvent", self.endSliderCallback)
-		
+
+	# --------------------------------------------------------
+	def SetInteractorStyleToImage(self):
+		self.interactor = self.window.GetInteractor()
+		self.interactorStyle = vtk.vtkInteractorStyleImage()
+		self.window.GetInteractor().SetInteractorStyle(self.interactorStyle)
+		self.interactorStyle.AddObserver("MouseMoveEvent", self.MouseMoveCallback)
+		self.interactorStyle.AddObserver("LeftButtonPressEvent", self.LeftButtonPressCallback)
+		self.interactorStyle.AddObserver("LeftButtonReleaseEvent", self.LeftButtonReleaseCallback)
+
+		self.sliderWidget.SetInteractor(self.interactor)
+		self.sliderWidget.SetRepresentation(self.sliderRep)
+		self.sliderWidget.SetAnimationModeToAnimate()
+		self.sliderWidget.EnabledOn()
+
+		self.sliderWidget.AddObserver("InteractionEvent", self.sliderCallback)
+		self.sliderWidget.AddObserver("EndInteractionEvent", self.endSliderCallback)
+
 
 	# --------------------------------------------------------
 	def GetOutputAnnotationLink(self):

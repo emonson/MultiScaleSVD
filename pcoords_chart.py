@@ -445,7 +445,7 @@ if __name__ == "__main__":
 	pc_class.SetHighlightAnnotationLink(dummy_link2)
 
 	# Fill selection link with dummy IDs
-	id_array = N.array([182],dtype='int64')
+	id_array = N.array([18],dtype='int64')
 	id_list = VN.numpy_to_vtkIdTypeArray(id_array)
 	node = vtk.vtkSelectionNode()
 	node.SetFieldType(3)		# Vertex

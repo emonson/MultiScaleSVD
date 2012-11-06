@@ -95,20 +95,23 @@ class MultiScaleSVDViews(QtGui.QMainWindow):
 
 		# Now need to get all the interactors working properly
 		# Icicle
+		self.ice_class.GetRenderWindow().SetInteractor(self.ui.qvtkWidget_0.GetInteractor())
 		self.ui.qvtkWidget_0.SetRenderWindow(self.ice_class.GetRenderWindow())
-		self.ice_class.GetInteractor().Initialize()
+		self.ice_class.SetInteractorStyleToImage()
 		# self.ui.qvtkWidget_0.show()
 		# PCoords
 		self.pc_class.GetView().SetInteractor(self.ui.qvtkWidget_1.GetInteractor())
 		self.ui.qvtkWidget_1.SetRenderWindow(self.pc_class.GetView().GetRenderWindow())
 		# self.ui.qvtkWidget_1.show()
 		# Image Flow
+		self.if_class.GetRenderWindow().SetInteractor(self.ui.qvtkWidget_2.GetInteractor())
 		self.ui.qvtkWidget_2.SetRenderWindow(self.if_class.GetRenderWindow())
-		self.if_class.GetInteractor().Initialize()
+		self.if_class.SetInteractorStyleToImage()
 		# self.ui.qvtkWidget_2.show()
 		# Detail Flow
+		self.nf_class.GetRenderWindow().SetInteractor(self.ui.qvtkWidget_3.GetInteractor())
 		self.ui.qvtkWidget_3.SetRenderWindow(self.nf_class.GetRenderWindow())
-		self.nf_class.GetInteractor().Initialize()
+		self.nf_class.SetInteractorStyleToImage()
 		# self.ui.qvtkWidget_3.show()
 		# XYChart
 		self.xy_class.GetChartView().SetInteractor(self.ui.qvtkWidget_4.GetInteractor())
