@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 """
 main.pyw
@@ -9,12 +9,12 @@ Example application using PyQt4 (with Qt Designer) and VTK
 """
 
 import sys
-from PyQt4.QtGui import QApplication
+from PyQt4 import QtGui
 from multiscale_svd_gui import MultiScaleSVDViews
 
 if __name__ == "__main__":
 
-    app = QApplication(sys.argv)
+    app = QtGui.QApplication(sys.argv)
     window = MultiScaleSVDViews()
     window.show()
     sys.exit(app.exec_())

@@ -22,7 +22,7 @@ endif(COMMAND CMAKE_POLICY)
 #   list (APPEND PluginList "/Users/emonson/Programming/ParaView_git/ParaView/serial/bin/lib${pluginname}.dylib")
 # endforeach()
 
-# list(APPEND PluginList "/usr/local/Trolltech/Qt-4.7.3/plugins/sqldrivers/libqsqlite.dylib")
+# list(APPEND PluginList "/usr/local/Trolltech/Qt-4.7.4/plugins/sqldrivers/libqsqlite.dylib")
  
  
 # gp_item_default_embedded_path_override item default_embedded_path_var
@@ -102,10 +102,10 @@ set(ENV{InstallPrefix} "${InstallPrefix}")
 # If using a shell script to generate initial bundle 
 # -- should put bundlebuilder command here
 execute_process(WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                COMMAND python2.6 makeapplication.py build
+                COMMAND python2.7 makeapplication.py build
                 )
 
-set(bundle "${InstallPrefix}/MS_SVD_vis_wordle_1205.app")
+set(bundle "${InstallPrefix}/MS_SVD_vis_20121107.app")
  
 if(NOT EXISTS "${bundle}")
   message(FATAL_ERROR "error: have to generate bundle with bundlebuilder first: ${bundle}")
@@ -126,7 +126,7 @@ file(GLOB PyQt_Python_Libs "${bundle}/Contents/Resources/ExtensionModules/PyQt/*
 # Additional libs may be found in:
 set(libs_path "/Users/emonson/Programming/VTK_git/VTK/build/bin")
 list(APPEND libs_path "/Users/emonson/Programming/VTK_git/vtkVTG/build/bin")
-list(APPEND libs_path "/Library/Python/2.6/site-packages/PyQt4")
+list(APPEND libs_path "/Library/Python/2.7/site-packages/PyQt4")
 
 list(REMOVE_DUPLICATES libs_path)
  

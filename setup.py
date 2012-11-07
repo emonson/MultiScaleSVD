@@ -9,7 +9,7 @@ from setuptools import setup
 
 APP = ['main.py']
 DATA_FILES = []
-OPTIONS = {'argv_emulation': False, 'includes': ['sip', 'PyQt4'], 'packages':['PyQt4']}
+OPTIONS = {'argv_emulation': True, 'includes': ['sip', 'PyQt4', 'PyQt4.QtCore', 'PyQt4.QtGui', 'vtk', 'vtk.vtkFilteringPythonSIP', 'vtk.vtkRenderingPythonSIP', 'scipy.io'],}
 
 setup(
     app=APP,

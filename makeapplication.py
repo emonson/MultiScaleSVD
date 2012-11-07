@@ -3,7 +3,7 @@ from bundlebuilder import buildapp
 import glob, os
 
 package_root = '/Users/emonson/Programming/Python/VTK/MultiScaleSVD'
-qt_root = '/usr/local/Trolltech/Qt-4.7.3/lib'
+qt_root = '/usr/local/Trolltech/Qt-4.7.4/lib'
 
 lib_list = []
 lib_list.append(os.path.join(qt_root,'QtCore.framework'))
@@ -28,7 +28,7 @@ resource_list.append(os.path.join(package_root,'BlankImage.png'))
 # liblist.append('/Users/emonson/Programming/VTK_git/vtkVTG/build/bin/libvtkvtgChartsPythonD.dylib')
 
 buildapp(
-    name='MS_SVD_vis_wordle_1205.app', # what to build
+    name='MS_SVD_vis_20121107.app', # what to build
     mainprogram='main.py', # your app's main()
     # argv_emulation=1, # drag&dropped filenames show up in sys.argv
     # iconfile='myapp.icns', # file containing your app's icons
