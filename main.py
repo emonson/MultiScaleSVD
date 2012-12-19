@@ -12,6 +12,9 @@ import sys
 from PyQt4 import QtGui
 from multiscale_svd_gui import MultiScaleSVDViews
 
+def dependencies_for_myprogram():
+    from scipy.sparse.csgraph import _validation
+
 if __name__ == "__main__":
 
     app = QtGui.QApplication(sys.argv)
